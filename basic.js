@@ -169,7 +169,13 @@ XServerClient.prototype.setup = function (data) {
 }
 
 XServerClient.opcodes = {
-    98: 'QueryExtension'
+  , 55: 'CreateGC'
+  , 98: 'QueryExtension'
+}
+
+XServerClient.prototype.CreateGC = function (req) {
+  console.log('CGC');
+  console.log(req);
 }
 
 XServerClient.prototype.QueryExtension = function (req) {

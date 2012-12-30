@@ -134,6 +134,7 @@ function Request (data) {
   this.length_quad = data.readUInt16(2);
   this.length = this.length_quad * 4;
   this.data = data.slice(4);
+  this.data.endian = data.endian;
   this.sequence = Request.sequence ++;
 }
 
@@ -146,6 +147,7 @@ function Reply (request) {
   this.sequence = request.sequence;
   this.data_byte = 0;
   this.data = new Buffer(24);
+  this.data.endian = request.data.endian;
   this.data.fill(0);
   this.data_extra = [];
 }

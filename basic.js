@@ -181,7 +181,6 @@ XServerClient.prototype.QueryExtension = function (req) {
   res.data.writeUInt8(0, 3);
   var _res = new Buffer(res.length);
   _res.endian = this.endian;
-  console.log(this.endian);
   res.writeBuffer(_res, 0);
   this.socket.write(_res);
 }

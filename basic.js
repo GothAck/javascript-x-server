@@ -169,8 +169,24 @@ XServerClient.prototype.setup = function (data) {
 }
 
 XServerClient.opcodes = {
+    20: 'GetProperty'
   , 55: 'CreateGC'
   , 98: 'QueryExtension'
+}
+
+XServerClient.prototype.GetProperty = function (req) {
+  console.log('GP');
+  console.log(req);
+  var window = req.data.readUInt32(0)
+    , property = req.data.readUInt32(4)
+    , type = req.data.readUInt32(8)
+    , long_off = req.data.readUInt32(12)
+    , long_len = req.data.readUInt32(16);
+  var res = new x_types.Reply(req)
+    , _res = new Buffer(res.length);
+  _res.endian = this.endian;
+  res.writeBuffer(_res, 0);
+  this.socket.write(_res);
 }
 
 XServerClient.prototype.CreateGC = function (req) {

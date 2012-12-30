@@ -164,3 +164,10 @@ Reply.prototype.writeBuffer = function (buffer, offset) {
   this.data.copy(buffer, offset + 8);
   return this.data_extra.writeBuffer(buffer, offset + 8 + 24);
 }
+
+function Window(id) {
+  this.id = id;
+  this.properties = {}
+}
+
+module.exports.Window = Window;

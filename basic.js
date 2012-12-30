@@ -5,6 +5,11 @@ net.createServer(function (socket) {
   new XServerClient(socket);
 }).listen(6041);
 
+var windows = {
+    0x00000026: new x_types.Window(0x00000026)
+}
+
+var atoms = [];
 
 function XServerClient (socket) {
   this.socket = socket;

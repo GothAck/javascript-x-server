@@ -82,9 +82,17 @@ XServerClient.prototype.processData = function (data) {
     case 0:
       return this.setup(data);
     case 1:
-      var req = new x_types.Request(data);
-      var func = this[XServerClient.opcodes[req.opcode]];
-      func && func.call(this, req);
+      var req = { length: 0 }
+      while (data.length > req.length) {
+        var req = new x_types.Request(data);
+        console.log('NEW REQ', req.opcode);
+        var func = this[XServerClient.opcodes[req.opcode]];
+        func && func.call(this, req);
+        if (data.length > req.length) {
+          data = data.slice(req.length);
+          data.endian = this.endian;
+        }
+      }
   }
 }
 

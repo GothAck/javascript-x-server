@@ -169,9 +169,25 @@ XServerClient.prototype.setup = function (data) {
 }
 
 XServerClient.opcodes = {
-    20: 'GetProperty'
+    16: 'InternAtom'
+  , 20: 'GetProperty'
   , 55: 'CreateGC'
   , 98: 'QueryExtension'
+}
+
+XServerClient.prototype.InternAtom = function (req) {
+  var only_if_exists = req.data_byte
+    , length = req.data.readUInt16(0)
+    , name = req.data.toString('ascii', 2, 2 + length)
+    , index = atoms.indexOf(name) + 1;
+  if ((!index) && ! only_if_exists)
+    index = atoms.push(name);
+  var res = new x_types.Reply(req)
+  res.data.writeUInt32(index, 0);
+  var _res = new Buffer(res.length);
+  _res.endian = this.endian;
+  res.writeBuffer(_res, 0);
+  this.socket.write(_res);
 }
 
 XServerClient.prototype.GetProperty = function (req) {

@@ -1,0 +1,30 @@
+{
+  "name": "xserver",
+  "version": "0.0.1",
+  "description": "Javascript X11 Server",
+  "main": "proxy.js",
+  "dependencies": {
+    "async": "~0.1.22",
+    "connect": "~2.7.2",
+    "websocket": "~1.0.8",
+    "canvas": "~0.13.1",
+    "supervisor": "~0.5.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "./node_modules/.bin/supervisor proxy.js"
+
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/GothAck/javascript-x-server.git"
+  },
+  "keywords": [
+    "x11"
+  ],
+  "author": "Greg Miell <greg@tnkd.net>",
+  "license": "BSD",
+  "gitHead": "b9e6f6729a00444ea0c4988bc33c51bee05f2041",
+  "readmeFilename": "readme.md"
+}

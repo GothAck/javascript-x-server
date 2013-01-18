@@ -1,15 +1,54 @@
 var net = require('net')
+  , repl = require('repl').start({ useGlobal: true })
+  , Canvas = require('canvas')
   , x_types = require('./x_types');
 
+var clients = [];
+
 net.createServer(function (socket) {
-  new XServerClient(socket);
+  var sc;
+  clients.push(sc = new XServerClient(socket));
+  socket.on('end', function () {
+    console.log('end');
+    delete clients[clients.indexOf(sc)];
+  });
 }).listen(6041);
 
+var appjs = require('appjs')
+  , win = appjs.createWindow({
+        width: 400
+      , height: 400
+      , alpha: false
+    });
+appjs.router.get('/', function (req, res, next) {
+  res.send('<html><body></body></html>');
+});
+win.on('create', function () {
+  win.frame.show().center();
+});
+win.on('close', function () {
+  process.exit(0);
+});
+
+repl.context.win = win;
+
 var windows = {
-    0x00000026: new x_types.Window(0x00000026)
+    0x00000026: new x_types.Window(
+        0x00000026
+      , 0x18 // depth 24
+      , 0x0 // parent 0
+      , 0, 0
+      , 400, 400
+      , 0, 0, 0, 0, 0
+    )
 }
 
 var atoms = [];
+
+repl.context.clients = clients;
+repl.context.windows = windows;
+//FIXME: Atoms not stored correctly
+repl.context.atoms = atoms;
 
 function XServerClient (socket) {
   this.socket = socket;
@@ -21,6 +60,7 @@ function XServerClient (socket) {
   this.vendor = 'JavaScript X';
   this.motion_buffer_size = 0xff;
   this.maximum_request_length = 0xffff;
+  this.sequence = 1;
   this.formats = [
       new x_types.Format(0x01, 0x01, 0x20)
     , new x_types.Format(0x04, 0x08, 0x20)
@@ -30,6 +70,7 @@ function XServerClient (socket) {
     , new x_types.Format(0x18, 0x20, 0x20)
     , new x_types.Format(0x20, 0x20, 0x20)
   ];
+  this.resources = windows;
   this.screens = [
       new x_types.Screen(
           0x00000026 // root
@@ -81,23 +122,28 @@ function XServerClient (socket) {
 }
 
 XServerClient.prototype.processData = function (data) {
-  console.log('DATA');
   data.endian = this.endian;
   switch (this.state) {
     case 0:
       return this.setup(data);
     case 1:
       var req = { length: 0 }
-      while (data.length > req.length) {
-        var req = new x_types.Request(data);
+        , res = new Buffer(data.length * 1000)
+        , offset = 0;
+      res.endian = this.endian;
+      res.fill(0);
+      while (data.length > 0) {
+        var req = new x_types.Request(data, this.sequence ++);
         console.log('NEW REQ', req.opcode);
         var func = this[XServerClient.opcodes[req.opcode]];
-        func && func.call(this, req);
-        if (data.length > req.length) {
+        offset = (func && func.call(this, req, res, offset)) || offset;
+        if (data.length > 0) {
           data = data.slice(req.length);
           data.endian = this.endian;
         }
       }
+      if (offset)
+        this.socket.write(res.slice(0, offset));
   }
 }
 
@@ -117,7 +163,6 @@ XServerClient.prototype.setup = function (data) {
     , 12 + data.readUInt16(6) + 2
     , 12 + data.readUInt16(6) + 2 + data.readUInt16(8)
   );
-  console.log(this.auth_name, this.auth_data);
 
   /* Deny connection
   var reason = 'No Way'
@@ -169,58 +214,165 @@ XServerClient.prototype.setup = function (data) {
 }
 
 XServerClient.opcodes = {
-    16: 'InternAtom'
+    1: 'CreateWindow'
+  , 16: 'InternAtom'
+  , 18: 'ChangeProperty'
   , 20: 'GetProperty'
+  , 43: 'GetInputFocus'
+  , 53: 'CreatePixmap'
+  , 54: 'FreePixmap'
   , 55: 'CreateGC'
+  , 72: 'PutImage'
   , 98: 'QueryExtension'
 }
 
-XServerClient.prototype.InternAtom = function (req) {
+
+
+XServerClient.prototype.CreateWindow = function (req, res, offset) {
+  var depth = req.data_byte
+    , id = req.data.readUInt32(0)
+    , parent = req.data.readUInt32(4)
+    , x = req.data.readUInt16(8)
+    , y = req.data.readUInt16(10)
+    , width = req.data.readUInt16(12)
+    , height = req.data.readUInt16(14)
+    , border_width = req.data.readUInt16(16)
+    , _class = req.data.readUInt16(18)
+    , visual = req.data.readUInt32(20)
+    , vmask = req.data.readUInt32(24)
+    , vdata = req.data.slice(28);
+  vdata.endian = this.endian;
+  this.resources[id] = new x_types.Window(id, depth, parent, x, y, width, height, border_width, _class, visual, vmask, vdata);
+  console.log('CreateWindow', id);
+  return offset;
+}
+
+XServerClient.prototype.InternAtom = function (req, res, offset) {
   var only_if_exists = req.data_byte
     , length = req.data.readUInt16(0)
     , name = req.data.toString('ascii', 2, 2 + length)
     , index = atoms.indexOf(name) + 1;
   if ((!index) && ! only_if_exists)
     index = atoms.push(name);
-  var res = new x_types.Reply(req)
-  res.data.writeUInt32(index, 0);
-  var _res = new Buffer(res.length);
-  _res.endian = this.endian;
-  res.writeBuffer(_res, 0);
-  this.socket.write(_res);
+  var _res = new x_types.Reply(req)
+  _res.data.writeUInt32(index, 0);
+  console.log('InternAtom')
+  return _res.writeBuffer(res, offset)
 }
 
-XServerClient.prototype.GetProperty = function (req) {
-  console.log('GP');
-  console.log(req);
+XServerClient.prototype.ChangeProperty = function (req, res, offset) {
+  var mode = req.data_byte
+    , window = this.resources[req.data.readUInt32(0)]
+    , property = req.data.readUInt32(4)
+    , type = req.data.readUInt32(8)
+    , format = req.data.readUInt8(12)
+    , length = req.data.readUInt32(16) * (format === 8 ? 1 : (format === 16 ? 2 : (format === 32) ? 4 : 0))
+    , data = req.data.slice(20, length + 20);
+  data.endian = this.endian;
+
+  window.changeProperty(property, format, data, mode);
+
+  console.log('ChangeProperty', window.id, property, format, data, mode);
+  return offset;
+}
+
+
+XServerClient.prototype.GetProperty = function (req, res, offset) {
   var window = req.data.readUInt32(0)
     , property = req.data.readUInt32(4)
     , type = req.data.readUInt32(8)
     , long_off = req.data.readUInt32(12)
     , long_len = req.data.readUInt32(16);
-  var res = new x_types.Reply(req)
-    , _res = new Buffer(res.length);
-  _res.endian = this.endian;
-  res.writeBuffer(_res, 0);
-  this.socket.write(_res);
+  console.log('Get Property', window, property);
+  var _res = new x_types.Reply(req)
+  return _res.writeBuffer(res, offset);
 }
 
-XServerClient.prototype.CreateGC = function (req) {
-  console.log('CGC');
-  console.log(req);
+XServerClient.prototype.GetInputFocus = function (req, res, offset) {
+  // TODO: STUB Returning one value, check functionality and FIXME
+  console.log('GetInputFocus');
+  var _res = new x_types.Reply(req);
+  _res.data_byte = 1;
+  _res.data.writeUInt32(1, 0);
+  return _res.writeBuffer(res, offset);
 }
 
-XServerClient.prototype.QueryExtension = function (req) {
-  console.log('QE');
-  var res = new x_types.Reply(req);
-  res.data.writeUInt8(0, 0);
-  res.data.writeUInt8(req.opcode, 1);
-  res.data.writeUInt8(0, 2);
-  res.data.writeUInt8(0, 3);
-  var _res = new Buffer(res.length);
-  _res.endian = this.endian;
-  res.writeBuffer(_res, 0);
-  this.socket.write(_res);
+XServerClient.prototype.CreatePixmap = function (req, res, offset) {
+  var depth = req.data_byte
+    , pid = req.data.readUInt32(0)
+    , drawable = req.data.readUInt32(4)
+    , width = req.data.readUInt16(8)
+    , height = req.data.readUInt16(10);
+  if (this.resources[pid])
+    console.log('TODO: Throw error?');
+  if (!(drawable = this.resources[drawable]))
+    console.log('TODO: Throw error! (No drawable)');
+  console.log('CreatePixmap', pid);
+  console.log(drawable.depth, depth);
+  if (drawable.depth !== depth && depth !== 1) {
+    var _res = new x_types.Error(req, 4, depth);
+    console.log('Depth Error');
+    return _res.writeBuffer(res, offset);
+  }
+
+  this.resources[pid] = new x_types.Pixmap(pid, depth, drawable, width, height);
+  console.log(pid in this.resources, pid in windows);
+  return offset;
+}
+
+XServerClient.prototype.FreePixmap = function (req, res, offset) {
+  var pid = req.data.readUInt32(0);
+  console.log('FreePixmap', pid);
+  if (! (this.resources[pid] instanceof x_types.Pixmap)) {
+    var _res = new x_types.Error(req, 2, pid);
+    console.log('Error');
+    return _res.writeBuffer(res, offset);
+  }
+  delete this.resources[pid];
+  return offset;
+}
+
+XServerClient.prototype.CreateGC = function (req, res, offset) {
+  var cid = req.data.readUInt32(0)
+    , drawable = req.data.readUInt32(4)
+    , vmask = req.data.readUInt32(8)
+    , vdata = req.data.slice(12);
+  vdata.endian = this.endian;
+  if (this.resources[cid])
+    console.log('TODO: Throw error?');
+  if (! this.resources[drawable])
+    console.log('TODO: Throw error?', cid, drawable);
+  console.log('CreateGC', cid, drawable);
+  this.resources[cid] = new x_types.GraphicsContext(cid, this.resources[drawable], vmask, vdata);
+  return offset;
+}
+
+XServerClient.prototype.PutImage = function (req, res, offset) {
+  var type = req.data_byte
+    , drawable = this.resources[req.data.readUInt32(0)]
+    , context = this.resources[req.data.readUInt32(4)]
+    , width = req.data.readUInt16(8)
+    , height = req.data.readUInt16(10)
+    , x = req.data.readUInt16(12)
+    , y = req.data.readUInt16(14)
+    , pad = req.data.readUInt8(16)
+    , depth = req.data.readUInt8(17)
+    , data = req.data.slice(20);
+  data.endian = this.endian;
+  context.putImage(data, width, height, x, y);
+  console.log('PutImage', req.data.readUInt32(0), req.data.readUInt32(4));
+  return offset;
+}
+
+XServerClient.prototype.QueryExtension = function (req, res, offset) {
+  console.log('QueryExtension');
+  var _res = new x_types.Reply(req);
+  _res.data.writeUInt8(0, 0);
+  _res.data.writeUInt8(req.opcode, 1);
+  _res.data.writeUInt8(0, 2);
+  _res.data.writeUInt8(0, 3);
+  console.log('QueryExtension');
+  return _res.writeBuffer(res, offset);
 }
 
 function stringPad (string) {

@@ -1129,7 +1129,6 @@ window.loaders.push(function () {
         x += elem.width()
 //        x += gc.font.font.drawTo(str, gc.getContext(drawable), x + delta, y, 255, 255, 255);
         req_offset = end + ((end % 4) ? (4 - (end % 4)) : 0);
-        console.log(req_offset, req.data.length);
         if (req_offset + 4 >= req.data.length)
           break;
       }

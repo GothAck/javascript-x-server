@@ -1,5 +1,3 @@
-UNAME := $(shell echo "Windows")
-
 all: fonts
 
 fonts:

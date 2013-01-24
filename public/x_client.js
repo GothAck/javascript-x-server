@@ -143,27 +143,32 @@ window.loaders.push(function () {
     ];
     this.atoms = default_atoms.slice();
     this.atom_owners = [];
-    this.resources = {
-      0x00000026: this.root = new x_types.Window(
-          this
-        , 0x00000026
-        , 0x18 // depth 24
-        , { id: 0, element: this.screen, children: [] } // parent 0
-        , 0, 0
-        , 800, 400
-        , 0, 0, 0, 0, 0
-      )
-    , 0x00000022: new x_types.ColorMap(
-          0x00000022
-        , function (rgb) {
-            return [
-                (rgb & 0x000000ff)
-              , (rgb & 0x0000ff00) >> 8
-              , (rgb & 0x00ff0000) >> 16
-            ]
+    this.resources = {}
+    this.resources[0x00000022] = new x_types.ColorMap(
+        0x00000022
+      , function (rgb, type) {
+          rgb = [
+              (rgb & 0x000000ff)
+            , (rgb & 0x0000ff00) >> 8
+            , (rgb & 0x00ff0000) >> 16
+          ];
+          switch (type) {
+            case 'hex':
+              return rgb.reduce(function (str, v) { v = v.toString(16); return str + (v.length < 2 ? '0' : '') + v }, '');
+            default:
+              return rgb;
           }
-      )
-    };
+        }
+    );
+    this.resources[0x00000026] = this.root = new x_types.Window(
+        this
+      , 0x00000026
+      , 0x18 // depth 24
+      , { id: 0, element: this.screen, children: [] } // parent 0
+      , 0, 0
+      , 800, 400
+      , 0, 0, 0, 0, 0
+    );
     this.font_path = 'fonts';
     this.fonts_dir = {};
     this.fonts_scale = {};

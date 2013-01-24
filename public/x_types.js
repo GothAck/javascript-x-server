@@ -617,15 +617,12 @@ window.loaders.push(function () {
     this.class = _class;
     this.visual = visual;
     this.events = [];
-    this.changeData(vmask, vdata);
-    this.properties = {}
 
     this.element = $('<div class="drawable"><div class="relative"></div></div>').attr('id', 'e' + this.id).css({ width: width, height: height });
     this.element.children().append(this.canvas = $('<canvas></canvas>').attr('id', this.id).attr('width', width).attr('height', height));
+    this.changeData(vmask, vdata);
+    this.properties = {}
     var ctx = this.canvas[0].getContext('2d');
-    ctx.rect(0, 0, 1000, 1000);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
     this.x = x;
     this.y = y;
     this.width = width;
@@ -691,6 +688,8 @@ window.loaders.push(function () {
         this[_win_vfields[i]] = vdata['read' + _win_vfield_types[i]](offset);
         offset += 4;
       }
+    var server = this.owner.server || this.owner;
+    this.element.css('background-color', server.resources[server.screens[0].colormap].lookup_func(this.background_pixel, 'hex'));
   }
 
   // FIXME: Unused due to differing reply format to send format!

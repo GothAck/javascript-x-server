@@ -1,0 +1,11 @@
+UNAME := $(shell echo "Windows")
+
+all: fonts
+
+fonts:
+	#cd fonts; mkfontdir; make
+	cd fonts; mkfontdir
+	find public/fonts -type l -delete
+	cd public/fonts/; ln -s ../../fonts/out/*.woff .
+	cd public/fonts/; ln -s ../../fonts/out/*.json .
+	cd public/fonts/; ln -s ../../fonts/fonts.dir .

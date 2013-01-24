@@ -506,6 +506,7 @@ window.loaders.push(function () {
     , 8: 'MapWindow'
     , 9: 'MapSubwindows'
     , 10: 'UnmapWindow'
+    , 11: 'UnmapSubwindows'
     , 12: 'ConfigureWindow'
     , 14: 'GetGeometry'
     , 16: 'InternAtom'
@@ -1107,7 +1108,6 @@ window.loaders.push(function () {
       , y = req.data.readInt16(10) - gc.font.font.getChar(-1).ascent
       , textitems = []
       , req_offset = 12;
-      console.log(gc);
     for (var i = 0; i < count; i ++) {
       var len = req.data.readUInt8(req_offset);
       if (len === 0)

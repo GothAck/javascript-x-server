@@ -1,0 +1,3 @@
+[submodule "pcf-font-to-vector"]
+    path = public/fonts/convert
+    url = git@github.com:GothAck/pcf-font-to-vector.git

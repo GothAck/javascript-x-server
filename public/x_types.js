@@ -660,9 +660,16 @@ window.loaders.push(function () {
   });
 
   Window.prototype.map = function () {
-    if (this.element.parentElement)
+    if (this.element[0].parentElement)
       return;
     this.parent.element.children().append(this.element);
+    return true;
+  }
+
+  Window.prototype.unmap = function () {
+    if (! this.element.parentElement)
+      return;
+    this.element.remove();
     return true;
   }
 

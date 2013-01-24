@@ -505,6 +505,7 @@ window.loaders.push(function () {
     , 3: 'GetWindowAttributes'
     , 8: 'MapWindow'
     , 9: 'MapSubwindows'
+    , 10: 'UnmapWindow'
     , 12: 'ConfigureWindow'
     , 14: 'GetGeometry'
     , 16: 'InternAtom'
@@ -627,6 +628,14 @@ window.loaders.push(function () {
     }
     run(window.children);
     callback(null, reps);
+  }
+
+  XServerClient.prototype.UnmapWindow = function (req, callback) {
+    var window = this.server.resources[req.data.readUInt32(0)];
+    console.log('UnmapWindow');
+    if (window.unmap())
+      console.log('Success - events go here!');
+    callback();
   }
 
   var _win_configure_vfields = [

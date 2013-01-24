@@ -62,11 +62,9 @@ wss.on('request', function (req) {
       delete sockets[id];
     });
     socket.on('data', function (data) {
-      console.log('data', data.length);
       var buffer = new Buffer(data.length + 2);
       data.copy(buffer, 2);
       buffer.writeUInt16BE(id, 0);
-      console.log('data', buffer.length);
       con.sendBytes(buffer);
     });
   }).listen(6000 + screen);
@@ -75,8 +73,6 @@ wss.on('request', function (req) {
       console.log('data');
     } else {
       var data = message.binaryData;
-      console.log('binary data', data, data.readUInt16LE(0), data.slice(2), data.length);
-      console.log(sockets[data.readUInt16LE(0)]);
       sockets[data.readUInt16LE(0)].write(data.slice(2));
     }
   });

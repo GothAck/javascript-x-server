@@ -104,6 +104,23 @@ $(function () {
   }
 });
 
+$(function () {
+  var event_map = {
+      KeyPress      : 'keydown'
+    , KeyRelease    : 'keyup'
+    , PointerMotion : 'mousemove'
+    , EnterWindow   : 'mouseover'
+    , LeaveWindow   : 'mouseout'
+  }
+  Object.keys(event_map).forEach(function (_class) {
+    var _event = event_map[_class];
+    $('.screen').on(_event, '.' + _class, function (event) {
+      var $this = $(this)
+        , xob = $this.data('xob');
+      xob && xob.event(_class, { x: event.offsetX, y: event.offsetY });
+    });
+  });
+});
 
 window.loaders.forEach(function (loader) {
   $(loader);

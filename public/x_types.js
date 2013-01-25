@@ -618,7 +618,7 @@ window.loaders.push(function () {
     this.visual = visual;
     this.events = [];
 
-    this.element = $('<div class="drawable"><div class="relative"></div></div>').attr('id', 'e' + this.id).css({ width: width, height: height });
+    this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>').attr('id', 'e' + this.id).css({ width: width, height: height }).data('xob', this);
     this.element.children().append(this.canvas = $('<canvas></canvas>').attr('id', this.id).attr('width', width).attr('height', height));
     this.changeData(vmask, vdata);
     this.properties = {}
@@ -651,10 +651,16 @@ window.loaders.push(function () {
       return event_mask & Math.pow(2, i);
     });
     this._event_mask = event_mask;
+    this.element.removeClass(_event_mask_fields.join(' '));
+    this.element.addClass(this.events.join(' '));
   });
   Window.prototype.__defineGetter__('event_mask', function () {
     return this._event_mask || 0;
   });
+
+  Window.prototype.event = function (event, data) {
+    console.log(event);
+  }
 
   Window.prototype.map = function () {
     if (this.element[0].parentElement)

@@ -306,7 +306,7 @@ window.loaders.push(function () {
         setTimeout(function () {
           this.grabbed = false;
           this.flushGrabBuffer();
-        }.bind(this), 10);
+        }.bind(this), 250);
       }.bind(this));
       if (!font.loading)
         this.grabbed = false;

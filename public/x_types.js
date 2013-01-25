@@ -465,6 +465,9 @@ window.loaders.push(function () {
     if (rgb.length < 8)
       rgb = (new Array(9 - rgb.length)).join('0') + rgb;
     context.fillStyle = '#' + rgb.slice(2);
+    if (this.font) {
+      context.font = this.font.font.height + 'px "' + this.font.file_name + '"';
+    }
 //    context.webkitImageSmoothingEnabled = false;
     return context;
   }

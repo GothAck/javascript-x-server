@@ -305,6 +305,10 @@ window.loaders.push(function () {
     this.code = code || 1;
     this.detail = detail || 0;
     this.sequence = req.sequence;
+    console.log(req);
+    if (req instanceof XServerClient)
+      this.sequence -= 1;
+    console.log(this.sequence, req.sequence);
     this.data = new Buffer(28);
     this.data.endian = req.endian;
     this.length = 32;
@@ -380,6 +384,38 @@ window.loaders.push(function () {
     this.data.writeUInt8(~~this.deleted, 12);
     return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
+
+  function EventInputDevicePointerWindow (code, child, parent, detail, child_x, child_y, btn_state) {
+    Event.call(this, child.owner, code);
+    this.child = child;
+    this.parent = parent;
+    this.detail = detail;
+    this.x = child_x;
+    this.y = child_y;
+    this.btn_state = btn_state;
+    this.same_screen = true;
+    this.btn_state = this.child.owner.server.btn_state = btn_state
+  }
+
+  util.inherits(EventInputDevicePointerWindow, Event);
+
+  EventInputDevicePointerWindow.prototype.writeBuffer = function (buffer, offset) {
+    this.data.writeUInt32(0, 0); //Time
+    this.data.writeUInt32(this.parent.getRoot().id, 4); // Root id
+    this.data.writeUInt32(this.parent.id, 8); // Parent / event win id
+    this.data.writeUInt32((this.child.id !== this.parent.id && this.child.id) || 0, 12); // Child id (0 if same as parent)
+    var this_offset = this.child.element.offset()
+      , root_offset = this.parent.getRoot().element.offset();
+
+    this.data.writeInt16(root_offset.left - this_offset.left, 16); // Root x
+    this.data.writeInt16(root_offset.top  - this_offset.top , 18); // Root y
+    this.data.writeInt16(this.x, 20); // x
+    this.data.writeInt16(this.y, 22); // y
+    this.data.writeUInt16(this.btn_state, 24);
+    this.data.writeUInt8(this.same_screen, 26);
+    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
+  }
+
 
 
   var _gc_vfields = [
@@ -659,7 +695,29 @@ window.loaders.push(function () {
   });
 
   Window.prototype.event = function (event, data) {
-    console.log(event);
+    if (~this.events.indexOf(event)) {
+      console.log(event);
+      if (this.owner instanceof XServerClient) {
+        var rep = null;
+          if (event === 'EnterWindow')
+            rep = new EventInputDevicePointerWindow(
+                7
+              , this, this, 0, data.offsetX, data.offsetY
+              , 0
+            );
+          if (event === 'LeaveWindow')
+            rep = new EventInputDevicePointerWindow(
+                8
+              , this, this, 0, data.offsetX, data.offsetY
+              , 0
+            );
+          this.owner.reps.push(rep);
+        return this.owner.processReps();
+      }
+      if (this.owner instanceof XServer) {
+        // Do X Server Events
+      }
+    }
   }
 
   Window.prototype.map = function () {

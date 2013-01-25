@@ -414,7 +414,7 @@ window.loaders.push(function () {
   XServerClient.prototype.processReps = function () {
     if (! this.reps.length)
       return;
-    var reps = this.reps.splice(0, this.reps.length)
+    var reps = this.reps.splice(0, this.reps.length).filter(function (rep) { return rep })
       , res = new Buffer(
           reps.reduce(function (o, rep) { return o + rep.length }, 0)
         );

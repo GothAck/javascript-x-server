@@ -324,7 +324,7 @@ window.loaders.push(function () {
     if (typeof str !== 'string')
       return str;
     for (var i = 0; i < str.length; i ++)
-      out_str += str.charCodeAt(i) < 30 ? '&#' + str.charCodeAt(i) + ';' : str.charAt(i);
+      out_str += str.charCodeAt(i) < 0x21 ? '&#' + (0x2400 + str.charCodeAt(i))+ ';' : str.charAt(i);
     return out_str;
   }
 

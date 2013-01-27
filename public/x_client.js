@@ -976,10 +976,7 @@ window.loaders.push(function () {
       , w = req.data.readUInt16(8) || (window.width - y)
       , h = req.data.readUInt16(10) || (window.height - x);
     var context = window.canvas[0].getContext('2d');
-    context.fillStyle = '#fff';
-    context.beginPath();
-    context.rect(x, y, w, h);
-    context.fill();
+    context.clearRect(x, y, w, h);
     callback();
   }
 

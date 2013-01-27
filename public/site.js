@@ -58,6 +58,9 @@ function connect () {
           server.disconnect(data[1] ^ 0);
           $('h2').text(Object.keys(server.clients).length + ' clients');
         break;
+        case 'PING':
+          socket.send('PONG ' + data[1]);
+        break;
         default:
           console.log(data);
       }

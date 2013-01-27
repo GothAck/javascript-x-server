@@ -48,7 +48,13 @@ wss.on('request', function (req) {
   }
 
   var con = req.accept('x11-proxy', req.origin)
-    , sockets = {};
+    , sockets = {}
+    , ping_counter = 0
+    , ping_interval = null
+    , ping_timeout = null
+    , ping_start = null
+    , ping_results = []
+    , ping_average = 0;
 
   console.log('connected', screen);
   con.sendUTF('SCR ' + screen);
@@ -68,9 +74,33 @@ wss.on('request', function (req) {
       con.sendBytes(buffer);
     });
   }).listen(6000 + screen);
+
+  ping_interval = setInterval(function () {
+    var counter = ping_counter ++;
+    con.sendUTF('PING ' + counter);
+    ping_start = Date.now();
+    ping_timeout = setTimeout(function () {
+      console.log('Ping timeout', counter);
+      ping_timeout = null;
+    }, 500);
+  }, 5000);
+
   con.on('message', function (message) {
     if (message.type === 'utf8') {
-      console.log('data');
+      var data = message.utf8Data.split(' ');
+      switch (data[0]) {
+        case 'PONG':
+          if (data[1] == ping_counter - 1) {
+            ping_results.unshift(Date.now() - ping_start);
+            ping_results.splice(10, 10);
+            ping_average = ping_results.reduce(function (o, v) { return o + v }) / ping_results.length
+            clearTimeout(ping_timeout);
+            ping_timeout = null;
+          } else {
+            console.log('Out of order ping', data[1], ping_counter - 1);
+          }
+        break;
+      }
     } else {
       var data = message.binaryData;
       sockets[data.readUInt16LE(0)].write(data.slice(2));
@@ -78,6 +108,8 @@ wss.on('request', function (req) {
   });
   con.on('close', function () {
     console.log('closed');
+    clearTimeout(ping_timeout);
+    clearInterval(ping_interval);
     Object.keys(sockets).forEach(function (id) {
       sockets[id].end();
     })

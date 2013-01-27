@@ -385,8 +385,10 @@ window.loaders.push(function () {
     return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
 
-  function EventInputDevicePointerWindow (code, child, parent, detail, child_x, child_y, btn_state) {
-    Event.call(this, child.owner, code);
+  function EventWindowInputDevicePointer (event, child, parent, detail, child_x, child_y, btn_state) {
+    if (! ~EventWindowInputDevicePointer.event_map.indexOf(event))
+      throw new Error('Invalid event ' + event);
+    Event.call(this, child.owner, 2 + EventWindowInputDevicePointer.event_map.indexOf(event));
     this.child = child;
     this.parent = parent;
     this.detail = detail;
@@ -397,9 +399,17 @@ window.loaders.push(function () {
     this.btn_state = this.child.owner.server.btn_state = btn_state
   }
 
-  util.inherits(EventInputDevicePointerWindow, Event);
+  util.inherits(EventWindowInputDevicePointer, Event);
 
-  EventInputDevicePointerWindow.prototype.writeBuffer = function (buffer, offset) {
+
+  EventWindowInputDevicePointer.event_map = [
+      'KeyPress'    , 'KeyRelease'    // 2, 3
+    , 'ButtonPress' , 'ButtonRelease' // 4, 5
+    , null                            // 6 MapNotify
+    , 'EnterWindow' , 'LeaveWindow'   // 7, 8
+  ];
+
+  EventWindowInputDevicePointer.prototype.writeBuffer = function (buffer, offset) {
     this.data.writeUInt32(0, 0); //Time
     this.data.writeUInt32(this.parent.getRoot().id, 4); // Root id
     this.data.writeUInt32(this.parent.id, 8); // Parent / event win id
@@ -699,21 +709,30 @@ window.loaders.push(function () {
 
   Window.prototype.event = function (event, data) {
     if (~this.events.indexOf(event)) {
-      console.log(event);
       if (this.owner instanceof XServerClient) {
+        console.log(event);
         var rep = null;
-          if (event === 'EnterWindow')
-            rep = new EventInputDevicePointerWindow(
-                7
-              , this, this, 0, data.offsetX, data.offsetY
-              , 0
-            );
-          if (event === 'LeaveWindow')
-            rep = new EventInputDevicePointerWindow(
-                8
-              , this, this, 0, data.offsetX, data.offsetY
-              , 0
-            );
+          switch (event) {
+            case 'KeyPress':
+            case 'KeyRelease':
+              rep = new EventWindowInputDevicePointer(event, this, this, data.keycode, data.x, data.y, data.keybutmask);
+            break;
+            case 'ButtonPress':
+            case 'ButtonRelease':
+              rep = new EventWindowInputDevicePointer(event, this, this, data.button, data.x, data.y, data.keybutmask);
+            break;
+            case 'MapNotify': //6
+            break;
+            case 'EnterWindow':
+            case 'LeaveWindow':
+              rep = new EventWindowInputDevicePointer(event, this, this, 0, data.x, data.y, data.keybutmask);
+            break;
+            case 'FocusIn': //9
+            break;
+            case 'FocusOut': //10
+            break;
+            // 11 - 34
+          }
           this.owner.reps.push(rep);
         return this.owner.processReps();
       }

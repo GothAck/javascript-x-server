@@ -108,21 +108,71 @@ $(function () {
 });
 
 $(function () {
-  var event_map = {
-      KeyPress      : 'keydown'
-    , KeyRelease    : 'keyup'
-    , PointerMotion : 'mousemove'
-    , EnterWindow   : 'mouseover'
-    , LeaveWindow   : 'mouseout'
-  }
-  Object.keys(event_map).forEach(function (_class) {
-    var _event = event_map[_class];
+  var event_mask_map = {
+          KeyPress      : 'keydown'
+        , KeyRelease    : 'keyup'
+        , ButtonPress   : 'mousedown'
+        , ButtonRelease : 'mouseup'
+        , PointerMotion : 'mousemove'
+        , EnterWindow   : 'mouseover'
+        , LeaveWindow   : 'mouseout'
+        , FocusChange   : 'focus blur'
+      }
+    , event_map = {
+          keydown   : 'KeyPress'
+        , keyup     : 'KeyRelease'
+        , mousedown : 'ButtonPress'
+        , mouseup   : 'ButtonRelease
+        , mousemove : 'MotionNotify'
+        , mouseover : 'EnterNotify'
+        , mouseout  : 'LeaveNotify'
+        , focus     : 'FocusIn'
+        , blur      : 'FocusOut'
+      }
+    , mouse_buttons = [1,3,2]
+    , current_mouse = 0;
+  $('.screen').on('mousedown mouseup', function (event) {
+    if (event.type === 'mousedown')
+      current_mouse |= 1 << (mouse_buttons[event.button] - 1);
+      }
+    , mouse_buttons = [1,3,2]
+    , current_mouse = 0;
+  $('.screen').on('mousedown mouseup', function (event) {
+    if (event.type === 'mousedown')
+      current_mouse |= 1 << (mouse_buttons[event.button] - 1);
+    else
+      current_mouse &= ~ (1 << (mouse_buttons[event.button] - 1));
+  });
+  Object.keys(event_mask_map).forEach(function (_class) {
+    var _event = event_mask_map[_class];
     $('.screen').on(_event, '.' + _class, function (event) {
       var $this = $(this)
-        , xob = $this.data('xob');
-      xob && xob.event(_class, { x: event.offsetX, y: event.offsetY });
+        , xob = $this.data('xob')
+        , keybutmask = (
+              current_mouse |
+              (
+                  event.type === 'mousedown' &&
+                  (1 << (mouse_buttons[event.button] - 1))
+              )
+          ) << 8;
+      keybutmask |= event.shiftKey && 1;
+      // lock? = 2
+      keybutmask |= event.ctrlKey  && 4;
+      console.log(event);
+      xob && xob.event(
+          event_map[event.type]
+        , {
+              x: event.offsetX
+            , y: event.offsetY
+            , button: mouse_buttons[event.button]
+            , keycode: event.keyCode
+            , keybutmask: keybutmask
+          }
+      );
+      return false;
     });
   });
+  $('.screen').on('contextmenu', '*', function () { return false; });
 });
 
 window.loaders.forEach(function (loader) {

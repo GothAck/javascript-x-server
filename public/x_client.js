@@ -324,7 +324,7 @@ window.loaders.push(function () {
     if (typeof str !== 'string')
       return str;
     for (var i = 0; i < str.length; i ++)
-      out_str += str.charCodeAt(i) < 0x21 ? '&#' + (0x2400 + str.charCodeAt(i))+ ';' : str.charAt(i);
+      out_str += str.charCodeAt(i) < 0x21 ? String.fromCharCode(0x2400 + str.charCodeAt(i)) : str.charAt(i);
     return out_str;
   }
 
@@ -1139,9 +1139,10 @@ window.loaders.push(function () {
   XServerClient.prototype.PolyText16 = function (req, callback) {
     var drawable = this.resources[req.data.readUInt32(0)]
       , gc = this.resources[req.data.readUInt32(4)]
+      , context = gc.getContext(drawable)
       , count = (req.length_quad / 4) - 1
       , x = req.data.readInt16(8)
-      , y = req.data.readInt16(10) - gc.font.font.getChar(-1).ascent
+      , y = req.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
       , textitems = []
       , req_offset = 12;
     for (var i = 0; i < count; i ++) {
@@ -1155,9 +1156,8 @@ window.loaders.push(function () {
           , start = req_offset + 2
           , end = req_offset + 2 + (len * 2)
           , str = this.server.encodeString(req.data.toString('2charb', start, end));
-        var elem = $('<div />').html(str).css({ top: y, left: x + delta }).addClass('font_' + gc.font.name);
-        drawable.element.children().append(elem);
-        x += elem.width()
+        context.fillText(str, x + delta, y);
+        x += context.measureText(str).width + delta;
 //        x += gc.font.font.drawTo(str, gc.getContext(drawable), x + delta, y, 255, 255, 255);
         req_offset = end + ((end % 4) ? (4 - (end % 4)) : 0);
         if (req_offset + 4 >= req.data.length)

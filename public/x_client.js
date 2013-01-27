@@ -515,6 +515,7 @@ window.loaders.push(function () {
     , 12: 'ConfigureWindow'
     , 14: 'GetGeometry'
     , 16: 'InternAtom'
+    , 17: 'GetAtomName'
     , 18: 'ChangeProperty'
     , 19: 'DeleteProperty'
     , 20: 'GetProperty'
@@ -684,6 +685,21 @@ window.loaders.push(function () {
     var rep = new x_types.Reply(req)
     rep.data.writeUInt32(index, 0);
     console.log('InternAtom')
+    callback(null, rep);
+  }
+
+  XServerClient.prototype.GetAtomName = function (req, callback) {
+    var atom_id = req.data.readUInt32(0)
+      , atom = this.server.atoms[atom_id - 1]
+      , rep = null;
+    if (! atom) {
+      console.log('ATOM Error');
+      rep = new x_types.Error(req, 5, atom_id);
+    } else {
+      rep = new x_types.Reply(req);
+      rep.data.writeUInt16(atom.length);
+      rep.data_extra.push(new x_types.String(atom));
+    }
     callback(null, rep);
   }
 

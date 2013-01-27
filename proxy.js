@@ -78,6 +78,9 @@ wss.on('request', function (req) {
   });
   con.on('close', function () {
     console.log('closed');
+    Object.keys(sockets).forEach(function (id) {
+      sockets[id].end();
+    })
     local_socket.close();
     screens.push(screen);
   });

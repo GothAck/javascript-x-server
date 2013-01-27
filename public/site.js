@@ -76,7 +76,7 @@ function connect () {
     socket = null;
     $('h1').text('Disconnected');
     $('h2').text('0 clients');
-    $('.screen').children().remove();
+    $('.screen').children().children().remove();
     $('.buffers').children().remove();
     setTimeout(connect, 2500);
   }

@@ -715,17 +715,17 @@ window.loaders.push(function () {
           switch (event) {
             case 'KeyPress':
             case 'KeyRelease':
-              rep = new EventWindowInputDevicePointer(event, this, this, data.keycode, data.x, data.y, data.keybutmask);
+              rep = new EventWindowInputDevicePointer(event, this, data.child, data.keycode, data.x, data.y, data.keybutmask);
             break;
             case 'ButtonPress':
             case 'ButtonRelease':
-              rep = new EventWindowInputDevicePointer(event, this, this, data.button, data.x, data.y, data.keybutmask);
+              rep = new EventWindowInputDevicePointer(event, this, data.child, data.button, data.x, data.y, data.keybutmask);
             break;
             case 'MapNotify': //6
             break;
             case 'EnterWindow':
             case 'LeaveWindow':
-              rep = new EventWindowInputDevicePointer(event, this, this, 0, data.x, data.y, data.keybutmask);
+              rep = new EventWindowInputDevicePointer(event, this, data.child, 0, data.x, data.y, data.keybutmask);
             break;
             case 'FocusIn': //9
             break;

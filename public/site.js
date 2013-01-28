@@ -140,8 +140,10 @@ $(function () {
   Object.keys(event_mask_map).forEach(function (_class) {
     var _event = event_mask_map[_class];
     $('.screen').on(_event, '.' + _class, function (event) {
-      var $this = $(this)
-        , xob = $this.data('xob')
+      var $event = $(this)
+        , $child = $(event.target).parent().parent()
+        , xob_event = $event.data('xob')
+        , xob_child = $child.data('xob')
         , keybutmask = (
               current_mouse |
               (
@@ -152,8 +154,7 @@ $(function () {
       keybutmask |= event.shiftKey && 1;
       // lock? = 2
       keybutmask |= event.ctrlKey  && 4;
-      console.log(event);
-      xob && xob.event(
+      xob_event && xob_event.event(
           event_map[event.type]
         , {
               x: event.offsetX
@@ -161,6 +162,8 @@ $(function () {
             , button: mouse_buttons[event.button]
             , keycode: event.keyCode
             , keybutmask: keybutmask
+            , event: xob_event
+            , child: xob_child
           }
       );
       return false;

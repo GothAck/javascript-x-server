@@ -474,7 +474,12 @@ window.loaders.push(function () {
       , rgb = (this.foreground || 0).toString(16);
     if (rgb.length < 8)
       rgb = (new Array(9 - rgb.length)).join('0') + rgb;
+    context.restore();
+    context.save();
+    context.translate(0.5, 0.5);
+    context.webkitImageSmoothingEnabled = false;
     context.fillStyle = '#' + rgb.slice(2);
+    context.strokeStyle = context.fillStyle;
     if (this.font) {
       context.font = this.font.font.height + 'px "' + this.font.file_name + '"';
     }

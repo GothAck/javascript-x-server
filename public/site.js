@@ -122,18 +122,12 @@ $(function () {
           keydown   : 'KeyPress'
         , keyup     : 'KeyRelease'
         , mousedown : 'ButtonPress'
-        , mouseup   : 'ButtonRelease
+        , mouseup   : 'ButtonRelease'
         , mousemove : 'MotionNotify'
         , mouseover : 'EnterNotify'
         , mouseout  : 'LeaveNotify'
         , focus     : 'FocusIn'
         , blur      : 'FocusOut'
-      }
-    , mouse_buttons = [1,3,2]
-    , current_mouse = 0;
-  $('.screen').on('mousedown mouseup', function (event) {
-    if (event.type === 'mousedown')
-      current_mouse |= 1 << (mouse_buttons[event.button] - 1);
       }
     , mouse_buttons = [1,3,2]
     , current_mouse = 0;

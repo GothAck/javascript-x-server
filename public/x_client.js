@@ -550,6 +550,7 @@ window.loaders.push(function () {
     , 56: 'ChangeGC'
     , 60: 'FreeGC'
     , 61: 'ClearArea'
+    , 65: 'PolyLine'
     , 66: 'PolySegment'
     , 67: 'PolyRectangle'
     , 69: 'FillPoly'
@@ -999,9 +1000,32 @@ window.loaders.push(function () {
     callback();
   }
 
+
   XServerClient.prototype.FreeGC = function (req, callback) {
     var cid = req.data.readUInt32(0);
     delete this.resources[cid];
+    callback();
+  }
+
+  XServerClient.prototype.PolyLine = function (req, callback) {
+    var drawable = this.resources[req.data.readUInt32(0)]
+      , coord_mode = req.data_byte
+      , gc = this.resources[req.data.readUInt32(4)]
+      , context = gc.getContext(drawable)
+      , count = req.length_quad - 3;
+    context.moveTo(0, 0);
+    var prev_x = 0, prev_y = 0;
+    for (var i = 8; i < 8 + (count * 4); i += 4) {
+      var x = (coord_mode ? prev_x : 0) + req.data.readInt16(i)
+        , y = (coord_mode ? prev_y : 0) + req.data.readInt16(i + 2)
+      if (i === 8)
+        context.moveTo(x, y);
+      else
+        context.lineTo(x, y);
+      context.stroke();
+      prev_x = x;
+      prev_y = y;
+    }
     callback();
   }
 

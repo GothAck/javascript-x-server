@@ -797,12 +797,9 @@ window.loaders.push(function () {
       , rep = new x_types.Reply(req);
     rep.data.writeUInt32(window.getRoot(), 0);
     rep.data.writeUInt32((window.parent && window.parent.id) || 0, 4);
-    var children = window.element.children().children('div');
-    console.log(children);
-    rep.data.writeUInt16(children.length, 8);
-    children.each(function () {
-      console.log($(this).data('xob').id);
-      rep.data_extra.push(new x_types.UInt32($(this).data('xob').id));
+    rep.data.writeUInt16(window.children.length, 8);
+    window.children.forEach(function (child) {
+      rep.data_extra.push(new x_types.UInt32(child.id));
     });
     callback(null, rep);
   }

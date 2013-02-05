@@ -647,10 +647,10 @@ window.loaders.push(function () {
   ];
 
   function Window (owner, id, depth, parent, x, y, width, height, border_width, _class, visual, vmask, vdata) {
+    this.id = id;
     this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>').attr('id', 'e' + this.id).data('xob', this);
     this.constructor.super_.call(this, depth, width, height);
     this.owner = owner;
-    this.id = id;
     this.children = [];
     this.parent = parent;
     this.parent.children.push(this);

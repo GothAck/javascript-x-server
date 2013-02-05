@@ -210,6 +210,12 @@ window.loaders.push(function () {
 
   module.exports.XServer = XServer;
 
+  XServer.prototype.getFormatByDepth = function (depth) {
+    return this.formats.filter(function (format) {
+      return format.depth === depth;
+    })[0];
+  }
+
   XServer.prototype.newClient = function (id) {
     return this.clients[id] = new XServerClient(this, id);
   }
@@ -517,6 +523,84 @@ window.loaders.push(function () {
     res.copy(rep, 0, 0, base);
     this.write(rep);
     this.state = 1;
+  }
+
+  XServerClient.prototype.imageFromBitmap = function (dest, data, depth, width, height, pad) {
+    var format = this.server.getFormatByDepth(depth)
+      , scanline = width + (width % (format.scanline_pad / format.bpp));
+    width = scanline; // Overscan the image for now! FIXME: Need to crop instead of overscan!
+    switch (depth) {
+      case 1:
+        var byte;
+        for (var pixel = 0; pixel < data.length * 8; pixel ++) {
+          var bit = pixel % 8
+            , bit_mask = Math.pow(2, bit)
+            , offset = pixel * 4;
+          if (bit == 0)
+            byte = data.readUInt8(pixel / 8);
+          if (offset > dest.data.length)
+            break;
+          dest.data[offset] =
+          dest.data[offset + 1] =
+          dest.data[offset + 2] = (( byte & bit_mask ) ? 0xff : 0x00);
+          dest.data[offset + 3] = 0xff;
+        }
+      break;
+      default:
+        throw new Error('Bitmap with depth ' + depth + ' not implemented!');
+    }
+    return dest;
+  }
+
+  XServerClient.prototype.imageFromXYPixmap = function (dest, data, depth, width, height, pad) {
+    var format = this.server.getFormatByDepth(depth)
+      , scanline = width + (width % (format.scanline_pad / format.bpp));
+    width = scanline; // Overscan the image for now! FIXME: Need to crop instead of overscan!
+    switch (depth) {
+      case 1:
+        var byte;
+        for (var pixel = 0; pixel < data.length * 8; pixel ++) {
+          var bit = pixel % 8
+            , bit_mask = Math.pow(2, bit)
+            , offset = pixel * 4;
+          if (bit == 0)
+            byte = data.readUInt8(pixel / 8);
+          if (offset > dest.data.length)
+            break;
+          dest.data[offset] =
+          dest.data[offset + 1] =
+          dest.data[offset + 2] = (( byte & bit_mask ) ? 0xff : 0x00);
+          dest.data[offset + 3] = 0xff;
+        }
+      break;
+      default:
+        throw new Error('XYPixmap with depth ' + depth + ' not implemented!');
+    }
+    return dest;
+  }
+
+  XServerClient.prototype.imageFromZPixmap = function (dest, data, depth, width, height, pad) {
+    var format = this.server.getFormatByDepth(depth)
+      , scanline = width + (width % (format.scanline_pad / format.bpp));
+    width = scanline; // Overscan the image for now! FIXME: Need to crop instead of overscan!
+    switch (depth) {
+      case 1:
+        throw new Error('1 bit ZPixmap not implemented!');
+      default:
+        var byte_pp = format.bpp / 8
+          , func_pp = 'readUInt' + format.bpp;
+        for (var pixel = 0; pixel < data.length / byte_pp; pixel ++) {
+          var pixel_data = data[func_pp](pixel * byte_pp)
+            , dest_pixel = pixel * 4;
+          if (depth === 24) {
+            dest.data[(dest_pixel)    ] = (0xff0000 & pixel_data) >> 16;
+            dest.data[(dest_pixel) + 1] = (0x00ff00 & pixel_data) >>  8;
+            dest.data[(dest_pixel) + 2] = (0x0000ff & pixel_data)      ;
+            dest.data[(dest_pixel) + 3] = 0xff;
+          }
+        }
+    }
+    return dest;
   }
 
   XServerClient.opcodes = {
@@ -1173,8 +1257,7 @@ window.loaders.push(function () {
       , depth = req.data.readUInt8(17)
       , data = req.data.slice(20);
     data.endian = this.endian;
-    context['putImage' + format](drawable, data, width, height, x, y, pad, depth);
-    console.log('PutImage', req.data.readUInt32(0), req.data.readUInt32(4));
+    context.putImage(drawable, format, data, width, height, x, y, pad, depth);
     console.log(format, width, height, x, y, pad, depth);
     callback();
   }

@@ -487,6 +487,10 @@ window.loaders.push(function () {
     return context;
   }
 
+  GraphicsContext.prototype.putImage = function (drawable, format, data, width, height, x, y, pad, depth) {
+    drawable.putImageData(this.client['imageFrom' + format](drawable.createImageData(width, height), data, depth, width, height, pad), x, y);
+  }
+
   GraphicsContext.prototype.putImageBitmap = function (drawable, data, width, height, x, y, pad, depth) {
     var context = this.getContext(drawable)
       , rgba = context.createImageData(width, height);
@@ -504,53 +508,6 @@ window.loaders.push(function () {
           }
         }
       break;
-    }
-    context.putImageData(rgba, x, y);
-  }
-
-  GraphicsContext.prototype.putImageXYPixmap = function (drawable, data, width, height, x, y, pad, depth) {
-    var scanline = width + (width % 32);
-    width = scanline;
-    var context = this.getContext(drawable)
-      , rgba = context.createImageData(width, height);
-    switch (depth) {
-      case 1:
-        var dt;
-        for (var i = 0; i < data.length * 8; i++) {
-          var j = i % 8
-            , mask = Math.pow(2, j)
-            , offset = i * 4;
-          if (j == 0)
-            dt = data.readUInt8(i / 8);
-          if (offset >= rgba.data.length)
-            break;
-          rgba.data[offset] = rgba.data[offset + 1] = rgba.data[offset + 2] = ((dt & mask) ? 0xff : 0x00);
-          rgba.data[offset + 3] = 0xff;
-//          if ((i % scanline) >= width) {
-//            console.log('skip', offset/4, ((offset / 4) % scanline), (scanline - ((offset / 4) % scanline)) )
-//            i += (scanline - (i % scanline)) - 1;
-//          }
-
-        }
-/*        for (var i = 0; i < data.length; i++) {
-          var dt = data.readUInt8(i);
-          for (var j = 0; j < 8; j++) {
-            var offset = ((i * 8) + j) * 4
-              , mask = Math.pow(2, j);
-            if (offset >= rgba.data.lenght)
-              break;
-            rgba.data[offset] = rgba.data[offset + 1] = rgba.data[offset + 2] = ((dt & mask) ? 0xff : 0x00);
-            rgba.data[offset + 3] = 0xff;
-            if (((offset / 4) % scanline) > width - 1) {
-              console.log('skip', offset/4, ((offset / 4) % scanline), (scanline - ((offset / 4) % scanline)) )
-              offset += -1 +( (scanline - ((offset / 4) % scanline)) * 4 );
-            }
-          }
-        }*/
-
-      break;
-      default:
-        throw new Error('depth not implemented');
     }
     context.putImageData(rgba, x, y);
   }
@@ -621,15 +578,45 @@ window.loaders.push(function () {
     }.bind(this));
   }
 
-  function Pixmap (id, depth, drawable, width, height) {
-    this.id = id;
+  function Drawable (depth, width, height) {
     this.depth = depth;
-    this.drawable = drawable;
+    this.canvas = $('<canvas></canvas>');
     this.width = width;
     this.height = height;
-    // FIXME: create correct buffer size for image!
-    $('.buffers').append(this.canvas = $('<canvas></canvas>').attr('id', this.id).attr('width', width).attr('height', height));
   }
+
+  Drawable.prototype.__defineGetter__('width' , function () { return this._width  });
+  Drawable.prototype.__defineGetter__('height', function () { return this._height });
+  Drawable.prototype.__defineSetter__('width' , function (width)  {
+    this._width  = width;
+    this.canvas.attr('width', width);
+  });
+  Drawable.prototype.__defineSetter__('height', function (height) {
+    this._height = height;
+    this.canvas.attr('height', height);
+  });
+
+  Drawable.prototype.getImageData = function (x, y, width, height) {
+    return this.canvas[0].getContext('2d').getImageData(x, y, width, height);
+  }
+
+  Drawable.prototype.putImageData = function (data, x, y) {
+    return this.canvas[0].getContext('2d').putImageData(data, x, y);
+  }
+
+  Drawable.prototype.createImageData = function (width, height) {
+    return this.canvas[0].getContext('2d').createImageData(width, height);
+  }
+
+  function Pixmap (id, depth, drawable, width, height) {
+    this.constructor.super_.call(this, depth, width, height);
+    this.id = id;
+    this.drawable = drawable;
+    // FIXME: create correct buffer size for image!
+    $('.buffers').append(this.canvas.attr('id', this.id));
+  }
+
+  util.inherits(Pixmap, Drawable);
 
   module.exports.Pixmap = Pixmap;
 
@@ -660,9 +647,10 @@ window.loaders.push(function () {
   ];
 
   function Window (owner, id, depth, parent, x, y, width, height, border_width, _class, visual, vmask, vdata) {
+    this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>').attr('id', 'e' + this.id).data('xob', this);
+    this.constructor.super_.call(this, depth, width, height);
     this.owner = owner;
     this.id = id;
-    this.depth = depth;
     this.children = [];
     this.parent = parent;
     this.parent.children.push(this);
@@ -672,16 +660,16 @@ window.loaders.push(function () {
     this.visual = visual;
     this.events = [];
 
-    this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>').attr('id', 'e' + this.id).css({ width: width, height: height }).data('xob', this);
-    this.element.children().append(this.canvas = $('<canvas></canvas>').attr('id', this.id).attr('width', width).attr('height', height));
+
+    this.element.children().append(this.canvas.attr('id', this.id));
     this.changeData(vmask, vdata);
     this.properties = {}
-    var ctx = this.canvas[0].getContext('2d');
+//    var ctx = this.canvas[0].getContext('2d');
     this.x = x;
     this.y = y;
-    this.width = width;
-    this.height = height;
   }
+
+  util.inherits(Window, Drawable);
 
   module.exports.Window = Window;
 
@@ -689,10 +677,14 @@ window.loaders.push(function () {
   Window.prototype.__defineGetter__('y', function () { return this._x });
   Window.prototype.__defineSetter__('x', function (x) { this._x = x; this.element.css('left', x + 'px') });
   Window.prototype.__defineSetter__('y', function (y) { this._y = y; this.element.css('top' , y + 'px') });
-  Window.prototype.__defineGetter__('width' , function () { return this._width  });
-  Window.prototype.__defineGetter__('height', function () { return this._height });
-  Window.prototype.__defineSetter__('width' , function (width)  { this._width  = width;  this.element.css('width',  width).children().children('canvas').attr('width', width)  });
-  Window.prototype.__defineSetter__('height', function (height) { this._height = height; this.element.css('height', height).children().children('canvas').attr('height', height) });
+  Window.prototype.__defineSetter__('width', function (width) {
+    this.constructor.super_.prototype.__lookupSetter__('width').call(this, width);
+    this.element.css('width', width);
+  });
+  Window.prototype.__defineSetter__('height', function (height) {
+    this.constructor.super_.prototype.__lookupSetter__('height').call(this, height);
+    this.element.css('height', height);
+  });
 
   var _event_mask_fields = [
       'KeyPress', 'KeyRelease', 'ButtonPress', 'ButtonRelease', 'EnterWindow', 'LeaveWindow'

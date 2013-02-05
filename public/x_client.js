@@ -348,6 +348,7 @@ window.loaders.push(function () {
     this.maximum_request_length = 0xffff;
     this.sequence = 1;
     this.resources = this.server.resources;
+    this.save_set = [];
     this.reqs = [];
     this.reps = [];
   }
@@ -607,6 +608,7 @@ window.loaders.push(function () {
       1: 'CreateWindow'
     , 2: 'ChangeWindowAttributes'
     , 3: 'GetWindowAttributes'
+    , 6: 'ChangeSaveSet'
     , 8: 'MapWindow'
     , 9: 'MapSubwindows'
     , 10: 'UnmapWindow'
@@ -707,6 +709,16 @@ window.loaders.push(function () {
     rep.data_extra.push(new x_types.UInt16(0)); // Do not propagate mask
     rep.data_extra.push(new x_types.UInt16(0)); // Unused
     callback(null, rep);
+  }
+
+  XServerClient.prototype.ChangeSaveSet = function (req, callback) {
+    var window = this.server.resources[req.data.readUInt32(0)];
+    if (req.data_byte) {
+      delete this.save_set[this.save_set.indexOf(window)];
+    } else {
+      this.save_set.push(window);
+    }
+    callback();
   }
 
   XServerClient.prototype.MapWindow = function (req, callback) {

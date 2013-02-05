@@ -560,7 +560,9 @@ window.loaders.push(function () {
     , 72: 'PutImage'
     , 74: 'PolyText8'
     , 75: 'PolyText16'
+    , 84: 'AllocColor'
     , 91: 'QueryColors'
+    , 92: 'LookupColor'
     , 94: 'CreateGlyphCursor'
     , 97: 'QueryBestSize'
     , 98: 'QueryExtension'
@@ -1239,6 +1241,19 @@ window.loaders.push(function () {
     callback();
   }
 
+  XServerClient.prototype.AllocColor = function (req, callback) {
+    var cmap = this.server.resources[req.data.readUInt32(0)]
+      , r = req.data.readUInt16(4) >> 8
+      , g = req.data.readUInt16(6) >> 8
+      , b = req.data.readUInt16(8) >> 8
+      , rep = new x_types.Reply(req);
+    rep.data.writeUInt16(r, 0);
+    rep.data.writeUInt16(g, 2);
+    rep.data.writeUInt16(b, 4);
+    rep.data.writeUInt32( (r << 16) | (g << 8) | b, 8);
+    callback(null, rep);
+  }
+
   XServerClient.prototype.QueryColors = function (req, callback) {
     console.log('QueryColors');
     var count = req.length_quad - 2
@@ -1248,11 +1263,29 @@ window.loaders.push(function () {
     rep.data.writeUInt16(count);
     for (var i = 4; i < length + 4; i += 4) {
       var rgb = colormap.getRGB(req.data.readUInt32(i));
-      rep.data_extra.push(new x_types.UInt16(rgb[0] * 0x101));
-      rep.data_extra.push(new x_types.UInt16(rgb[1] * 0x101));
-      rep.data_extra.push(new x_types.UInt16(rgb[2] * 0x101));
+      rep.data_extra.push(new x_types.UInt16(rgb[0] < 8));
+      rep.data_extra.push(new x_types.UInt16(rgb[1] < 8));
+      rep.data_extra.push(new x_types.UInt16(rgb[2] < 8));
       rep.data_extra.push(new x_types.UInt16(0));
     }
+    callback(null, rep);
+  }
+
+
+  XServerClient.prototype.LookupColor = function (req, callback) {
+    var cmap = this.server.resources[req.data.readUInt32(0)]
+      , length = req.data.readUInt16(4)
+      , name = req.data.toString('ascii', 8, length + 8)
+      , color = rgb_colors[name] || 0
+      , rep = new x_types.Reply(req);
+
+    rep.data.writeUInt16((color & 0xff0000) >> 16,  0);
+    rep.data.writeUInt16((color & 0x00ff00) >>  8,  2);
+    rep.data.writeUInt16((color & 0x0000ff) >>  0,  4);
+    rep.data.writeUInt16((color & 0xff0000) >> 16,  6);
+    rep.data.writeUInt16((color & 0x00ff00) >>  8,  8);
+    rep.data.writeUInt16((color & 0x0000ff) >>  0, 10);
+
     callback(null, rep);
   }
 

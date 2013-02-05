@@ -711,6 +711,14 @@ window.loaders.push(function () {
   Window.prototype.__defineGetter__('event_mask', function () {
     return this._event_mask || 0;
   });
+  Window.prototype.__defineSetter__('colormap', function (colormap) {
+    this._colormap = (typeof colormap === 'number')
+      ? this.owner.server.resources[colormap]
+      : colormap;
+  });
+  Window.prototype.__defineGetter__('colormap', function () {
+    return this._colormap;
+  });
 
   Window.prototype.event = function (event, data) {
     if (~this.events.indexOf(event)) {

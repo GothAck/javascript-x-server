@@ -367,14 +367,14 @@ window.loaders.push(function () {
           }
         }
         this.reqs.unshift(null); // Force a processReps after this batch!
-        if (!this.server.grabbed)
+        if ((!this.server.grabbed) || this === this.server.grabbed )
           this.processReqs();
     }
   }
 
   XServerClient.prototype.processReqs = function () {
     var self = this;
-    if (self.server.grabbed)
+    if (self.server.grabbed && self.server.grabbed !== self)
       return self.reqs_processing = false;
     if (self.reqs_processing)
       return;
@@ -761,11 +761,13 @@ window.loaders.push(function () {
   XServerClient.prototype.GrabServer = function (req, callback) {
     this.server.grabbed = this;
     this.server.grabbed_reason = 'GrabServer';
+    callback();
   }
 
   XServerClient.prototype.UngrabServer = function (req, callback) {
     this.server.grabbed = null;
     this.server.flushGrabBuffer();
+    callback();
   }
 
   XServerClient.prototype.QueryPointer = function (req, callback) {

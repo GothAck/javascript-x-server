@@ -609,6 +609,7 @@ window.loaders.push(function () {
     , 2: 'ChangeWindowAttributes'
     , 3: 'GetWindowAttributes'
     , 6: 'ChangeSaveSet'
+    , 7: 'ReparentWindow'
     , 8: 'MapWindow'
     , 9: 'MapSubwindows'
     , 10: 'UnmapWindow'
@@ -718,6 +719,22 @@ window.loaders.push(function () {
     } else {
       this.save_set.push(window);
     }
+    callback();
+  }
+
+  XServerClient.prototype.ReparentWindow = function (req, callback) {
+    var window = this.server.resources[req.data.readUInt32(0)]
+      , parent = this.server.resources[req.data.readUInt32(4)]
+      , x = req.data.readInt16(8)
+      , y = req.data.readInt16(10);
+    if (! window.isMapped())
+      throw new Error('TODO: Error window not mapped');
+    console.log('ReparentWindow', window.id, window.parent.id, parent.id);
+    window.unmap();
+    delete window.parent.children[window.parent.children.indexOf(window)];
+    window.parent = parent;
+    window.parent.children.push(window);
+    window.map();
     callback();
   }
 

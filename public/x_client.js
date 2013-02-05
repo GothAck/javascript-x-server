@@ -353,6 +353,14 @@ window.loaders.push(function () {
 
   XServerClient.prototype.processData = function (data) {
     data.endian = this.endian;
+    if (this.buffer) {
+      var data_new = new Buffer(data.length + this.buffer.length);
+      data_new.endian = this.endian;
+      this.buffer.copy(data_new, 0);
+      data.copy(data_new, this.buffer.length);
+      delete this.buffer;
+      data = data_new;
+    }
     switch (this.state) {
       case 0:
         return this.setup(data);
@@ -360,10 +368,16 @@ window.loaders.push(function () {
         var req = { length: 0 };
         while (data.length > 0) {
           req = new x_types.Request(data, this.sequence ++);
-          this.reqs.unshift(req);
-          if (data.length > 0) {
-            data = data.slice(req.length);
-            data.endian = this.endian;
+          if (req.length - 4 > req.data.length) {
+            this.sequence --;
+            this.buffer = data;
+            break;
+          } else {
+            this.reqs.unshift(req);
+            if (data.length > 0) {
+              data = data.slice(req.length);
+              data.endian = this.endian;
+            }
           }
         }
         this.reqs.unshift(null); // Force a processReps after this batch!

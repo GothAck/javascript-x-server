@@ -449,7 +449,7 @@ window.loaders.push(function () {
   GraphicsContext.prototype.function = 0;
   GraphicsContext.prototype.plane_mask = 0xff;
   GraphicsContext.prototype.foreground = 0;
-  GraphicsContext.prototype.background = 1;
+  GraphicsContext.prototype.background = 0x00ffffff;
   GraphicsContext.prototype.line_width = 0;
   GraphicsContext.prototype.line_style = 0;
   GraphicsContext.prototype.fill_style = 0;

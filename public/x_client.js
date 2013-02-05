@@ -85,6 +85,7 @@ window.loaders.push(function () {
     this.grab_buffer = [];
     this.input_focus = null;
     this.input_focus_revert = 0;
+    this.keymap = keymap.maps.gb.clone();
     this.formats = [
         new x_types.Format(0x01, 0x01, 0x20)
       , new x_types.Format(0x04, 0x08, 0x20)
@@ -562,6 +563,8 @@ window.loaders.push(function () {
     , 97: 'QueryBestSize'
     , 98: 'QueryExtension'
     , 99: 'ListExtensions'
+    , 101: 'GetKeyboardMapping'
+    , 119: 'GetModifierMapping'
   }; // 34 or 127
   (function () {
     var opcodes = Object.keys(XServerClient.opcodes).length;
@@ -1320,6 +1323,35 @@ window.loaders.push(function () {
   XServerClient.prototype.ListExtensions = function (req, callback) {
     console.log('ListExtensions');
     var rep = new x_types.Reply(req);
+    callback(null, rep);
+  }
+
+  XServerClient.prototype.GetKeyboardMapping = function (req, callback) {
+    var self = this
+      , first = req.data.readUInt8(0)
+      , count = req.data.readUInt8(1)
+      , rep = new x_types.Reply(req);
+
+    rep.data_byte = self.server.keymap.maxModifiers;
+
+    for (var key = first; key < first + count; key++) {
+      var keyObj = self.server.keymap.get(key);
+      for (var mod = 0; mod < rep.data_byte; mod ++) {
+        var modifier = ~~Math.pow(2, mod - 1)
+          , keycode = keyObj['' + ~~Math.pow(2, mod - 1)] || keyObj['0'];
+        rep.data_extra.push(x_types.UInt32(self.server.keymap.getKeysym(keycode, modifier & 1)));
+      }
+    }
+    callback(null, rep);
+  }
+
+  XServerClient.prototype.GetModifierMapping = function (req, callback) {
+    var self = this
+      , rep = new x_types.Reply(req)
+      , datas = (['Shift', 'Lock', 'Control', 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5']).map(function (name) { return self.server.keymap.find(name) });
+
+    rep.data_byte = datas.reduce(function (o, v) { return Math.max(o, v.length) }, 0);
+    rep.data_extra = datas.reduce(function (array, values) { for (var i = 0; i < rep.data_byte; i++) { array.push(new x_types.UInt8(values [i] || 0)) }; return array }, []);
     callback(null, rep);
   }
 

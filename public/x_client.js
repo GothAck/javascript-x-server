@@ -638,6 +638,7 @@ window.loaders.push(function () {
     , 56: 'ChangeGC'
     , 60: 'FreeGC'
     , 61: 'ClearArea'
+    , 62: 'CopyArea'
     , 65: 'PolyLine'
     , 66: 'PolySegment'
     , 67: 'PolyRectangle'
@@ -1128,6 +1129,21 @@ window.loaders.push(function () {
     callback();
   }
 
+  XServerClient.prototype.CopyArea = function (req, callback) {
+    var src    = this.server.resources[req.data.readUInt32( 0)]
+      , dst    = this.server.resources[req.data.readUInt32( 4)]
+      , gc     = this.server.resources[req.data.readUInt32( 8)]
+      , src_x  = req.data.readInt16 (12)
+      , src_y  = req.data.readInt16 (14)
+      , dst_x  = req.data.readInt16 (16)
+      , dst_y  = req.data.readInt16 (18)
+      , width  = req.data.readUInt16(20)
+      , height = req.data.readUInt16(22)
+      , data   = src.getImageData(src_x, src_y, width, height);
+    console.log('CopyArea', src, dst, src_x, src_y, dst_x, dst_y, width, height);
+    dst.putImageData(data, dst_x, dst_y);
+    callback();
+  }
 
   XServerClient.prototype.FreeGC = function (req, callback) {
     var cid = req.data.readUInt32(0);

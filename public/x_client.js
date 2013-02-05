@@ -529,6 +529,7 @@ window.loaders.push(function () {
     , 11: 'UnmapSubwindows'
     , 12: 'ConfigureWindow'
     , 14: 'GetGeometry'
+    , 15: 'QueryTree'
     , 16: 'InternAtom'
     , 17: 'GetAtomName'
     , 18: 'ChangeProperty'
@@ -690,6 +691,21 @@ window.loaders.push(function () {
     rep.data.writeInt16(drawable.width, 8);
     rep.data.writeInt16(drawable.height, 10);
     // TODO: 2 byte border-geom
+    callback(null, rep);
+  }
+
+  XServerClient.prototype.QueryTree = function (req, callback) {
+    var window = this.server.resources[req.data.readUInt32(0)]
+      , rep = new x_types.Reply(req);
+    rep.data.writeUInt32(window.getRoot(), 0);
+    rep.data.writeUInt32((window.parent && window.parent.id) || 0, 4);
+    var children = window.element.children().children('div');
+    console.log(children);
+    rep.data.writeUInt16(children.length, 8);
+    children.each(function () {
+      console.log($(this).data('xob').id);
+      rep.data_extra.push(new x_types.UInt32($(this).data('xob').id));
+    });
     callback(null, rep);
   }
 

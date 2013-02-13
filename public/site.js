@@ -95,6 +95,17 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
         }
       , mouse_buttons = [1,3,2]
       , current_mouse = 0;
+    $('.screen').on('blur focus focusin focusout load resize scroll unload click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select submit keydown keypress keyup error', '.drawable', function (event) {
+      if (event_map[event.type] && ! event.createdX11) {
+        var drawable = $(event.srcElement).not('.drawable').parentsUntil('.drawable').last().parent().andSelf().first();
+        event.createdX11 = true;
+        if (event.type === 'mouseover')
+          drawable.addClass('hover');
+        if (event.type === 'mouseout')
+          drawable.removeClass('hover');
+        drawable.trigger(event_map[event.type], [event]);
+      }
+    });
     $('.screen').on('mousedown mouseup', function (event) {
       if (event.type === 'mousedown')
         current_mouse |= 1 << (mouse_buttons[event.button] - 1);
@@ -102,29 +113,28 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
         current_mouse &= ~ (1 << (mouse_buttons[event.button] - 1));
     });
     Object.keys(event_mask_map).forEach(function (_class) {
-      var _event = event_mask_map[_class];
-      $('.screen').on(_event, '.' + _class, function (event) {
+      $('.screen').on(_class, '.' + _class, function (event, event_orig) {
         var $event = $(this)
-          , $child = $(event.target).parent().parent()
+          , $child = $(event.srcElement)
           , xob_event = $event.data('xob')
           , xob_child = $child.data('xob')
           , keybutmask = (
                 current_mouse |
                 (
-                    event.type === 'mousedown' &&
-                    (1 << (mouse_buttons[event.button] - 1))
+                    event.type === 'ButtonPress' &&
+                    (1 << (mouse_buttons[event_orig.button] - 1))
                 )
             ) << 8;
-        keybutmask |= event.shiftKey && 1;
+        keybutmask |= event_orig.shiftKey && 1;
         // lock? = 2
-        keybutmask |= event.ctrlKey  && 4;
+        keybutmask |= event_orig.ctrlKey  && 4;
         xob_event && xob_event.event(
-            event_map[event.type]
+            event.type
           , {
-                x: event.offsetX
-              , y: event.offsetY
-              , button: mouse_buttons[event.button]
-              , keycode: event.keyCode
+                x: event_orig.offsetX
+              , y: event_orig.offsetY
+              , button: mouse_buttons[event_orig.button]
+              , keycode: event_orig.keyCode
               , keybutmask: keybutmask
               , event: xob_event
               , child: xob_child

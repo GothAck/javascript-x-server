@@ -1,4 +1,6 @@
-(function (module) {
+define(function () {
+  var module = { exports: {} };
+
   module.exports.rgb_colors = {
   "snow": 16775930,
   "ghost white": 16316671,
@@ -573,4 +575,5 @@
   "DarkRed": 9109504,
   "light green": 9498256,
   "LightGreen": 9498256
-}})({ exports: window });
+}
+});

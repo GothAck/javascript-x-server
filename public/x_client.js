@@ -1,4 +1,4 @@
-define(['async', 'x_types', 'endianbuffer'], function (async, x_types, EndianBuffer) {
+define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_types, EndianBuffer, rgb_colors) {
   function XServerClient (server, id) {
     this.server = server;
     this.id = id;

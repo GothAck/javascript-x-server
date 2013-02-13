@@ -1,340 +1,4 @@
-window.loaders.push(function () {
-  var module = { exports: window }
-
-  var default_atoms = [
-      'PRIMARY'
-    , 'SECONDARY'
-    , 'ARC'
-    , 'ATOM'
-    , 'BITMAP'
-    , 'CARDINAL'
-    , 'COLORMAP'
-    , 'CURSOR'
-    , 'CUT_BUFFER0'
-    , 'CUT_BUFFER1'
-    , 'CUT_BUFFER2'
-    , 'CUT_BUFFER3'
-    , 'CUT_BUFFER4'
-    , 'CUT_BUFFER5'
-    , 'CUT_BUFFER6'
-    , 'CUT_BUFFER7'
-    , 'DRAWABLE'
-    , 'FONT'
-    , 'INTEGER'
-    , 'PIXMAP'
-    , 'POINT'
-    , 'RECTANGLE'
-    , 'RESOURCE_MANAGER'
-    , 'RGB_COLOR_MAP'
-    , 'RGB_BEST_MAP'
-    , 'RGB_BLUE_MAP'
-    , 'RGB_DEFAULT_MAP'
-    , 'RGB_GRAY_MAP'
-    , 'RGB_GREEN_MAP'
-    , 'RGB_RED_MAP'
-    , 'STRING'
-    , 'VISUALID'
-    , 'WINDOW'
-    , 'WM_COMMAND'
-    , 'WM_HINTS'
-    , 'WM_CLIENT_MACHINE'
-    , 'WM_ICON_NAME'
-    , 'WM_ICON_SIZE'
-    , 'WM_NAME'
-    , 'WM_NORMAL_HINTS'
-    , 'WM_SIZE_HINTS'
-    , 'WM_ZOOM_HINTS'
-    , 'MIN_SPACE'
-    , 'NORM_SPACE'
-    , 'MAX_SPACE'
-    , 'END_SPACE'
-    , 'SUPERSCRIPT_X'
-    , 'SUPERSCRIPT_Y'
-    , 'SUBSCRIPT_X'
-    , 'SUBSCRIPT_Y'
-    , 'UNDERLINE_POSITION'
-    , 'UNDERLINE_THICKNESS'
-    , 'STRIKEOUT_ASCENT'
-    , 'STRIKEOUT_DESCENT'
-    , 'ITALIC_ANGLE'
-    , 'X_HEIGHT'
-    , 'QUAD_WIDTH'
-    , 'WEIGHT'
-    , 'POINT_SIZE'
-    , 'RESOLUTION'
-    , 'COPYRIGHT'
-    , 'NOTICE'
-    , 'FONT_NAME'
-    , 'FAMILY_NAME'
-    , 'FULL_NAME'
-    , 'CAP_HEIGHT'
-    , 'WM_CLASS'
-    , 'WM_TRANSIENT_FOR'
-  ]
-
-  function XServer (id, socket, screen) {
-    this.id = id;
-    this.socket = socket;
-    this.screen = screen;
-    this.protocol_major = 11;
-    this.protocol_minor = 0;
-    this.release = 11300000;
-    this.vendor = 'JavaScript X';
-    this.event_cache = [];
-    this.grabbed = null;
-    this.grab_buffer = [];
-    this.input_focus = null;
-    this.input_focus_revert = 0;
-    this.keymap = keymap.maps.gb.clone();
-    this.formats = [
-        new x_types.Format(0x01, 0x01, 0x20)
-      , new x_types.Format(0x04, 0x08, 0x20)
-      , new x_types.Format(0x08, 0x08, 0x20)
-      , new x_types.Format(0x0f, 0x10, 0x20)
-      , new x_types.Format(0x10, 0x10, 0x20)
-      , new x_types.Format(0x18, 0x20, 0x20)
-      , new x_types.Format(0x20, 0x20, 0x20)
-    ];
-    this.screens = [
-        new x_types.Screen(
-            0x00000026 // root
-          , 0x00000022 // def colormap
-          , 0x00ffffff // white
-          , 0x00000000 // black
-          , 0x00000000 // current input masks
-          , 800 // width px
-          , 400 // height px
-          , Math.round(800 / (96 / 25.4)) // width mm
-          , Math.round(400 / (96 / 25.4)) // height mm
-          , 0x0001 // min maps
-          , 0x0001 // max maps
-          , 0x20 // root visual
-          , 0 // backing stores
-          , 0 // save unders
-          , 0x18 //24 default depth
-          , [ // depths
-                new x_types.Depth(
-                    0x01 // depth 1
-                )
-              , new x_types.Depth(
-                    0x18 // depth 24
-                  , [ // visualtypes
-                        new x_types.VisualType(
-                            0x00000020 // id
-                          , 0x04 // class
-                          , 0x08 // bits per rgb
-                          , 0x0100 // colormap entries
-                          , 0x00ff0000 // red mask
-                          , 0x0000ff00 // green mask
-                          , 0x000000ff // blue mask
-                        )
-                      , new x_types.VisualType(
-                            0x00000021 // id
-                          , 0x05 // class
-                          , 0x08 // bits per rgb
-                          , 0x0100 // colormap entries
-                          , 0x00ff0000 // red mask
-                          , 0x0000ff00 // green mask
-                          , 0x000000ff // blue mask
-                        )
-                    ]
-                )
-            ]
-        )
-    ];
-    this.atoms = default_atoms.slice();
-    this.atom_owners = [];
-    this.resources = {}
-    this.resources[0x00000022] = new x_types.ColorMap(
-        0x00000022
-      , function (rgb, type) {
-          rgb = [
-              (rgb & 0x000000ff)
-            , (rgb & 0x0000ff00) >> 8
-            , (rgb & 0x00ff0000) >> 16
-          ];
-          switch (type) {
-            case 'hex':
-              return rgb.reduce(function (str, v) { v = v.toString(16); return str + (v.length < 2 ? '0' : '') + v }, '');
-            default:
-              return rgb;
-          }
-        }
-    );
-    this.resources[0x00000026] = this.root = new x_types.Window(
-        this
-      , 0x00000026
-      , 0x18 // depth 24
-      , { id: 0, element: this.screen, children: [] } // parent 0
-      , 0, 0
-      , 800, 400
-      , 0, 0, 0, 0, 0
-    );
-    this.font_path = 'fonts';
-    this.fonts_dir = {};
-    this.fonts_scale = {};
-    this.fonts_cache = {};
-
-    getTextFile(this.font_path + '/fonts.dir', function (err, file) {
-      if (err)
-        throw new Error('No fonts.dir');
-      file = file.split('\n');
-      file.pop();
-      var count = file.shift() ^ 0;
-      if (count !== file.length)
-        throw new Error('Invalid length of fonts.dir');
-      file.forEach(function (line) {
-        var match = line.match(/^(".*"|[^ ]*) (.*)$/);
-        this.fonts_dir[match[2]] = match [1];
-      }.bind(this));
-    }.bind(this));
-
-    this.clients = {};
-    var c = this.resources[0x00000026].canvas[0].getContext('2d')
-      , img = new Image;
-    img.onload = function () {
-      c.rect(0, 0, 800, 400);
-      c.fillStyle = c.createPattern(img, 'repeat');
-      c.fill();
-    }
-    img.src = "/check.png";
-
-    this.resources[0x00000026].map();
-
-    this.mouseX = this.mouseY = 0;
-    this.screen.on('mousemove', function (event) {
-      this.mouseX = event.offsetX;
-      this.mouseY = event.offsetY;
-    }.bind(this));
-  }
-
-  module.exports.XServer = XServer;
-
-  XServer.prototype.getFormatByDepth = function (depth) {
-    return this.formats.filter(function (format) {
-      return format.depth === depth;
-    })[0];
-  }
-
-  XServer.prototype.newClient = function (id) {
-    return this.clients[id] = new XServerClient(this, id);
-  }
-
-  XServer.prototype.disconnect = function (id) {
-    if (!id) {
-      this.screen.off('');
-      return Object.keys(this.clients).forEach(function (cid) {
-        this.clients[cid].disconnect();
-      }.bind(this));
-    } // Disconnect whole server
-    if (!this.clients[id])
-      throw new Error('Invalid client! Disconnected?');
-
-    if (this.grabbed && this.grabbed.id !== id) {
-      console.log('put in grab_buffer')
-      return this.grab_buffer.push([this, 'disconnect', id]);
-    }
-
-    this.clients[id].disconnect();
-  }
-
-  XServer.prototype.write = function (client, data) {
-    if (! this.clients[client.id])
-      throw new Error('Invalid client! Disconnected?');
-    if (! (data instanceof Buffer))
-      throw new Error('Not a buffer!');
-    var buffer = new Buffer(data.length + 2);
-    buffer.endian = true; // Client id is always Little Endian
-    data.copy(buffer, 2);
-    buffer.writeUInt16(client.id, 0);
-    this.socket.send(buffer.buffer);
-  }
-
-  XServer.prototype.processData = function (buffer) {
-    var id = buffer.readUInt16(0)
-      , data = buffer.slice(2);
-
-    if (! this.clients[id])
-      throw new Error('Invalid client! Disconnected?');
-    this.clients[id].processData(data);
-  }
-
-  XServer.prototype.flushGrabBuffer = function() {
-    var item = null;
-    while (item = this.grab_buffer.shift())
-      item[0][item[1]].apply(item[0], item.slice(2));
-    Object.keys(this.clients).forEach(function (id) {
-      this.clients[id].reqs_processing = false;
-      this.clients[id].processReqs();
-    }.bind(this));
-  }
-
-  XServer.prototype.listFonts = function (pattern) {
-    var re = new RegExp('^' + pattern.replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1").replace(/\\([*?])/g, '.$1') + '$', 'i');
-    return Object.keys(this.fonts_dir).filter(function(name) { return re.test(name) });
-  }
-
-  XServer.prototype.resolveFont = function (name) {
-    var resolved_name;
-    if (! (name in this.fonts_dir)) {
-      if (/[*?]/.test(name)) {
-        var names = this.listFonts(name);
-        if (names && names.length)
-          resolved_name = [names[0], this.fonts_dir[names[0]]];
-      }
-    }
-    return resolved_name || [name, this.fonts_dir[name]];
-  }
-
-  XServer.prototype.loadFont = function (resolved_name, server_name, callback) {
-    if (resolved_name in this.fonts_cache)
-      return this.fonts_cache[resolved_name];
-    this.grabbed = 'loadFont';
-    var font = this.fonts_cache[resolved_name] =
-      new x_types.Font(0, resolved_name, server_name, function (err) {
-        if (err)
-          font.error = true;
-        if (font.font && font.font.properties)
-          Object.keys(font.font.properties).forEach(function (prop_name) {
-            if (!~this.atoms.indexOf(prop_name))
-              this.atoms.push(prop_name);
-            callback && callback(err, font);
-          }.bind(this))
-        this.flushGrabBuffer();
-      }.bind(this));
-    return font;
-  }
-
-  XServer.prototype.openFont = function (fid, name) {
-    var resolved_name = this.resolveFont(name);
-    console.log('openFont', fid, name, resolved_name);
-    if (resolved_name[1]) {
-      var font = this.loadFont(resolved_name[1], resolved_name[0], function () {
-        setTimeout(function () {
-          this.grabbed = false;
-          this.flushGrabBuffer();
-        }.bind(this), 250);
-      }.bind(this));
-      if (!font.loading)
-        this.grabbed = false;
-      font.id = fid;
-      return font;
-    }
-    console.log('Name not resolved', name);
-    this.grabbed = false;
-    this.flushGrabBuffer();
-
-  }
-
-  XServer.prototype.encodeString = function (str) {
-    var out_str = '';
-    if (typeof str !== 'string')
-      return str;
-    for (var i = 0; i < str.length; i ++)
-      out_str += str.charCodeAt(i) < 0x21 ? String.fromCharCode(0x2400 + str.charCodeAt(i)) : str.charAt(i);
-    return out_str;
-  }
-
+define(['async', 'x_types', 'endianbuffer'], function (async, x_types, EndianBuffer) {
   function XServerClient (server, id) {
     this.server = server;
     this.id = id;
@@ -353,8 +17,6 @@ window.loaders.push(function () {
     this.reps = [];
   }
 
-  module.exports.XServerClient = XServerClient;
-
   XServerClient.prototype.write = function (data) {
     return this.server.write(this, data);
   }
@@ -362,7 +24,7 @@ window.loaders.push(function () {
   XServerClient.prototype.processData = function (data) {
     data.endian = this.endian;
     if (this.buffer) {
-      var data_new = new Buffer(data.length + this.buffer.length);
+      var data_new = new EndianBuffer(data.length + this.buffer.length);
       data_new.endian = this.endian;
       this.buffer.copy(data_new, 0);
       data.copy(data_new, this.buffer.length);
@@ -437,7 +99,7 @@ window.loaders.push(function () {
     if (! this.reps.length)
       return;
     var reps = this.reps.splice(0, this.reps.length).filter(function (rep) { return rep })
-      , res = new Buffer(
+      , res = new EndianBuffer(
           reps.reduce(function (o, rep) { return o + rep.length }, 0)
         );
 
@@ -483,7 +145,7 @@ window.loaders.push(function () {
     var reason = 'No Way'
       , pad = 4 - ((reason.length % 4) || 4);
 
-    var res = new Buffer(8 + reason.length + pad);
+    var res = new EndianBuffer(8 + reason.length + pad);
     res.fill(0);
     res.writeUInt8(reason.length, 1); // 2 (0: 0, 1: reason.length)
     this.writeUInt16(res, this.protocol_major, 2); // 2
@@ -494,7 +156,7 @@ window.loaders.push(function () {
     */
     // Allow connection
 
-    var res = new Buffer(500);
+    var res = new EndianBuffer(500);
     res.endian = this.endian;
     res.writeUInt8(1, 0);
     res.writeUInt16(this.server.protocol_major, 2);
@@ -519,7 +181,7 @@ window.loaders.push(function () {
     var base = 40 + stringPad(this.server.vendor);
     base = this.server.formats.writeBuffer(res, base);
     base = this.server.screens.writeBuffer(res, base);
-    var rep = new Buffer(base);
+    var rep = new EndianBuffer(base);
     rep.fill(0);
     res.copy(rep, 0, 0, base);
     this.write(rep);
@@ -977,7 +639,7 @@ window.loaders.push(function () {
     if (!font)
       throw new Error('FIXME: Error handling!');
     var rep = new x_types.Reply(req);
-    rep.data = new Buffer(32);
+    rep.data = new EndianBuffer(32);
     rep.data.endian = req.data.endian;
     font.font.getChar(-1).toCharInfo().writeBuffer(rep.data,  0); // Write min bounds
     font.font.getChar(-2).toCharInfo().writeBuffer(rep.data, 16); // Write max bounds
@@ -1038,7 +700,7 @@ window.loaders.push(function () {
           this.server.flushGrabBuffer();
           var reps = fonts.map(function (font) {
             var rep = new x_types.Reply(req);
-            rep.data = new Buffer(32);
+            rep.data = new EndianBuffer(32);
             rep.data.endian = req.data.endian;
             rep.data_byte = font.name.length;
             font.font.getChar(-1).toCharInfo().writeBuffer(rep.data, 0);
@@ -1557,4 +1219,5 @@ window.loaders.push(function () {
     return string.length + (4 - ((string.length % 4) || 4));
   }
 
+  return XServerClient;
 });

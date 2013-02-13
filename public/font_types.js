@@ -1,5 +1,5 @@
-window.loaders.push(function () {
-  var module = { exports: window.font_types = {} }
+define(['require'], function (require) {
+  var module = { exports: {} }
 
   function PCFCharacter (left, right, width, ascent, descent, attrs) {
     this.left       = left;
@@ -16,7 +16,7 @@ window.loaders.push(function () {
   });
 
   PCFCharacter.prototype.toCharInfo = function () {
-    return new x_types.CharInfo(this);
+    return new (require('x_types').CharInfo)(this);
   }
 
   PCFCharacter.prototype.toPixels = function () {
@@ -309,7 +309,7 @@ window.loaders.push(function () {
   }
   
   PCF.prototype.toFontInfo = function () {
-    return new x_types.FontInfo(this);
+    return new (require('x_types').FontInfo)(this);
   }
 
   PCF.prototype.drawTo = function (string, context, x, y, red, green, blue) {
@@ -331,7 +331,7 @@ window.loaders.push(function () {
   }
 
   JSONCharacter.prototype.toCharInfo = function () {
-    return new x_types.CharInfo(this);
+    return new (require('x_types').CharInfo)(this);
   }
 
   function JSON (data) {
@@ -372,7 +372,7 @@ window.loaders.push(function () {
   }
 
   JSON.prototype.toFontInfo = function () {
-    return new x_types.FontInfo(this);
+    return new (require('x_types').FontInfo)(this);
   }
-
+  return module.exports;
 });

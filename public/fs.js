@@ -1,0 +1,28 @@
+define(function () {
+  var exports = {};
+  exports.readFile = function (filename, encoding, callback) {
+    if (typeof encoding === 'function') {
+      callback = encoding;
+      encoding = null;
+    }
+    encoding = encoding || 'raw';
+
+    var req = new XMLHttpRequest();
+    req.open('GET', window.location.protocol + '//' + window.location.host + '/' + filename, true);
+    if (encoding === 'raw')
+      req.responseType = 'arraybuffer';
+    req.onerror = function (event) {
+      console.log('onerror', event);
+      callback(req.status || event || 'Unknown Error');
+      callback = new Function;
+    }
+    req.onload = function (event) {
+      console.log('onload');
+      console.log(req, req.status, callback);
+      callback((req.status === 200 ? null : req.status), req.response);
+      console.log(req, req.status, callback);
+    }
+    req.send();
+  }
+  return exports;
+});

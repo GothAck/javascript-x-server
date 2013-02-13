@@ -1,4 +1,5 @@
-(function (module) {
+define(function () {
+  var module = { exports: {} };
 
   var keysyms = {
       'Backspace' : 0xff08
@@ -472,4 +473,5 @@
 ]
       )
   }
-})({ exports: window.keymap = {} });
+  return module.exports;
+})

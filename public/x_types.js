@@ -1,5 +1,5 @@
-window.loaders.push(function () {
-  var module = { exports: window.x_types = {} }
+define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianBuffer, font_types) {
+  var module = { exports: {} }
 
   Array.prototype.writeBuffer = function (buffer, offset) {
     this.forEach(function (item) {
@@ -95,7 +95,7 @@ window.loaders.push(function () {
   }
   module.exports.Nulls = Nulls;
   Nulls.prototype.writeBuffer = function (buffer, offset) {
-    (new Buffer(this.length)).copy(buffer, offset);
+    (new EndianBuffer(this.length)).copy(buffer, offset);
     return offset + this.length;
   }
 
@@ -253,7 +253,7 @@ window.loaders.push(function () {
     this.opcode = request.opcode;
     this.sequence = request.sequence;
     this.data_byte = 0;
-    this.data = new Buffer(24);
+    this.data = new EndianBuffer(24);
     this.data.endian = request.endian;
     this.data.fill(0);
     this.data_extra = [];
@@ -306,10 +306,10 @@ window.loaders.push(function () {
     this.detail = detail || 0;
     this.sequence = req.sequence;
     console.log(req);
-    if (req instanceof XServerClient)
+    if (req instanceof (require('x_client')))
       this.sequence -= 1;
     console.log(this.sequence, req.sequence);
-    this.data = new Buffer(28);
+    this.data = new EndianBuffer(28);
     this.data.endian = req.endian;
     this.length = 32;
   }
@@ -526,7 +526,7 @@ window.loaders.push(function () {
   module.exports.Font = Font;
 
   Font.prototype.loadMeta = function (path, cb) {
-    getTextFile(path + '.meta.json', function (err, meta) {
+    fs.readFile(path + '.meta.json', 'utf8', function (err, meta) {
       this.loading = false;
       if (err) {
         this.error = true;
@@ -559,7 +559,7 @@ window.loaders.push(function () {
     }.bind(this));
   }
   Font.prototype.loadData = function (path, cb) {
-    getFile(path, function (err, data) {
+    fs.readFile(path, function (err, data) {
       this.loading = false;
       if (err) {
         this.error = true;
@@ -573,7 +573,7 @@ window.loaders.push(function () {
         this.error = true;
         return cb('No data');
       }
-      this.font = new font_types[this.type.toUpperCase()](new Buffer(data), 'pcf' );
+      this.font = new font_types[this.type.toUpperCase()](new EndianBuffer(data), 'pcf' );
       cb();
     }.bind(this));
   }
@@ -714,8 +714,8 @@ window.loaders.push(function () {
 
   Window.prototype.event = function (event, data) {
     if (~this.events.indexOf(event)) {
-      if (this.owner instanceof XServerClient) {
-        console.log(event);
+      if (this.owner instanceof (require('x_client'))) {
+        console.log(event, data);
         var rep = null;
           switch (event) {
             case 'KeyPress':
@@ -785,7 +785,7 @@ window.loaders.push(function () {
 
   // FIXME: Unused due to differing reply format to send format!
   Window.prototype.getData = function () {
-    var data = new Buffer(_win_vfield_types.map(function (name) { return x_types[name] }).reduce(function (o, v) { return o + v }));
+    var data = new EndianBuffer(_win_vfield_types.map(function (name) { return x_types[name] }).reduce(function (o, v) { return o + v }));
     for (var i = 0; i < _gc_vfields.length; i++) {
       data['write' + _win_vfield_types[i]](this[_win_vfields[i]], offset);
       offset += x_types[_win_vfield_types[i]].length;
@@ -803,7 +803,7 @@ window.loaders.push(function () {
       case 1: // Prepend
         if (this.properties[property].format != format)
           throw new Error('Invalid format for this property')
-        this.properties[property] = new Buffer((old = this.properties[property]).length + data.length);
+        this.properties[property] = new EndianBuffer((old = this.properties[property]).length + data.length);
         this.properties[property].endian = data.endian;
         data.copy(this.properties[property]);
         old.copy (this.properties[property], data.length);
@@ -811,7 +811,7 @@ window.loaders.push(function () {
       case 2: // Append
         if (this.properties[property].format != format)
           throw new Error('Invalid format for this property')
-        this.properties[property] = new Buffer((old = this.properties[property]).length + data.length);
+        this.properties[property] = new EndianBuffer((old = this.properties[property]).length + data.length);
         this.properties[property].endian = data.endian;
         old.copy (this.properties[property]);
         data.copy(this.properties[property], old.length);
@@ -826,4 +826,5 @@ window.loaders.push(function () {
     }
     return false;
   }
+  return module.exports;
 });

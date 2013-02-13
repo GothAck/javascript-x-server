@@ -143,7 +143,7 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
         return false;
       });
     });
-    $('.screen').on('contextmenu', '*', function () { return false; });
+    $('.screen').on('contextmenu', '*', false);
   });
 
   $(connect);

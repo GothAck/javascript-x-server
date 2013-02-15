@@ -563,6 +563,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   Window.prototype.__defineGetter__('y', function () { return this._x });
   Window.prototype.__defineSetter__('x', function (x) { this._x = x; this.element.css('left', x + 'px') });
   Window.prototype.__defineSetter__('y', function (y) { this._y = y; this.element.css('top' , y + 'px') });
+  Window.prototype.__defineGetter__('width' , function () { return this._width  });
+  Window.prototype.__defineGetter__('height', function () { return this._height });
   Window.prototype.__defineSetter__('width', function (width) {
     this.constructor.super_.prototype.__lookupSetter__('width').call(this, width);
     this.element.css('width', width);

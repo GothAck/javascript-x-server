@@ -646,11 +646,16 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     // Extra data
     rep.data_extra.push(font.font.toFontInfo());
     rep.data_extra.push(new x_types.UInt32(font.font.characters.length));
-    for (var i in font.font.properties)
+    for (var i in font.font.properties) {
+      if (typeof font.font.properties[i] === 'string') {
+        // Convert string properties to atoms
+        font.font.properties[i] = this.server.atoms.push(font.font.properties[i]);
+      }
       rep.data_extra.push(new x_types.FontProp(
-          this.server.atoms.indexOf(i)
+          this.server.atoms.indexOf(i) + 1
         , font.font.properties[i]
       ));
+    }
     for (var i = 0; i < font.font.characters.length; i++)
       rep.data_extra.push(font.font.getChar(i).toCharInfo());
     callback(null, rep);

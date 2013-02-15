@@ -334,8 +334,9 @@ define(['require'], function (require) {
     return new (require('x_types').CharInfo)(this);
   }
 
-  function JSON (data) {
+  function JSON (data, font) {
     var self = this;
+    self.font = font;
     Object.keys(data).forEach(function (key) {
       self[key] = data[key];
     });
@@ -353,7 +354,7 @@ define(['require'], function (require) {
   module.exports.JSON = JSON;
 
   JSON.prototype.__defineGetter__('height', function () {
-    var _ = this.getChar(-1);
+    var _ = this.getChar(-2);
     return _.ascent + _.descent - 1;
   });
 
@@ -363,12 +364,15 @@ define(['require'], function (require) {
   });
 
   JSON.prototype.getChar = function (index) {
+    var char;
     // index == index || -1 for min -2 for max
-    if (index === -1)
-      return (this.bdf_accelerators || this.accelerators).maxbounds
     if (index === -2)
-      return (this.bdf_accelerators || this.accelerators).minbounds
-    return this.characters[index]
+      char = (this.bdf_accelerators || this.accelerators).maxbounds
+    else if (index === -1)
+      char = (this.bdf_accelerators || this.accelerators).minbounds
+    else
+      char = this.characters[index];
+    return char;
   }
 
   JSON.prototype.toFontInfo = function () {

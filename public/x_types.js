@@ -74,13 +74,13 @@ define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianB
     buffer.writeUInt8 (true                          , offset + 11 );
     var accelerators = this.font.bdf_accelerators || this.font.accelerators;
     buffer.writeInt16 (accelerators.fontAscent       , offset + 12 );
-    buffer.writeInt16 (accelerators.fontDescent      , offset + 14 );
+    buffer.writeInt16 (accelerators.fontDecent      , offset + 14 );
     return offset + this.length;
   }
 
   function FontProp (atom, data) {
     this.atom = atom;
-    this.data = typeof data === 'number' ? data : 0;
+    this.data = data;
   }
   module.exports.FontProp = FontProp;
   FontProp.length = FontProp.prototype.length = 8;
@@ -533,7 +533,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianB
         return cb(err);
       }
       try {
-        this.font = new font_types.JSON(JSON.parse(meta));
+        this.font = new font_types.JSON(JSON.parse(meta), this);
       } catch (e) {
         this.error = true;
         console.error(e);

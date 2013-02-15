@@ -294,8 +294,15 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
           font.error = true;
         if (font.font && font.font.properties)
           Object.keys(font.font.properties).forEach(function (prop_name) {
+            var value = font.font.properties[prop_name];
             if (!~this.atoms.indexOf(prop_name))
               this.atoms.push(prop_name);
+            if (typeof value === 'string') {
+              if (~this.atoms.indexOf(value))
+                font.font.properties[prop_name] = this.atoms.indexOf(value) + 1;
+              else
+                font.font.properties[prop_name] = this.atoms.push(value);
+            }
             callback && callback(err, font);
           }.bind(this))
         this.flushGrabBuffer();

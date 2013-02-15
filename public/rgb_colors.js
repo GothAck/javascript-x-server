@@ -1,7 +1,7 @@
 define(function () {
   var module = { exports: {} };
 
-  module.exports.rgb_colors = {
+  module.exports = {
   "snow": 16775930,
   "ghost white": 16316671,
   "GhostWhite": 16316671,
@@ -576,4 +576,5 @@ define(function () {
   "light green": 9498256,
   "LightGreen": 9498256
 }
+return module.exports;
 });

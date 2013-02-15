@@ -532,23 +532,34 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , property = this.server.atoms[atom - 1];
 
     window.deleteProperty(property);
+    //console.log('DeleteProperty', window.id, property);
 
-    if (~window.events.indexOf('PropertyChange')) {
-      var rep = new x_types.EventPropertyNotify(req, window, atom, true);
-      callback(null, rep);
-    }
+    window.sendEvent('PropertyNotify', { atom: atom, deleted: true });
     callback();
   }
 
 
   XServerClient.prototype.GetProperty = function (req, callback) {
-    var window = req.data.readUInt32(0)
-      , property = req.data.readUInt32(4)
+    var window = this.server.resources[req.data.readUInt32(0)]
+      , atom = req.data.readUInt32(4)
+      , property = this.server.atoms[atom - 1]
       , type = req.data.readUInt32(8)
       , long_off = req.data.readUInt32(12)
-      , long_len = req.data.readUInt32(16);
-    console.log('Get Property', window, property);
-    var rep = new x_types.Reply(req)
+      , long_len = req.data.readUInt32(16)
+      , rep = new x_types.Reply(req);
+
+    //console.log('Get Property', window.id, property);
+
+    var value = window.getProperty(property);
+    if (!value)
+      return callback(null, rep);
+
+    rep.data_byte = value.format;
+    rep.data.writeUInt32(value.type || 0, 0);
+    rep.data.writeUInt32(value.length || 0, 4);
+    console.log(value.length / (value.format / 8));
+    rep.data.writeUInt32(value.length / (value.format / 8), 8);
+    rep.data_extra.push(new x_types.DataBuffer(value));
     callback(null, rep);
   }
 

@@ -124,6 +124,16 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return offset + this.string.length;
   }
 
+  function DataBuffer (buffer) {
+    this.buffer = buffer;
+  }
+  module.exports.DataBuffer = DataBuffer;
+  DataBuffer.prototype.__defineGetter__('length', function () { return this.buffer.length });
+  DataBuffer.prototype.writeBuffer = function (buffer, offset) {
+    this.buffer.copy(buffer, offset);
+    return offset + this.buffer.length;
+  }
+
   function Format (depth, bpp, scanline_pad) {
     this.depth = depth || 0;
     this.bpp = bpp || 0;
@@ -667,13 +677,14 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     }
   }
 
-  Window.prototype.changeProperty = function (property, format, data, mode) {
+  Window.prototype.changeProperty = function (atom, property, format, type, data, mode) {
     mode = mode || 0;
     var old;
     switch (mode) {
       case 0: // Replace
         this.properties[property] = data;
         this.properties[property].format = format;
+        this.properties[property].type = type;
         break;
       case 1: // Prepend
         if (this.properties[property].format != format)
@@ -692,6 +703,11 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
         data.copy(this.properties[property], old.length);
         break;
     }
+    this.sendEvent('PropertyNotify', { atom: atom, deleted: false });
+  }
+
+  Window.prototype.getProperty = function (property) {
+    return this.properties[property];
   }
 
   Window.prototype.deleteProperty = function (property) {

@@ -573,6 +573,12 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.constructor.super_.prototype.__lookupSetter__('height').call(this, height);
     this.element.css('height', height);
   });
+  Window.prototype.__defineSetter__('cursor', function (cursor) {
+    if (this._cursor)
+      this.element.removeClass('cursor_' + this._cursor);
+    this.element.addClass('cursor_' + cursor);
+    this._cursor = cursor;
+  });
 
   var _event_mask_fields = [
       'KeyPress', 'KeyRelease', 'ButtonPress', 'ButtonRelease', 'EnterWindow', 'LeaveWindow'

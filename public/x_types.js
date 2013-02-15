@@ -542,7 +542,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.parent.element.children().append(this.element);
 
     this.border_width = border_width;
-    this.class = _class;
+    this.input_output = _class ? (!(_class - 1)) : parent.input_output;
     this.visual = visual;
     this.events = [];
 

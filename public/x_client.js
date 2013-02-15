@@ -771,6 +771,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       console.log('Error');
       callback(null, rep);
     }
+    this.resources[pid].canvas.remove();
     delete this.resources[pid];
     callback();
   }

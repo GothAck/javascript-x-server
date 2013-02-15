@@ -42,12 +42,11 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
             this.sequence --;
             this.buffer = data;
             break;
-          } else {
-            this.reqs.unshift(req);
-            if (data.length > 0) {
-              data = data.slice(req.length);
-              data.endian = this.endian;
-            }
+          }
+          this.reqs.unshift(req);
+          if (data.length > 0) {
+            data = data.slice(req.length);
+            data.endian = this.endian;
           }
         }
         this.reqs.unshift(null); // Force a processReps after this batch!
@@ -90,24 +89,34 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
           self.reqs_processing = false;
           self.processReqs()
         }
-      }, 1);
+      }, 0);
     } else
       self.processReps();
   }
 
   XServerClient.prototype.processReps = function () {
-    if (! this.reps.length)
+    var self = this;
+    if (self.reps_processing)
       return;
-    var reps = this.reps.splice(0, this.reps.length).filter(function (rep) { return rep })
-      , res = new EndianBuffer(
-          reps.reduce(function (o, rep) { return o + rep.length }, 0)
-        );
-
-    res.endian = this.endian;
-    reps.reduce(function (o, rep) {
-      return rep.writeBuffer(res, o);
-    }, 0);
-    this.write(res);
+    clearTimeout(self.reps_timeout);
+    if (self.reps.length) {
+      self.reps_processing = true;
+      self.reps_timeout = setTimeout(function () {
+        var reps = self.reps.splice(0, self.reps.length).filter(function (rep) { return rep })
+        if (reps.length) {
+          var res = new EndianBuffer(
+                reps.reduce(function (o, rep) { return o + rep.length }, 0)
+              );
+          res.endian = self.endian;
+          reps.reduce(function (o, rep) {
+            return rep.writeBuffer(res, o);
+          }, 0);
+          self.write(res);
+        }
+        self.reps_processing = false;
+      });
+    } else
+      self.reps_processing = false;
   }
 
   XServerClient.prototype.disconnect = function () {

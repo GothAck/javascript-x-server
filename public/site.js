@@ -73,15 +73,31 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
 
   $(function () {
     var event_mask_map = {
-            KeyPress      : 'keydown'
-          , KeyRelease    : 'keyup'
-          , ButtonPress   : 'mousedown'
-          , ButtonRelease : 'mouseup'
-          , PointerMotion : 'mousemove'
-          , EnterWindow   : 'mouseover'
-          , LeaveWindow   : 'mouseout'
-          , FocusChange   : 'focus blur'
+            KeyPress        : 'keydown'
+          , KeyRelease      : 'keyup'
+          , ButtonPress     : 'mousedown'
+          , ButtonRelease   : 'mouseup'
+          , PointerMotion   : 'mousemove'
+          , EnterWindow     : 'mouseover'
+          , LeaveWindow     : 'mouseout'
+          , FocusChange     : 'focus blur'
+          , PropertyNotify  : 'property_change'
+          , Expose          : ''
+          , MapNotify       : ''
         }
+      , static_events = ['MapNotify']
+      , do_not_propagate_event_mask_map = Object.keys(event_mask_map).reduce(function (o, v) { o['NoPropagate' + v] = event_mask_map[v]; return o }, {})
+/*
+      , _event_map = Object.keys(event_mask_map) // FIXME: Nice try but differences in the new mapping
+          .reduce(
+              function (o, k) {
+                event_mask_map[k].split(' ').forEach(function (v) {
+                  o[v] = k;
+                });
+              }
+            , {}
+          )
+*/
       , event_map = {
             keydown   : 'KeyPress'
           , keyup     : 'KeyRelease'
@@ -95,6 +111,7 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
         }
       , mouse_buttons = [1,3,2]
       , current_mouse = 0;
+
     $('.screen').on('blur focus focusin focusout load resize scroll unload click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select submit keydown keypress keyup error', '.drawable', function (event) {
       if (event_map[event.type] && ! event.createdX11) {
         var drawable = $(event.srcElement).not('.drawable').parentsUntil('.drawable').last().parent().andSelf().first();
@@ -112,36 +129,58 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
       else
         current_mouse &= ~ (1 << (mouse_buttons[event.button] - 1));
     });
-    Object.keys(event_mask_map).forEach(function (_class) {
-      $('.screen').on(_class, '.' + _class, function (event, event_orig) {
-        var $event = $(this)
-          , $child = $(event.srcElement)
-          , xob_event = $event.data('xob')
-          , xob_child = $child.data('xob')
-          , keybutmask = (
-                current_mouse |
-                (
-                    event.type === 'ButtonPress' &&
-                    (1 << (mouse_buttons[event_orig.button] - 1))
-                )
-            ) << 8;
-        keybutmask |= event_orig.shiftKey && 1;
-        // lock? = 2
-        keybutmask |= event_orig.ctrlKey  && 4;
-        xob_event && xob_event.event(
-            event.type
-          , {
-                x: event_orig.offsetX
-              , y: event_orig.offsetY
-              , button: mouse_buttons[event_orig.button]
-              , keycode: event_orig.keyCode
-              , keybutmask: keybutmask
-              , event: xob_event
-              , child: xob_child
-            }
-        );
-        return false;
+    Object.keys(do_not_propagate_event_mask_map).forEach(function (_class) {
+      $('.screen').on(_class, '.' + _class, function (event) {
+        event.stopPropagation();
       });
+    });
+    function event_handler (event, event_orig) {
+      event_orig = event_orig || event;
+      var $event = $(this)
+        , $child = $(event.srcElement)
+        , xob_event = $event.data('xob')
+        , xob_child = $child.data('xob')
+        , keybutmask = (
+              current_mouse |
+              (
+                  event.type === 'ButtonPress' &&
+                  (1 << (mouse_buttons[event_orig.button] - 1))
+              )
+          ) << 8;
+      keybutmask |= event_orig.shiftKey && 1;
+      // lock? = 2
+      keybutmask |= event_orig.ctrlKey  && 4;
+      xob_event && xob_event.onEvent(
+          event.type
+        , {
+              x: event_orig.offsetX
+            , y: event_orig.offsetY
+            , button: mouse_buttons[event_orig.button]
+            , keycode: event_orig.keyCode
+            , keybutmask: keybutmask
+            , event: xob_event
+            , child: xob_child
+            , data: {
+                  event: event
+                , original: event_orig
+              }
+          }
+      );
+      if (~static_events.indexOf(event.type)) {
+        event.stopImmediatePropagation();
+        return false;
+      }
+    }
+    Object.keys(event_mask_map).forEach(function (_class) {
+      $('.screen').on(_class, '.' + _class, event_handler);
+    });
+    static_events.forEach(function (_class) {
+      $('.screen').on(_class, '.drawable', event_handler);
+    });
+    $('.screen').on('TestEvent', '.drawable', function (event) {
+      console.log('TestEvent', event);
+      event.stopImmediatePropagation();
+      return false;
     });
     $('.screen').on('contextmenu', '*', false);
   });

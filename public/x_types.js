@@ -1,5 +1,7 @@
-define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianBuffer, font_types) {
+define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (util, fs, EndianBuffer, font_types, event_types) {
   var module = { exports: {} }
+
+  module.exports.events = event_types;
 
   Array.prototype.writeBuffer = function (buffer, offset) {
     this.forEach(function (item) {
@@ -301,133 +303,6 @@ define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianB
     return offset + 32;
   }
 
-  function Event (req, code, detail) {
-    this.code = code || 1;
-    this.detail = detail || 0;
-    this.sequence = req.sequence;
-    console.log(req);
-    if (req instanceof (require('x_client')))
-      this.sequence -= 1;
-    console.log(this.sequence, req.sequence);
-    this.data = new EndianBuffer(28);
-    this.data.endian = req.endian;
-    this.length = 32;
-  }
-
-  module.exports.Event = Event;
-
-  Event.prototype.writeBuffer = function (buffer, offset) {
-    buffer.writeUInt8(this.code, offset);
-    buffer.writeUInt8(this.detail, offset + 1);
-    buffer.writeUInt16(this.sequence, offset + 2);
-    this.data.copy(buffer, offset + 4);
-    return offset + 32;
-  }
-
-  function EventExpose (req, window, count) {
-    Event.call(this, req, 12);
-    this.window = window;
-    this.x = window.x;
-    this.y = window.y;
-    this.width = window.width;
-    this.height = window.height;
-    this.count = count;
-  }
-
-  util.inherits(EventExpose, Event);
-
-  module.exports.EventExpose = EventExpose;
-
-  EventExpose.prototype.writeBuffer = function (buffer, offset) {
-    this.data.writeUInt32(this.window.id, 0);
-    this.data.writeUInt16(this.x, 4);
-    this.data.writeUInt16(this.y, 6);
-    this.data.writeUInt16(this.width, 8);
-    this.data.writeUInt16(this.height, 10);
-    this.data.writeUInt16(this.count, 12);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
-  }
-
-  function EventMapNotify (req, event_window, window) {
-    Event.call(this, req, 19);
-    this.event_window = event_window;
-    this.window = window || event_window;
-  }
-
-  util.inherits(EventMapNotify, Event);
-
-  module.exports.EventMapNotify = EventMapNotify;
-
-  EventMapNotify.prototype.writeBuffer = function (buffer, offset) {
-    this.data.writeUInt32(this.event_window.id, 0);
-    this.data.writeUInt32(this.window.id, 4);
-    this.data.writeUInt8(this.window.override_redirect ? 1 : 0, 8);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
-  }
-
-  function EventPropertyNotify (req, window, atom, deleted, timestamp) {
-    Event.call(this, req, 28);
-    this.window = window;
-    this.atom = atom;
-    this.timestamp = timestamp || 0; //~~(Date.now() / 1000);
-    this.deleted = !!deleted;
-  }
-
-  util.inherits(EventPropertyNotify, Event);
-
-  module.exports.EventPropertyNotify = EventPropertyNotify;
-
-  EventPropertyNotify.prototype.writeBuffer = function (buffer, offset) {
-    this.data.writeUInt32(this.window.id, 0);
-    this.data.writeUInt32(this.atom, 4);
-    this.data.writeUInt32(this.timestamp, 8);
-    this.data.writeUInt8(~~this.deleted, 12);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
-  }
-
-  function EventWindowInputDevicePointer (event, child, parent, detail, child_x, child_y, btn_state) {
-    if (! ~EventWindowInputDevicePointer.event_map.indexOf(event))
-      throw new Error('Invalid event ' + event);
-    Event.call(this, child.owner, 2 + EventWindowInputDevicePointer.event_map.indexOf(event));
-    this.child = child;
-    this.parent = parent;
-    this.detail = detail;
-    this.x = child_x;
-    this.y = child_y;
-    this.btn_state = btn_state;
-    this.same_screen = true;
-    this.btn_state = this.child.owner.server.btn_state = btn_state
-  }
-
-  util.inherits(EventWindowInputDevicePointer, Event);
-
-
-  EventWindowInputDevicePointer.event_map = [
-      'KeyPress'    , 'KeyRelease'    // 2, 3
-    , 'ButtonPress' , 'ButtonRelease' // 4, 5
-    , null                            // 6 MapNotify
-    , 'EnterWindow' , 'LeaveWindow'   // 7, 8
-  ];
-
-  EventWindowInputDevicePointer.prototype.writeBuffer = function (buffer, offset) {
-    this.data.writeUInt32(0, 0); //Time
-    this.data.writeUInt32(this.parent.getRoot().id, 4); // Root id
-    this.data.writeUInt32(this.parent.id, 8); // Parent / event win id
-    this.data.writeUInt32((this.child.id !== this.parent.id && this.child.id) || 0, 12); // Child id (0 if same as parent)
-    var this_offset = this.child.element.offset()
-      , root_offset = this.parent.getRoot().element.offset();
-
-    this.data.writeInt16(root_offset.left - this_offset.left, 16); // Root x
-    this.data.writeInt16(root_offset.top  - this_offset.top , 18); // Root y
-    this.data.writeInt16(this.x, 20); // x
-    this.data.writeInt16(this.y, 22); // y
-    this.data.writeUInt16(this.btn_state, 24);
-    this.data.writeUInt8(this.same_screen, 26);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
-  }
-
-
-
   var _gc_vfields = [
       'function' , 'plane_mask' , 'foreground' , 'background'
     , 'line_width' , 'line_style' , 'cap_style' , 'join_style' , 'fill_style' , 'fill_rule'
@@ -689,8 +564,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianB
   var _event_mask_fields = [
       'KeyPress', 'KeyRelease', 'ButtonPress', 'ButtonRelease', 'EnterWindow', 'LeaveWindow'
     , 'PointerMotion', 'PointerMotionHint', 'Button1Motion', 'Button2Motion', 'Button3Motion', 'Button4Motion', 'Button5Motion', 'ButtonMotion'
-    , 'KeymapState', 'Exposure', 'VisibilityChange', 'StructureNotify', 'ResizeRedirect', 'SubstructureNotify', 'SubstructureRedirect'
-    , 'FocusChange', 'PropertyChange', 'ColormapChange', 'OwnerGrabButton'
+    , 'KeymapState', 'Expose', 'VisibilityChange', 'StructureNotify', 'ResizeRedirect', 'SubstructureNotify', 'SubstructureRedirect'
+    , 'FocusChange', 'PropertyNotify', 'ColormapChange', 'OwnerGrabButton'
   ];
   Window.prototype.__defineSetter__('event_mask', function (event_mask) {
     this.events = _event_mask_fields.filter(function (mask, i) {
@@ -703,6 +578,21 @@ define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianB
   Window.prototype.__defineGetter__('event_mask', function () {
     return this._event_mask || 0;
   });
+
+  var _do_not_propagate_mask_fields = _event_mask_fields.map(function (name) { return 'NoPropagate' + name });
+  Window.prototype.__defineSetter__('do_not_propagate_mask', function (event_mask) {
+    this.do_not_propagate_events = _do_not_propagate_mask_fields.filter(function (mask, i) {
+      return event_mask & Math.pow(2, i);
+    });
+    this._do_not_propagate_event_mask = event_mask;
+    this.element.removeClass(_do_not_propagate_mask_fields.join(' '))
+    this.element.addClass(this.do_not_propagate_events.join(' '))
+  });
+  Window.prototype.__defineGetter__('do_not_propagate_mask', function (event_mask) {
+    return this._do_not_propagate_event_mask || 0;
+  });
+
+
   Window.prototype.__defineSetter__('colormap', function (colormap) {
     this._colormap = (typeof colormap === 'number')
       ? this.owner.server.resources[colormap]
@@ -712,39 +602,24 @@ define(['util', 'fs', 'endianbuffer', 'font_types'], function (util, fs, EndianB
     return this._colormap;
   });
 
-  Window.prototype.event = function (event, data) {
-    if (~this.events.indexOf(event)) {
+  Window.prototype.sendEvent = function (event, data) {
+    this.element.trigger(event, data);
+  }
+
+  Window.prototype.onEvent = function (event, data) {
+//    if (~this.events.indexOf(event)) {
       if (this.owner instanceof (require('x_client'))) {
-        console.log(event, data);
-        var rep = null;
-          switch (event) {
-            case 'KeyPress':
-            case 'KeyRelease':
-              rep = new EventWindowInputDevicePointer(event, this, data.child, data.keycode, data.x, data.y, data.keybutmask);
-            break;
-            case 'ButtonPress':
-            case 'ButtonRelease':
-              rep = new EventWindowInputDevicePointer(event, this, data.child, data.button, data.x, data.y, data.keybutmask);
-            break;
-            case 'MapNotify': //6
-            break;
-            case 'EnterWindow':
-            case 'LeaveWindow':
-              rep = new EventWindowInputDevicePointer(event, this, data.child, 0, data.x, data.y, data.keybutmask);
-            break;
-            case 'FocusIn': //9
-            break;
-            case 'FocusOut': //10
-            break;
-            // 11 - 34
-          }
-          this.owner.reps.push(rep);
+        this.owner.reps.push(
+          event_types.map[event]
+            ? new event_types.map[event](event, this, data)
+            : null
+        );
         return this.owner.processReps();
       }
       if (this.owner instanceof XServer) {
         // Do X Server Events
       }
-    }
+//    }
   }
 
   Window.prototype.map = function () {

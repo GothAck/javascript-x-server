@@ -406,9 +406,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     console.log('MapWindow', window.id);
     reps = [];
     if (window.map()) {
-      reps.push(new x_types.EventMapNotify(req, window, window));
-      if (~window.events.indexOf('Exposure'))
-        reps.push(new x_types.EventExpose(req, window, 0));
+      window.sendEvent('MapNotify');
+      window.sendEvent('Expose', { count: 0 });
     }
     callback(null, reps);
   }
@@ -421,9 +420,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       var children_children = [];
       parent_children.forEach(function (child_window, i) {
         if (child_window.map()) {
-          reps.push(new x_types.Event(req, 19, child_window, child_window));
-          if (~child_window.events.indexOf('Exposure'))
-            reps.push(new x_types.EventExpose(req, child_window, 0));
+          child_window.sendEvent('MapNotify')
+          child_window.sendEvent('Expose', { count: 0 });
         }
         children_children.splice.apply(children_children, [0, 0].concat(child_window.children));
       });
@@ -522,13 +520,9 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , length = req.data.readUInt32(16) * (format === 8 ? 1 : (format === 16 ? 2 : (format === 32) ? 4 : 0))
       , data = req.data.slice(20, length + 20);
     data.endian = this.endian;
-
-    window.changeProperty(property, format, data, mode);
-
-    if (~window.events.indexOf('PropertyChange')) {
-      var rep = new x_types.EventPropertyNotify(req, window, atom);
-      callback(null, rep);
-    }
+    console.log('ChangeProperty', window, req.data.readUInt32(0))
+    window.changeProperty(atom, property, format, type, data, mode);
+    //console.log('ChangeProperty', window.id, property, format, data, mode);
     callback();
   }
 

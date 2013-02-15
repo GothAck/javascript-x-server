@@ -365,21 +365,21 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   XServerClient.prototype.GetWindowAttributes = function (req, callback) {
     var window = this.resources[req.data.readUInt32(0)]
       , rep = new x_types.Reply(req);
-    rep.data_byte = 0; // Backing store (0 NotUseful, 1 WhenMapper, 2 Always)
-    rep.data.writeUInt32(window.id, 0); // Visual id
+    rep.data_byte = 2; // Backing store (0 NotUseful, 1 WhenMapper, 2 Always)
+    rep.data.writeUInt32(0, 0); // Visual id
     rep.data.writeUInt16((!window.input_output) + 1, 4); // Class (1 InputOutput, 2 InputOnly)
     rep.data.writeUInt8(0, 6); // Bit gravity
-    rep.data.writeUInt8(0, 7); // Win gravity
+    rep.data.writeUInt8(window.win_gravity, 7); // Win gravity
     rep.data.writeUInt32(0, 8); // Backing planes
-    rep.data.writeUInt32(0, 12); // Backing pixel
+    rep.data.writeUInt32(window.background_pixel || 0, 12); // Backing pixel
     rep.data.writeUInt8(0, 16); // Save under
     rep.data.writeUInt8(window.isMapped() ? 1 : 0, 17); // Map is installed
     rep.data.writeUInt8(window.isMapped() ? 2 : 0, 18); // Map state (0 Unmapped, 1 Unviewable, 2 Viewable)
     rep.data.writeUInt8(0, 19); // Override redirect
-    rep.data.writeUInt32(0, 20); // Colormap
+    rep.data.writeUInt32((this._colormap && this._colormap.id) || 0, 20); // Colormap
     rep.data_extra.push(new x_types.UInt32(window.event_mask)); // All event masks
     rep.data_extra.push(new x_types.UInt32(window.event_mask)); // Your event mask
-    rep.data_extra.push(new x_types.UInt16(0)); // Do not propagate mask
+    rep.data_extra.push(new x_types.UInt16(window.do_not_propagate_mask)); // Do not propagate mask
     rep.data_extra.push(new x_types.UInt16(0)); // Unused
     callback(null, rep);
   }

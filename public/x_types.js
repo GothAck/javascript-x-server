@@ -559,6 +559,14 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
 
   module.exports.Window = Window;
 
+  Window.prototype.__defineGetter__('children', function () {
+    return Array.prototype.slice.call(
+      this.element.children().children().map(function () {
+        return $(this).data('xob')
+      })
+    )
+  });
+
   Window.prototype.__defineGetter__('x', function () { return this._x });
   Window.prototype.__defineGetter__('y', function () { return this._x });
   Window.prototype.__defineSetter__('x', function (x) { this._x = x; this.element.css('left', x + 'px') });
@@ -628,6 +636,73 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return typeof this._win_gravity === 'undefined' ? 0 : _window_win_gravity.indexOf(this._win_gravity);
   });
 
+  Window.prototype.__defineSetter__('sibling', function (id) {
+    this._sibling = (typeof id === 'number')
+      ? this.owner.server.resources[id]
+      : id;
+  });
+  Window.prototype.__defineGetter__('sibling', function () { return this._sibling });
+  Window.prototype.__defineSetter__('stack_mode', function (mode) {
+    var siblings = this.parent.children
+      , elem_siblings = this.parent.element.children().children()
+      , elem = this.element;
+    switch (mode) {
+      case 0: // Above
+        if (this.sibling && ~siblings.indexOf(this.sibling)) {
+          elem.insertAfter(this.sibling.element);
+        } else {
+          elem.insertAfter(elem_siblings.last());
+        }
+      break;
+      case 1: // Below
+        if (this.sibling && ~siblings.indexOf(this.sibling)) {
+          elem.insertBefore(this.sibling.element);
+        } else {
+          elem.insertBefore(elem_siblings.first());
+        }
+      break;
+      case 2: // TopIf
+        if (this.sibling && ~siblings.indexOf(this.sibling)) {
+          if (elem.nextAll().has(this.sibling.element).length && elem.collision(this.sibling.element).length)
+            elem.insertAfter(elem_siblings.last());
+        } else {
+          if (elem.collision(elem.nextAll()).length)
+            elem.insertAfter(elem_siblings.last());
+        }
+      break;
+      case 3: // BtmIf
+        if (this.sibling && ~siblings.indexOf(this.sibling)) {
+          if (elem.prevAll().has(this.sibling.element).length && elem.collision(this.sibling.element).length)
+            elem.insertBefore(elem_siblings.first());
+        } else {
+          if (elem.collision(elem.prevAll()).length)
+            elem.insertBefore(elem_siblings.first());
+        }
+      break;
+      case 4: // Opposite
+        if (this.sibling && ~siblings.indexOf(this.sibling)) {
+          if (elem.collision(this.sibling.element).length) {
+            if (elem.nextAll().has(this.sibling.element).length)
+              elem.insertAfter(elem_siblings.last());
+            else
+              elem.insertBefore(elem_siblings.first());
+          }
+        } else {
+          var collision = elem.collision(elem_siblings.not(elem));
+          if (collision.length) {
+            if (elem.nextAll().has(collision).length)
+              elem.insertAfter(elem_siblings.last());
+            else
+              elem.insertBefore(elem_siblings.first());
+          }
+        }
+      break;
+    }
+    siblings.forEach(function (sibling, index) {
+      sibling.element.css('z-index', index);
+    });
+
+  });
 
   Window.prototype.sendEvent = function (event, data) {
     this.element.trigger(event, data);

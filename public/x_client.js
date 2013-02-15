@@ -808,6 +808,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , h = req.data.readUInt16(10) || (window.height - x);
     var context = window.canvas[0].getContext('2d');
     context.clearRect(x, y, w, h);
+    if (req.data_byte)
+      window.sendEvent('Expose', { x: x, y: y, width: w, height: h });
     callback();
   }
 

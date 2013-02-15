@@ -620,6 +620,14 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   Window.prototype.__defineGetter__('colormap', function () {
     return this._colormap;
   });
+  var _window_win_gravity = ['U', 'NW', 'N', 'NE', 'W', 'C', 'E', 'SW', 'S', 'SE', ''];
+  Window.prototype.__defineSetter__('win_gravity', function (grav) {
+    this._win_gravity = _window_win_gravity[grav || 0];
+  });
+  Window.prototype.__defineGetter__('win_gravity', function () {
+    return typeof this._win_gravity === 'undefined' ? 0 : _window_win_gravity.indexOf(this._win_gravity);
+  });
+
 
   Window.prototype.sendEvent = function (event, data) {
     this.element.trigger(event, data);

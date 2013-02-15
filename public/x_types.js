@@ -539,13 +539,14 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.children = [];
     this.parent = parent;
     this.parent.children.push(this);
+    this.parent.element.children().append(this.element);
 
     this.border_width = border_width;
     this.class = _class;
     this.visual = visual;
     this.events = [];
 
-
+    this.element.css('display', 'none');
     this.element.children().append(this.canvas.attr('id', this.id));
     this.changeData(vmask, vdata);
     this.properties = {}
@@ -633,20 +634,21 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   }
 
   Window.prototype.map = function () {
-    if (this.element[0].parentElement)
+    if (this.element.css('display') !== 'none')
       return;
-    this.parent.element.children().append(this.element);
+    this.element.css('display', 'block');
     return true;
   }
 
   Window.prototype.unmap = function () {
-    if (! this.element.parentElement)
+    if (this.element.css('display') === 'none')
       return;
-    this.element.remove();
+    this.element.css('display', 'none');
     return true;
   }
 
   Window.prototype.isMapped = function () {
+    return !!(this.element && this.element.css('display') !== 'none')
     return !!(this.element && this.element[0].parentNode && this.parent && (!this.parent.id || this.parent.isMapped()));
   }
 

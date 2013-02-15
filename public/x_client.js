@@ -1023,7 +1023,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var drawable = this.resources[req.data.readUInt32(0)]
       , gc = this.resources[req.data.readUInt32(4)]
       , context = gc.getContext(drawable)
-      , count = (req.length_quad / 4) - 1
+      , count = (req.length_quad - 1) / 4
       , x = req.data.readInt16(8)
       , y = req.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
       , textitems = []

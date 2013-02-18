@@ -663,6 +663,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     }
     this.server.input_focus_time = time;
     this.server.input_focus_revert = revert;
+    callback();
   }
 
   XServerClient.prototype.GetInputFocus = function (req, callback) {

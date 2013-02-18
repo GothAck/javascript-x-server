@@ -102,10 +102,10 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
           , 0x00ffffff // white
           , 0x00000000 // black
           , 0x00000000 // current input masks
-          , 800 // width px
-          , 400 // height px
-          , Math.round(800 / (96 / 25.4)) // width mm
-          , Math.round(400 / (96 / 25.4)) // height mm
+          , $('.screen').width() // width px
+          , $('.screen').height() // height px
+          , Math.round($('.screen').width() / (96 / 25.4)) // width mm
+          , Math.round($('.screen').height() / (96 / 25.4)) // height mm
           , 0x0001 // min maps
           , 0x0001 // max maps
           , 0x20 // root visual
@@ -167,7 +167,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
       , 0x18 // depth 24
       , { id: 0, element: this.screen, children: [] } // parent 0
       , 0, 0
-      , 800, 400
+      , this.screen.width(), this.screen.height()
       , 0, 1, 0, 0, 0
     );
     this.font_path = 'fonts';
@@ -193,7 +193,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     var c = this.resources[0x00000026].canvas[0].getContext('2d')
       , img = new Image;
     img.onload = function () {
-      c.rect(0, 0, 800, 400);
+      c.rect(0, 0, $('.screen').width(), $('.screen').height());
       c.fillStyle = c.createPattern(img, 'repeat');
       c.fill();
     }

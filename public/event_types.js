@@ -197,6 +197,19 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
       , {}
     );
 
+  module.exports.fromBuffer = function (server, buffer, offset) {
+    var code    = buffer.readUInt8(offset)
+      , name    = event_opcodes[code - 1]
+      , detail  = buffer.readUInt8(offset + 1)
+      , req     = { sequence: buffer.readUInt16(offset + 2) }
+      , data    = buffer.slice(offset + 4, offset + 32);
+    data.endian = buffer.endian;
+    var event_type = module.exports.map[name];
+    return event_type && event_type.fromBuffer && event_type.fromBuffer(
+      server, code, buffer, offset + 4
+    );
+  }
+
   var implemented = Object.keys(module.exports.map);
   console.log(
       'Missing these event objects:'

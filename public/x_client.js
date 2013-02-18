@@ -11,6 +11,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     this.motion_buffer_size = 0xff;
     this.maximum_request_length = 0xffff;
     this.sequence = 1;
+    this.sequence_sent = 0;
     this.resources = this.server.resources;
     this.save_set = [];
     this.reqs = [];
@@ -109,6 +110,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
               );
           res.endian = self.endian;
           reps.reduce(function (o, rep) {
+            if(self.sequence_sent < rep.sequence)
+              self.sequence_sent = rep.sequence;
             return rep.writeBuffer(res, o);
           }, 0);
           self.write(res);

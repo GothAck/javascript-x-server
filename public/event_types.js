@@ -48,7 +48,7 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.detail = detail || 0;
     this.sequence = req.sequence;
     if (req instanceof (require('x_client')))
-      this.sequence -= 1;
+      this.sequence = req.sequence_sent;
     this.data = new EndianBuffer(28);
     this.data.endian = req.endian;
     this.length = 32;

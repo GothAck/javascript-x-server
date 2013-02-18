@@ -334,8 +334,18 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     var out_str = '';
     if (typeof str !== 'string')
       return str;
-    for (var i = 0; i < str.length; i ++)
-      out_str += str.charCodeAt(i) < 0x21 ? String.fromCharCode(0x2400 + str.charCodeAt(i)) : str.charAt(i);
+    for (var i = 0; i < str.length; i ++) {
+      var v = str.charCodeAt(i);
+      if (v < 0x21) {
+        out_str += String.fromCharCode(0x2400 + v);
+        continue;
+      }
+      if (v > 0x7e && v < 0xa1) {
+        out_str += String.fromCharCode(0xf800 - 0x7e + v);
+        continue;
+      }
+      out_str += str.charAt(i);
+    }
     return out_str;
   }
 

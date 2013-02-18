@@ -202,23 +202,23 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.imageFromBitmap = function (dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
-      , scanline = width + (width % (format.scanline_pad / format.bpp));
-    width = scanline; // Overscan the image for now! FIXME: Need to crop instead of overscan!
+      , scanline = width + ((format.scanline_pad / format.bpp) - width % (format.scanline_pad / format.bpp));
     switch (depth) {
       case 1:
         var byte;
-        for (var pixel = 0; pixel < data.length * 8; pixel ++) {
-          var bit = pixel % 8
-            , bit_mask = Math.pow(2, bit)
-            , offset = pixel * 4;
-          if (bit == 0)
-            byte = data.readUInt8(pixel / 8);
-          if (offset > dest.data.length)
-            break;
-          dest.data[offset] =
-          dest.data[offset + 1] =
-          dest.data[offset + 2] = (( byte & bit_mask ) ? 0xff : 0x00);
-          dest.data[offset + 3] = 0xff;
+        for (var row = 0; row < height; row ++) {
+          for (var col = 0; col < width; col ++) {
+            var data_offset = (row * scanline) + col
+              , dest_offset = (row * width) + col
+              , bit = col % 8
+              , bit_mask = Math.pow(2, bit)
+            if (bit == 0)
+              byte = data.readUInt8(data_offset / 8);
+            dest.data[dest_offset] =
+            dest.data[dest_offset + 1] =
+            dest.data[dest_offset + 2] = (byte & bit_mask) ? 0xff : 0x00;
+            dest.data[dest_offset + 3] = 0xff;
+          }
         }
       break;
       default:
@@ -229,25 +229,25 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.imageFromXYPixmap = function (dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
-      , scanline = width + (width % (format.scanline_pad / format.bpp));
-    width = scanline; // Overscan the image for now! FIXME: Need to crop instead of overscan!
+      , scanline = width + ((format.scanline_pad / format.bpp) - width % (format.scanline_pad / format.bpp));
     switch (depth) {
       case 1:
         var byte;
-        for (var pixel = 0; pixel < data.length * 8; pixel ++) {
-          var bit = pixel % 8
-            , bit_mask = Math.pow(2, bit)
-            , offset = pixel * 4;
-          if (bit == 0)
-            byte = data.readUInt8(pixel / 8);
-          if (offset > dest.data.length)
-            break;
-          dest.data[offset] =
-          dest.data[offset + 1] =
-          dest.data[offset + 2] = (( byte & bit_mask ) ? 0xff : 0x00);
-          dest.data[offset + 3] = 0xff;
+        for (var row = 0; row < height; row ++) {
+          for (var col = 0; col < width; col ++) {
+            var data_offset = (row * scanline) + col
+              , dest_offset = ((row * width) + col) * 4
+              , bit = col % 8
+              , bit_mask = Math.pow(2, bit)
+            if (bit == 0)
+              byte = data.readUInt8(data_offset / 8);
+            dest.data[dest_offset    ] =
+            dest.data[dest_offset + 1] =
+            dest.data[dest_offset + 2] = (byte & bit_mask) ? 0xff : 0x00;
+            dest.data[dest_offset + 3] = 0xff;
+          }
         }
-      break;
+        break;
       default:
         throw new Error('XYPixmap with depth ' + depth + ' not implemented!');
     }

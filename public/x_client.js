@@ -227,6 +227,10 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     return dest;
   }
 
+  XServerClient.prototype.imageToBitmap = function (data, depth, width, height) {
+    throw new Error('STUB: Implement imageToBitmap')
+  }
+
   XServerClient.prototype.imageFromXYPixmap = function (dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
       , scanline = width + ((format.scanline_pad / format.bpp) - width % (format.scanline_pad / format.bpp));
@@ -254,6 +258,10 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     return dest;
   }
 
+  XServerClient.prototype.imageToXYPixmap = function (data, depth, width, height) {
+    throw new Error('STUB: Implement imageToXYPixmap')
+  }
+
   XServerClient.prototype.imageFromZPixmap = function (dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
       , scanline = width + (width % (format.scanline_pad / format.bpp));
@@ -276,6 +284,33 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
         }
     }
     return dest;
+  }
+
+  XServerClient.prototype.imageToZPixmap = function (from, depth, width, height) {
+    var data
+      , format = this.server.getFormatByDepth(depth)
+      , scanline = width + ((format.scanline_pad / format.bpp) - width % (format.scanline_pad / format.bpp));
+    switch (depth) {
+      case 1:
+        throw new Error('1 bit ZPixmap not implemented!');
+      default:
+        var byte_pp = format.bpp / 8
+          , func_pp = 'writeUInt' + format.bpp
+          , data = new EndianBuffer(scanline * height * byte_pp);
+        row: for (var y = 0; y < height; y ++)
+          col: for (var x = 0; x < scanline; x ++) {
+            if (x < width) {
+              var offset = ((y * width) + x) * 4;
+              data[func_pp](
+                  (from.data[offset    ] << 16) |
+                  (from.data[offset + 1] <<  8) |
+                  (from.data[offset + 2]      )
+                , ((y * scanline) + x) * byte_pp
+              );
+            }
+          }
+    }
+    return data;
   }
 
   XServerClient.opcodes = {
@@ -320,6 +355,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     , 70: 'PolyFillRectangle'
     , 71: 'PolyFillArc'
     , 72: 'PutImage'
+    , 73: 'GetImage'
     , 74: 'PolyText8'
     , 75: 'PolyText16'
     , 84: 'AllocColor'
@@ -989,6 +1025,28 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     context.putImage(drawable, format, data, width, height, x, y, pad, depth);
     console.log(format, width, height, x, y, pad, depth);
     callback();
+  }
+
+  XServerClient.prototype.GetImage = function (req, callback) {
+    var format = _image_formats[req.data_byte]
+      , drawable = this.resources[req.data.readUInt32(0)]
+      , x = req.data.readInt16(4)
+      , y = req.data.readInt16(6)
+      , w = req.data.readUInt16(8)
+      , h = req.data.readUInt16(10)
+      , plane_mask = req.data.readUInt32(12)
+      , rep = new x_types.Reply(req);
+
+    console.log('GetImage', drawable.id, drawable.element.slice());
+
+    rep.data_byte = drawable.depth;
+    rep.data_extra.push(
+      new x_types.DataBuffer(
+        this['imageTo' + format](drawable.getImageData(x, y, w, h), drawable.depth, w, h)
+      )
+    );
+    callback(null, rep);
+    console.log('FIXME GetImage:', format, drawable, x, y, w, h, plane_mask);
   }
 
   XServerClient.prototype.PolyText8 = function (req, callback) {

@@ -10,7 +10,7 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
         switch (data[0]) {
           case 'SCR':
             server = window.server = new XServer(data[1], socket, $('.screen'));
-            $('h1').text('Screen :' + data[1]);
+            document.title = 'X Session :' + data[1];
             $('h2').text('0 clients');
           break;
           case 'NEW':

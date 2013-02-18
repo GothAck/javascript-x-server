@@ -177,6 +177,13 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
     static_events.forEach(function (_class) {
       $('.screen').on(_class, '.drawable', event_handler);
     });
+    $('.screen').on('SendEvent', '.drawable', function (event, data) {
+      var xob = $(this).data('xob');
+      if (xob.event_mask && data.event_mask) {
+        xob.onEvent(data.event);
+        event.stopImmediatePropagation();
+      }
+    });
     $('.screen').on('TestEvent', '.drawable', function (event) {
       console.log('TestEvent', event);
       event.stopImmediatePropagation();

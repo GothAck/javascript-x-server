@@ -54,6 +54,7 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.length = 32;
   }
   module.exports.prototypes.push(Event);
+  module.exports.Event = Event;
   Event.prototype.writeBuffer = function (buffer, offset) {
     buffer.writeUInt8(this.code, offset);
     buffer.writeUInt8(this.detail, offset + 1);

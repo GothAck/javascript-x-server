@@ -332,6 +332,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     , 19: 'DeleteProperty'
     , 20: 'GetProperty'
     , 23: 'GetSelectionOwner'
+    , 25: 'SendEvent'
     , 36: 'GrabServer'
     , 37: 'UngrabServer'
     , 38: 'QueryPointer'
@@ -618,6 +619,16 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , rep = new x_types.Reply(req);
     rep.data.writeUInt32((owner && this.server.resources[owner] && owner) || 0)
     callback(null, rep);
+  }
+
+  XServerClient.prototype.SendEvent = function (req, callback) {
+    var propagate = req.data_byte
+      , wid = req.data.readUInt32(0)
+      , window = this.server.resources[wid]
+      , event_mask = req.data.readUInt32(4)
+      , event = x_types.events.fromBuffer(this, req.data, 8);
+    window.sendEvent('SendEvent', { event_mask: event_mask, event: event });
+    callback();
   }
 
   XServerClient.prototype.GrabServer = function (req, callback) {

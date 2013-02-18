@@ -710,17 +710,23 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
 
   Window.prototype.onEvent = function (event, data) {
 //    if (~this.events.indexOf(event)) {
-      if (this.owner instanceof (require('x_client'))) {
-        this.owner.reps.push(
-          event_types.map[event]
-            ? new event_types.map[event](event, this, data)
-            : null
-        );
-        return this.owner.processReps();
-      }
-      if (this.owner instanceof XServer) {
-        // Do X Server Events
-      }
+    if(event instanceof event_types.Event) {
+      console.log(event);
+      this.owner.reps.push(event);
+      return this.owner.processReps();
+    }
+
+    if (this.owner instanceof (require('x_client'))) {
+      this.owner.reps.push(
+        event_types.map[event]
+          ? new event_types.map[event](event, this, data)
+          : null
+      );
+      return this.owner.processReps();
+    }
+    if (this.owner instanceof (require('x_server'))) {
+      // Do X Server Events
+    }
 //    }
   }
 

@@ -186,6 +186,48 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   EventWindowFocus.prototype.writeBuffer = function (buffer, offset) {
   }
 
+  function ConfigureNotify (event, window, data) {
+    this.constructor.super_.call(this, window.owner, event);
+    this.event_window = window;
+    this.window = data && (data.child || window);
+    this.above_sibling = data && data.data.original.above_sibling;
+    this.x = data && data.x;
+    this.y = data && data.y;
+    this.width = data && data.width;
+    this.height = data && data.height;
+    this.border_width = data && data.border_width;
+    this.override_redirect = data && data.override_redirect;
+
+  }
+  util.inherits(ConfigureNotify, Event);
+  ConfigureNotify.events = ['ConfigureNotify'];
+  module.exports.prototypes.push(ConfigureNotify);
+  ConfigureNotify.prototype.writeBuffer = function (buffer, offset) {
+    this.data.writeUInt32(this.event_window.id, 0);
+    this.data.writeUInt32(this.window.id, 4);
+    this.data.writeUInt32((this.above_sibling && this.above_sibling.id) || 0, 8);
+    this.data.writeInt16 (this.x, 12);
+    this.data.writeInt16 (this.y, 14);
+    this.data.writeUInt16(this.width, 16);
+    this.data.writeUInt16(this.height, 18);
+    this.data.writeUInt16(this.border_width, 20);
+    this.data.writeUInt8 (this.override_redirect, 22);
+    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
+  }
+  ConfigureNotify.fromBuffer = function (child, code, buffer, offset) {
+    var event_window = child.server.resources[buffer.readUInt32(offset)]
+      , e = new this(code, event_window);
+    e.window = child.server.resources[buffer.readUInt32(offset + 4)];
+    e.above_sibling = child.server.resources[buffer.readUInt32(offset + 8)];
+    e.x = buffer.readInt16(offset + 12);
+    e.y = buffer.readInt16(offset + 14);
+    e.width = buffer.readUInt16(offset + 16);
+    e.height = buffer.readUInt16(offset + 18);
+    e.border_width = buffer.readUInt16(offset + 20);
+    e.override_redirect = buffer.readUInt8(offset + 22);
+    return e;
+  }
+
   module.exports.map = module.exports.prototypes
     .reduce(
         function (o, proto) {

@@ -1204,7 +1204,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       context.fillStyle = '#' + color;
       context.font = '30px "' + mask_font.file_name + '"';
       context.fillText(
-          String.fromCharCode(mask_char)
+          this.server.encodeString(String.fromCharCode(mask_char))
         , x
         , y
       );
@@ -1220,7 +1220,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     if (source_font !== mask_font)
       context.font = '30px "' + source_font.file_name + '"';
     context.fillText(
-        String.fromCharCode(source_char)
+        this.server.encodeString(String.fromCharCode(source_char))
       , x
       , y
     );

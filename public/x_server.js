@@ -73,6 +73,10 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
   ]
 
   function XServer (id, socket, screen) {
+    Object.defineProperty(this, 'server', {
+        enumerable: false
+      , value: this
+    });
     this.id = id;
     this.socket = socket;
     this.screen = screen;

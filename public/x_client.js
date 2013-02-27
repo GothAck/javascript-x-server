@@ -16,6 +16,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     this.save_set = [];
     this.reqs = [];
     this.reps = [];
+    this.events = [];
   }
 
   XServerClient.prototype.write = function (data) {
@@ -100,10 +101,12 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     if (self.reps_processing)
       return;
     clearTimeout(self.reps_timeout);
-    if (self.reps.length) {
+    if (self.reps.length || self.events.length) {
       self.reps_processing = true;
       self.reps_timeout = setTimeout(function () {
         var reps = self.reps.splice(0, self.reps.length).filter(function (rep) { return rep })
+        if (reps.length === 0 && self.events.length)
+          reps = self.events.splice(0, self.events.length);
         if (reps.length) {
           var res = new EndianBuffer(
                 reps.reduce(function (o, rep) { return o + rep.length }, 0)
@@ -120,6 +123,11 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       });
     } else
       self.reps_processing = false;
+  }
+
+  XServerClient.prototype.sendEvent = function (event) {
+    this.reps.push(event);
+    this.processReps();
   }
 
   XServerClient.prototype.disconnect = function () {
@@ -455,8 +463,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     console.log('MapWindow', window.id);
     reps = [];
     if (window.map()) {
-      window.sendEvent('MapNotify');
-      window.sendEvent('Expose', { count: 0 });
+      window.triggerEvent('Expose', { count: 0 });
     }
     callback(null, reps);
   }
@@ -469,8 +476,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       var children_children = [];
       parent_children.forEach(function (child_window, i) {
         if (child_window.map()) {
-          child_window.sendEvent('MapNotify')
-          child_window.sendEvent('Expose', { count: 0 });
+          child_window.triggerEvent('MapNotify')
+          child_window.triggerEvent('Expose', { count: 0 });
         }
         children_children.splice.apply(children_children, [0, 0].concat(child_window.children));
       });
@@ -540,7 +547,6 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       index = this.server.atoms.push(name);
     var rep = new x_types.Reply(req)
     rep.data.writeUInt32(index, 0);
-    console.log('InternAtom')
     callback(null, rep);
   }
 
@@ -583,7 +589,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     window.deleteProperty(property);
     //console.log('DeleteProperty', window.id, property);
 
-    window.sendEvent('PropertyNotify', { atom: atom, deleted: true });
+    window.triggerEvent('PropertyNotify', { atom: atom, deleted: true });
     callback();
   }
 
@@ -860,7 +866,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var context = window.canvas[0].getContext('2d');
     context.clearRect(x, y, w, h);
     if (req.data_byte)
-      window.sendEvent('Expose', { x: x, y: y, width: w, height: h });
+      window.triggerEvent('Expose', { x: x, y: y, width: w, height: h });
     callback();
   }
 

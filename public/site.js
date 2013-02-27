@@ -82,45 +82,38 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
           , LeaveWindow     : 'mouseout'
           , FocusChange     : 'focus blur'
           , PropertyNotify  : 'property_change'
-          , Expose          : ''
+          , Exposure        : ''
           , MapNotify       : ''
         }
-      , static_events = ['MapNotify']
       , do_not_propagate_event_mask_map = Object.keys(event_mask_map).reduce(function (o, v) { o['NoPropagate' + v] = event_mask_map[v]; return o }, {})
-/*
-      , _event_map = Object.keys(event_mask_map) // FIXME: Nice try but differences in the new mapping
-          .reduce(
-              function (o, k) {
-                event_mask_map[k].split(' ').forEach(function (v) {
-                  o[v] = k;
-                });
-              }
-            , {}
-          )
-*/
-      , event_map = {
-            keydown   : 'KeyPress'
-          , keyup     : 'KeyRelease'
-          , mousedown : 'ButtonPress'
-          , mouseup   : 'ButtonRelease'
-          , mousemove : 'MotionNotify'
-          , mouseover : 'EnterNotify'
-          , mouseout  : 'LeaveNotify'
-          , focus     : 'FocusIn'
-          , blur      : 'FocusOut'
-        }
       , mouse_buttons = [1,3,2]
       , current_mouse = 0;
 
+    var x11_dom_events = x_types.events.prototypes.reduce(
+          function (o, v) {
+            if (! v.dom_events)
+              return o;
+            v.dom_events.forEach(function (dom_event) {
+              o[dom_event] = v.name;
+            })
+            return o;
+          }
+        , {}
+      );
+
+    // Turn DOM events into X11 events!
     $('.screen').on('blur focus focusin focusout load resize scroll unload click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select submit keydown keypress keyup error', '.drawable', function (event) {
-      if (event_map[event.type] && ! event.createdX11) {
-        var drawable = $(event.srcElement).not('.drawable').parentsUntil('.drawable').last().parent().andSelf().first();
+      var x11_event = null;
+      if ((x11_event = x11_dom_events[event.type]) && ! event.createdX11) {
+        var src = $(event.srcElement);
+        var drawable = src.not('.drawable').parentsUntil('.drawable').last().parent().add(src).first();
         event.createdX11 = true;
         if (event.type === 'mouseover')
           drawable.addClass('hover');
         if (event.type === 'mouseout')
           drawable.removeClass('hover');
-        drawable.trigger(event_map[event.type], [event]);
+        var window = drawable.data('xob');
+        window.triggerEvent(new (x_types.events.map[x11_event])(window, event_data(event)));
       }
     });
     $('.screen').on('mousedown mouseup', function (event) {
@@ -128,60 +121,64 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
         current_mouse |= 1 << (mouse_buttons[event.button] - 1);
       else
         current_mouse &= ~ (1 << (mouse_buttons[event.button] - 1));
+      server.buttons = current_mouse;
     });
     Object.keys(do_not_propagate_event_mask_map).forEach(function (_class) {
       $('.screen').on(_class, '.' + _class, function (event) {
         event.stopPropagation();
       });
     });
-    function event_handler (event, event_orig) {
-      event_orig = event_orig || event;
-      var $event = $(this)
-        , $child = $(event.srcElement)
-        , xob_event = $event.data('xob')
-        , xob_child = $child.data('xob')
-        , keybutmask = (
+    function event_data (dom_event) {
+      var keybutmask = (
               current_mouse |
               (
-                  event.type === 'ButtonPress' &&
-                  (1 << (mouse_buttons[event_orig.button] - 1))
+                  dom_event.type === 'mousedown' &&
+                  (1 << (mouse_buttons[dom_event.button] - 1))
               )
           ) << 8;
-      keybutmask |= event_orig.shiftKey && 1;
+      keybutmask |= dom_event.shiftKey && 1;
       // lock? = 2
-      keybutmask |= event_orig.ctrlKey  && 4;
-      xob_event && xob_event.onEvent(
-          event.type
-        , {
-              x: event_orig.offsetX
-            , y: event_orig.offsetY
-            , button: mouse_buttons[event_orig.button]
-            , keycode: event_orig.keyCode
-            , keybutmask: keybutmask
-            , event: xob_event
-            , child: xob_child
-            , data: {
-                  event: event
-                , original: event_orig
-              }
-          }
-      );
-      if (~static_events.indexOf(event.type)) {
-        event.stopImmediatePropagation();
-        return false;
+      keybutmask |= dom_event.ctrlKey  && 4;
+      var event_source = $(event.srcElement)
+        , root_offset = event_source.parents('.screen').andSelf().first().offset()
+        , win_offset = event_source.offset();
+      win_offset.left -= root_offset.left;
+      win_offset.top  -= root_offset.top;
+
+      return {
+          x: dom_event.offsetX
+        , y: dom_event.offsetY
+        , root_x: dom_event.offsetX + win_offset.left
+        , root_y: dom_event.offsetY + win_offset.top
+        , button: mouse_buttons[dom_event.button]
+        , keycode: dom_event.keyCode
+        , keybutmask: keybutmask
       }
     }
-    Object.keys(event_mask_map).forEach(function (_class) {
-      $('.screen').on(_class, '.' + _class, event_handler);
-    });
-    static_events.forEach(function (_class) {
-      $('.screen').on(_class, '.drawable', event_handler);
+    x_types.events.prototypes.reduce(function (a, v) {
+      if (v.prototype.dom_events)
+        v.prototype.dom_events.forEach(function (dom_event) {
+          if (!~a.indexOf(dom_event))
+            a.push(dom_event);
+        });
+      else
+        a.push(v.name);
+      return a;
+    }, []).forEach(function (_class) {
+      $('.screen').on(_class, '.drawable.' + _class, function (event, data) {
+        var window = $(this).data('xob');
+        data.event_window = window;
+        data.event_type = event.type;
+        window.onEvent(data);
+        return false;
+      });
     });
     $('.screen').on('SendEvent', '.drawable', function (event, data) {
       var xob = $(this).data('xob');
       if (xob.event_mask && data.event_mask) {
-        xob.onEvent(data.event);
-        event.stopImmediatePropagation();
+        data.event.event_window = xob;
+        xob.onEvent('SendEvent', data.event);
+        return event.stopImmediatePropagation();
       }
     });
     $('.screen').on('TestEvent', '.drawable', function (event) {

@@ -1,7 +1,7 @@
-define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (util, fs, EndianBuffer, font_types, event_types) {
+define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (util, fs, EndianBuffer, font_types, events) {
   var module = { exports: {} }
 
-  module.exports.events = event_types;
+  module.exports.events = events;
 
   Array.prototype.writeBuffer = function (buffer, offset) {
     this.forEach(function (item) {
@@ -591,7 +591,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   var _event_mask_fields = [
       'KeyPress', 'KeyRelease', 'ButtonPress', 'ButtonRelease', 'EnterWindow', 'LeaveWindow'
     , 'PointerMotion', 'PointerMotionHint', 'Button1Motion', 'Button2Motion', 'Button3Motion', 'Button4Motion', 'Button5Motion', 'ButtonMotion'
-    , 'KeymapState', 'Expose', 'VisibilityChange', 'StructureNotify', 'ResizeRedirect', 'SubstructureNotify', 'SubstructureRedirect'
+    , 'KeymapState', 'Exposure', 'VisibilityChange', 'StructureNotify', 'ResizeRedirect', 'SubstructureNotify', 'SubstructureRedirect'
     , 'FocusChange', 'PropertyNotify', 'ColormapChange', 'OwnerGrabButton'
   ];
   Window.prototype.__defineSetter__('event_mask', function (event_mask) {
@@ -704,22 +704,48 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
 
   });
 
-  Window.prototype.sendEvent = function (event, data) {
-    this.element.trigger(event, data);
+  Window.prototype.sendEvent = function (event, data, event_mask) {
+    if (event instanceof events.Event)
+      event_mask = data;
+    else
+      event = new events.map[event](this, data || {});
+    console.log('sendEvent', event, data, event_mask);
+    return this.element.trigger('SendEvent', { event: event, event_mask: event_mask });
+  }
+
+  Window.prototype.triggerEvent = function (event, data) {
+    var self = this;
+    if (! (event instanceof events.Event))
+      event = new events.map[event](this, data || {});
+    if (event.dom_events)
+      return event.dom_events.forEach(function (dom_event) {
+        self.element.trigger(dom_event, [event]);
+      });
+    return this.element.trigger(event.constructor.name, [event]);
   }
 
   Window.prototype.onEvent = function (event, data) {
 //    if (~this.events.indexOf(event)) {
-    if(event instanceof event_types.Event) {
-      console.log(event);
-      this.owner.reps.push(event);
-      return this.owner.processReps();
+    if(event instanceof events.Event) {
+      if (event.testReady()) {
+      	this.owner.sendEvent(event);
+      	return this.owner.processReps();
+      }
+    }
+    if (data instanceof events.Event) {
+      if (event === 'SendEvent') {
+        event = data;
+        if (event.testReady()) {
+          this.owner.sendEvent(event);
+          return this.owner.processReps();
+        }
+      }
     }
 
     if (this.owner instanceof (require('x_client'))) {
       this.owner.reps.push(
-        event_types.map[event]
-          ? new event_types.map[event](event, this, data)
+        events.map[event]
+          ? new events.map[event](event, this, data)
           : null
       );
       return this.owner.processReps();
@@ -802,7 +828,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
         data.copy(this.properties[property], old.length);
         break;
     }
-    this.sendEvent('PropertyNotify', { atom: atom, deleted: false });
+    this.triggerEvent('PropertyNotify', { atom: atom, deleted: false });
   }
 
   Window.prototype.getProperty = function (property) {

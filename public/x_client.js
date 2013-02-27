@@ -39,19 +39,19 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       case 1:
         var req = { length: 0 };
         while (data.length > 0) {
-          req = new x_types.Request(data, this.sequence ++);
-          if (req.length - 4 > req.data.length) {
-            this.sequence --;
+          req = new x_types.Request(data, this.sequence)
+          if (req.length > data.length) {
             this.buffer = data;
             break;
           }
-          this.reqs.unshift(req);
+          this.sequence = this.sequence + 1;
+          this.reqs.push(req);
           if (data.length > 0) {
             data = data.slice(req.length);
             data.endian = this.endian;
           }
         }
-        this.reqs.unshift(null); // Force a processReps after this batch!
+        this.reqs.push(null); // Force a processReps after this batch!
         if ((!this.server.grabbed) || this === this.server.grabbed )
           this.processReqs();
     }
@@ -67,7 +67,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     if (self.reqs.length) {
       self.reqs_processing = true;
       self.reqs_timeout = setTimeout(function () {
-        var req = self.reqs.pop();
+        var req = self.reqs.shift();
         if (req) {
           var func = self[XServerClient.opcodes[req.opcode]];
           if (func) {

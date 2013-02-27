@@ -321,8 +321,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     , 'dash_offset', 'gc_dashes', 'arc_mode'
   ]
 
-  function GraphicsContext (client, id, drawable, vmask, vdata) {
-    this.client = client;
+  function GraphicsContext (owner, id, drawable, vmask, vdata) {
+    this.owner = owner;
     this.id = id;
     this.drawable = drawable;
     this.context = drawable.canvas[0].getContext('2d');
@@ -340,7 +340,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   GraphicsContext.prototype.fill_style = 0;
 
   GraphicsContext.prototype.__defineSetter__('font', function (fid) {
-    this._font = (typeof fid === 'number') ? this.client.server.resources[fid] : '';
+    this._font = (typeof fid === 'number') ? this.owner.server.resources[fid] : '';
   });
   GraphicsContext.prototype.__defineGetter__('font', function () {
     return this._font || null;
@@ -373,7 +373,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   }
 
   GraphicsContext.prototype.putImage = function (drawable, format, data, width, height, x, y, pad, depth) {
-    drawable.putImageData(this.client['imageFrom' + format](drawable.createImageData(width, height), data, depth, width, height, pad), x, y);
+    drawable.putImageData(this.owner['imageFrom' + format](drawable.createImageData(width, height), data, depth, width, height, pad), x, y);
   }
 
   GraphicsContext.prototype.putImageBitmap = function (drawable, data, width, height, x, y, pad, depth) {

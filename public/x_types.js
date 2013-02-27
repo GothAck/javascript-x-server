@@ -326,7 +326,9 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.id = id;
     this.drawable = drawable;
     this.context = drawable.canvas[0].getContext('2d');
-    this.changeData(vmask, vdata);
+    this.changeData(owner, vmask, vdata);
+    this.x = 0;
+    this.y = 0;
   }
 
   module.exports.GraphicsContext = GraphicsContext;
@@ -347,7 +349,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   });
 
 
-  GraphicsContext.prototype.changeData = function (vmask, vdata) {
+  GraphicsContext.prototype.changeData = function (owner, vmask, vdata) {
     var offset = 0;
     for (var i = 0; i < _gc_vfields.length; i++)
       if (vmask & Math.pow(2, i))
@@ -548,7 +550,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
 
     this.element.css('display', 'none');
     this.element.children().append(this.canvas.attr('id', this.id));
-    this.changeData(vmask, vdata);
+    this.changeData(owner, vmask, vdata);
     this.properties = {}
 //    var ctx = this.canvas[0].getContext('2d');
     this.x = x;
@@ -595,15 +597,26 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     , 'FocusChange', 'PropertyNotify', 'ColormapChange', 'OwnerGrabButton'
   ];
   Window.prototype.__defineSetter__('event_mask', function (event_mask) {
+    var self = this
+      , set_client = this.__lookupSetter__('event_mask').caller.arguments[0];
+    this.event_clients[set_client.id] = _event_mask_fields.filter(function (mask, i) {
+      return event_mask & Math.pow(2, i);
+    });
+    this.event_clients[set_client.id].mask = event_mask;
+
+    event_mask = Object.keys(this.event_clients).reduce(function (o, k) {
+      return o | self.event_clients[k].mask;
+    }, 0);
     this.events = _event_mask_fields.filter(function (mask, i) {
       return event_mask & Math.pow(2, i);
     });
-    this._event_mask = event_mask;
+    this.events.mask = event_mask;
+
     this.element.removeClass(_event_mask_fields.join(' '));
     this.element.addClass(this.events.join(' '));
   });
   Window.prototype.__defineGetter__('event_mask', function () {
-    return this._event_mask || 0;
+    return this.events.mask || 0;
   });
 
   var _do_not_propagate_mask_fields = _event_mask_fields.map(function (name) { return 'NoPropagate' + name });
@@ -725,20 +738,23 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   }
 
   Window.prototype.onEvent = function (event, data) {
+    var self = this;
 //    if (~this.events.indexOf(event)) {
-    if(event instanceof events.Event) {
-      if (event.testReady()) {
-      	this.owner.sendEvent(event);
-      	return this.owner.processReps();
-      }
+    if (event instanceof events.Event) {
+      if (event.testReady())
+        Object.keys(self.event_clients).forEach(function (k) {
+          if (~ self.event_clients[k].indexOf(event.event_type)) {
+            self.owner.server.clients[k].sendEvent(event);
+          }
+        });
+      return;
     }
     if (data instanceof events.Event) {
       if (event === 'SendEvent') {
         event = data;
-        if (event.testReady()) {
-          this.owner.sendEvent(event);
-          return this.owner.processReps();
-        }
+        if (event.testReady())
+          this.owner.sendEvent(event)
+        return;
       }
     }
 
@@ -782,15 +798,15 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return current;
   }
 
-  Window.prototype.changeData = function (vmask, vdata) {
+  Window.prototype.changeData = function (owner, vmask, vdata) {
     var offset = 0;
     for (var i = 0; i < _gc_vfields.length; i++)
       if (vmask & Math.pow(2, i)) {
         this[_win_vfields[i]] = vdata['read' + _win_vfield_types[i]](offset);
         offset += 4;
       }
-    var server = this.owner.server || this.owner;
-    this.element.css('background-color', server.resources[server.screens[0].colormap].lookup_func(this.background_pixel, 'hex'));
+    // var server = this.owner.server || this.owner;
+    // this.element.css('background-color', server.resources[server.screens[0].colormap].lookup_func(this.background_pixel, 'hex'));
   }
 
   // FIXME: Unused due to differing reply format to send format!

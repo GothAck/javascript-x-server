@@ -404,9 +404,9 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var window = this.resources[req.data.readUInt32(0)]
       , rep = new x_types.Reply(req)
       , vmask = req.data.readUInt32(4)
-      , vdata = req.data.slice(4);
+      , vdata = req.data.slice(8);
     vdata.endian = this.endian;
-    window.changeData(vmask, vdata);
+    window.changeData(this, vmask, vdata);
     callback();
   }
 
@@ -853,7 +853,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , vdata = req.data.slice(8);
     vdata.endian = this.endian;
 
-    gc.changeData(vmask, vdata);
+    gc.changeData(this, vmask, vdata);
     callback();
   }
 

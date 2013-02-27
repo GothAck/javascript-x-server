@@ -12,15 +12,11 @@ define(function () {
     if (encoding === 'raw')
       req.responseType = 'arraybuffer';
     req.onerror = function (event) {
-      console.log('onerror', event);
       callback(req.status || event || 'Unknown Error');
       callback = new Function;
     }
     req.onload = function (event) {
-      console.log('onload');
-      console.log(req, req.status, callback);
       callback((req.status === 200 ? null : req.status), req.response);
-      console.log(req, req.status, callback);
     }
     req.send();
   }

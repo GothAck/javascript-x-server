@@ -423,7 +423,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     rep.data.writeUInt8(0, 16); // Save under
     rep.data.writeUInt8(window.isMapped() ? 1 : 0, 17); // Map is installed
     rep.data.writeUInt8(window.isMapped() ? 2 : 0, 18); // Map state (0 Unmapped, 1 Unviewable, 2 Viewable)
-    rep.data.writeUInt8(0, 19); // Override redirect
+    rep.data.writeUInt8(window.override_redirect, 19); // Override redirect
     rep.data.writeUInt32((this._colormap && this._colormap.id) || 0, 20); // Colormap
     rep.data_extra.push(new x_types.UInt32(window.event_mask)); // All event masks
     rep.data_extra.push(new x_types.UInt32(window.event_mask)); // Your event mask

@@ -71,6 +71,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
         if (req) {
           var func = self[XServerClient.opcodes[req.opcode]];
           if (func) {
+            console.group(req.sequence, self.sequence, self.sequence_sent, req.opcode, XServerClient.opcodes[req.opcode]);
             func && func.call(self, req, function (err, rep) {
               if (rep) {
                 if (Array.isArray(rep))
@@ -81,6 +82,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
               self.reqs_processing = false;
               self.processReqs()
             });
+            console.groupEnd();
           } else {
             console.log('################### UNKNOWN OPCODE', req.opcode);
             self.reqs_processing = false;

@@ -171,6 +171,31 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
 
+  function ReparentNotify (window, data) {
+    this.constructor.super_.call(this, window, data);
+  }
+  util.inherits(ReparentNotify, Event);
+  ReparentNotify.prototype.dom_events = ['StructureNotify'];
+  module.exports.prototypes.push(ReparentNotify);
+  ReparentNotify.prototype.writeBuffer = function (buffer, offset) {
+    this.data.writeUInt32(this.event_window.id, 0);
+    this.data.writeUInt32(this.window.id, 4);
+    this.data.writeUInt32(this.new_parent.id, 8);
+    this.data.writeInt16(this.window.x, 12);
+    this.data.writeInt16(this.window.y, 14);
+    this.data.writeUInt8(this.window.override_redirect, 16);
+    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
+  }
+  ReparentNotify.prototype.testReady = function () {
+    switch (this.event_type) {
+      case 'StructureNotify':
+        return this.event_window === this.window;
+      case 'SubstructureNotify':
+        return this.window.isChildOf(this.event_window);
+    }
+    return false;
+  }
+
   // PropertyNotify
   function PropertyNotify (window, data) {
     this.constructor.super_.call(this, window, data);

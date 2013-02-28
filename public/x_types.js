@@ -711,10 +711,6 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
         }
       break;
     }
-    siblings.forEach(function (sibling, index) {
-      sibling.element.css('z-index', index);
-    });
-
   });
 
   Window.prototype.sendEvent = function (event, data, event_mask) {

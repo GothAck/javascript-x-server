@@ -776,6 +776,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     if (this.element.css('display') !== 'none')
       return;
     this.element.css('display', 'block');
+    this.triggerEvent('MapNotify');
     return true;
   }
 
@@ -783,6 +784,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     if (this.element.css('display') === 'none')
       return;
     this.element.css('display', 'none');
+    this.triggerEvent('UnmapNotify');
     return true;
   }
 

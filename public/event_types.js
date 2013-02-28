@@ -156,6 +156,21 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     return false;
   }
 
+  // UnmapNotify
+  function UnmapNotify (window, data) {
+    this.constructor.super_.call(this, window, data);
+    this.window = window;
+  }
+  util.inherits(UnmapNotify, Event);
+  UnmapNotify.prototype.dom_events = ['StructureNotify'];
+  module.exports.prototypes.push(UnmapNotify);
+  UnmapNotify.prototype.writeBuffer = function (buffer, offset) {
+    this.data.writeUInt32((this.event_window || this.window).id, 0);
+    this.data.writeUInt32(this.window.id, 4);
+    this.data.writeUInt8(this.from_configure, 8)
+    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
+  }
+
   // PropertyNotify
   function PropertyNotify (window, data) {
     this.constructor.super_.call(this, window, data);

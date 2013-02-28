@@ -446,15 +446,18 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var window = this.server.resources[req.data.readUInt32(0)]
       , parent = this.server.resources[req.data.readUInt32(4)]
       , x = req.data.readInt16(8)
-      , y = req.data.readInt16(10);
-    if (! window.isMapped())
-      throw new Error('TODO: Error window not mapped');
+      , y = req.data.readInt16(10)
+      , was_mapped = window.isMapped();
     console.log('ReparentWindow', window.id, window.parent.id, parent.id);
     window.unmap();
-    delete window.parent.children[window.parent.children.indexOf(window)];
+    window.x = x;
+    window.y = y;
+    window.triggerEvent('ReparentNotify', { new_parent: parent })
     window.parent = parent;
-    window.parent.children.push(window);
-    window.map();
+    window.element.appendTo(parent.element.children());
+    window.triggerEvent('ReparentNotify', { new_parent: parent })
+    if (was_mapped)
+      window.map();
     callback();
   }
 

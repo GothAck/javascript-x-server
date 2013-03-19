@@ -533,16 +533,13 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     , 'UInt32', 'UInt32'
   ];
 
-  function Window (owner, id, depth, parent, x, y, width, height, border_width, _class, visual, vmask, vdata) {
+  function Window (owner, id, depth, x, y, width, height, border_width, _class, visual, vmask, vdata) {
     this.id = id;
-    this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>').attr('id', 'e' + this.id).data('xob', this);
+    this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>')
+        .attr('id', 'e' + this.id)
+        .data('xob', this);
     this.constructor.super_.call(this, depth, width, height);
     this.owner = owner;
-    this.children = [];
-    this.parent = parent;
-    this.parent.children.push(this);
-    this.parent.element.children().append(this.element);
-
     this.border_width = border_width;
     this.input_output = _class ? (!(_class - 1)) : parent.input_output;
     this.visual = visual;
@@ -582,6 +579,13 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   Window.prototype.__defineSetter__('height', function (height) {
     this.constructor.super_.prototype.__lookupSetter__('height').call(this, height);
     this.element.css('height', height);
+  });
+  Window.prototype.__defineSetter__('parent', function (parent) {
+    this._parent = parent;
+    parent.element.children().append(this.element);
+  });
+  Window.prototype.__defineGetter__('parent', function () {
+    return this._parent;
   });
   Window.prototype.__defineSetter__('cursor', function (cursor) {
     if (this._cursor)

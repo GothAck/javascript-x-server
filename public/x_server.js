@@ -172,11 +172,11 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
         this
       , 0x00000026
       , 0x18 // depth 24
-      , { id: 0, element: this.screen, children: [] } // parent 0
       , 0, 0
       , this.screen.width(), this.screen.height()
       , 0, 1, 0, 0, 0
     );
+    this.root.parent = { element: $('.screen'), owner: this, children: [this.root] }
     this.font_path = 'fonts';
     this.fonts_dir = {};
     this.fonts_scale = {};

@@ -394,7 +394,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   })();
 
   XServerClient.prototype.CreateWindow = function (req, callback) {
-    var depth = req.data_byte
+    var self = this
+      , depth = req.data_byte
       , id = req.data.readUInt32(0)
       , parent = this.server.resources[req.data.readUInt32(4)]
       , x = req.data.readInt16(8)
@@ -406,8 +407,9 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , visual = req.data.readUInt32(20)
       , vmask = req.data.readUInt32(24)
       , vdata = req.data.slice(28);
-    vdata.endian = this.endian;
-    this.resources[id] = new x_types.Window(this, id, depth, parent, x, y, width, height, border_width, _class, visual, vmask, vdata);
+    console.log('CreateWindow', id, depth, parent, x, y, width, height);
+    var window = this.resources[id] = new x_types.Window(this, id, depth, x, y, width, height, border_width, _class, visual, vmask, vdata);
+    window.parent = parent;
     callback();
   }
 

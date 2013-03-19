@@ -351,6 +351,9 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return this._font || null;
   });
 
+  GraphicsContext.prototype.destroy = function () {
+    delete this.owner.server.resources[this.id];
+  }
 
   GraphicsContext.prototype.changeData = function (owner, vmask, vdata) {
     var offset = 0;
@@ -489,6 +492,9 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   });
   
   Drawable.error_code = 9;
+
+  Drawable.prototype.destroy = function () {
+  }
 
   Drawable.prototype.getImageData = function (x, y, width, height) {
     return this.canvas[0].getContext('2d').getImageData(x, y, width, height);
@@ -729,6 +735,11 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
       break;
     }
   });
+  
+  Window.prototype.destroy = function () {
+    delete this.owner.server.resources[this.id];
+    this.triggerEvent('DestroyNotify');
+  }
 
   Window.prototype.sendEvent = function (event, data, event_mask) {
     if (event instanceof events.Event)

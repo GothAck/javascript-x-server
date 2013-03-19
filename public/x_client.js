@@ -17,6 +17,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     this.reqs = [];
     this.reps = [];
     this.events = [];
+    this.closedown = 'destroy';
   }
 
   XServerClient.prototype.write = function (data) {
@@ -150,16 +151,17 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.disconnect = function () {
     console.log('Disconnect', this.id);
+    var self = this;
     delete this.server.clients[this.id];
-    Object.keys(this.server.resources)
-      .forEach(function (resource) {
-        if (! (resource = this.server.resources[resource]))
-          return;
-        if ((resource.id & ~ this.resource_id_mask) === this.resource_id_base) {
-          $(resource.canvas).add(resource.element).remove();
-          delete this.server.resources[resource.id];
-        }
-      }.bind(this));
+    if (this.closedown === 'destroy')
+      Object.keys(this.server.resources)
+        .forEach(function (resource) {
+          resource = self.server.resources[resource];
+          if (! resource)
+            return;
+          if (resource.owner === self)
+            resource.destroy();
+        });
   }
 
   XServerClient.prototype.setup = function (data) {
@@ -344,6 +346,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       1: 'CreateWindow'
     , 2: 'ChangeWindowAttributes'
     , 3: 'GetWindowAttributes'
+    , 4: 'DestroyWindow'
     , 6: 'ChangeSaveSet'
     , 7: 'ReparentWindow'
     , 8: 'MapWindow'
@@ -398,6 +401,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     , 98: 'QueryExtension'
     , 99: 'ListExtensions'
     , 101: 'GetKeyboardMapping'
+    , 112: 'SetCloseDownMode'
+    , 113: 'KillClient'
     , 119: 'GetModifierMapping'
   }; // 34 or 127
   (function () {
@@ -455,6 +460,13 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     rep.data_extra.push(new x_types.UInt16(window.do_not_propagate_mask)); // Do not propagate mask
     rep.data_extra.push(new x_types.UInt16(0)); // Unused
     callback(null, rep);
+  }
+  
+  XServerClient.prototype.DestroyWindow = function (req, callback) {
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
+    if (window !== window.owner.server.root)
+      window.destroy();
+    callback();
   }
 
   XServerClient.prototype.ChangeSaveSet = function (req, callback) {
@@ -1400,6 +1412,22 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       }
     }
     callback(null, rep);
+  }
+
+  var _closedown_mode = ['destroy', 'permanent', 'temporary'];
+  XServerClient.prototype.SetCloseDownMode = function (req, callback) {
+    this.closedown = _closedown_mode[req.data_byte];
+    callback();
+  }
+  
+  XServerClient.prototype.KillClient = function (req, callback) {
+    var rid = req.data.readUInt32(0)
+      , resource = this.server.resources[rid];
+    console.log('KillClient', rid, resource);
+    if (rid && resource)
+      resource.owner.disconnect();
+    console.warn('TODO', 'Finish me');
+    callback();
   }
 
   XServerClient.prototype.GetModifierMapping = function (req, callback) {

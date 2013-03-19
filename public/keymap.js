@@ -21,9 +21,9 @@ define(function () {
   }
 
   function charKeySym (char) {
-    if (char.getCharAt(0) < 0x100)
-      return char.getCharAt(0);
-    return char.getCharAt(0) + 0x01000100;
+    if (char.charCodeAt(0) < 0x100)
+      return char.charCodeAt(0);
+    return char.charCodeAt(0) + 0x01000100;
   }
 
   module.exports.getKeysym = function (string, shift) {
@@ -31,8 +31,8 @@ define(function () {
       case 1:
         return charKeySym(shift ? string.toUpperCase() : string.toLowerCase());
       case 2:
-        if (string.getCharAt(0) === '+')
-          return charKeySym(shift ? string.getCharAt(1).toUpperCase() : string.getCharAt(1).toLowerCase());
+        if (string.charAt(0) === '+')
+          return charKeySym(shift ? string.charAt(1).toUpperCase() : string.charAt(1).toLowerCase());
       default:
         if (string in keysyms)
           return keysyms[string];

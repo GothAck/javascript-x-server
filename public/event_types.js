@@ -395,6 +395,28 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     return e;
   }
 
+  function ClientMessage (window, data) {
+    this.constructor.super_.call(this, window, data);
+  }
+  util.inherits(ClientMessage, Event);
+  module.exports.prototypes.push(ClientMessage);
+  ClientMessage.prototype.writeData = function (buffer, offset) {
+    console.log(this.window, this.window.id, this.window.id.toString(16));
+    this.data.writeUInt32(this.window.id, 0);
+    this.data.writeUInt32(this.data_type, 4);
+    this.message.copy(this.data, 8);
+  }
+  ClientMessage.fromBuffer = function (child, code, detail, buffer, offset) { 
+    return new this(
+        child.server.resources[buffer.readUInt32(offset)]
+      , {
+            detail: detail
+          , data_type: buffer.readUInt32(offset + 4)
+          , message: buffer.slice(offset + 8, offset + 24)
+        }
+    );
+  }
+
   module.exports.map = module.exports.prototypes
     .reduce(
         function (o, proto) {

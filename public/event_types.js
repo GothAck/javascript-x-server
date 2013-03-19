@@ -306,20 +306,20 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.data.writeUInt16(this.border_width, 20);
     this.data.writeUInt8 (this.override_redirect, 22);
   }
-  ConfigureNotify.fromBuffer = function (child, code, buffer, offset) {
+  ConfigureNotify.fromBuffer = function (child, code, detail, buffer, offset) {
     var event_window = child.server.resources[buffer.readUInt32(offset)]
       , e = new this(
-             child.server.resources[buffer.readUInt32(offset + 4)] // Window
-          , {
-                event_window: event_window
-              , above_sibling: child.server.resources[buffer.readUInt32(offset + 8)]
-              , x: buffer.readInt16(offset + 12)
-              , y: buffer.readInt16(offset + 14)
-              , width: buffer.readUInt16(offset + 16)
-              , height: buffer.readUInt16(offset + 18)
-              , border_width: buffer.readUInt16(offset + 20)
-              , override_redirect: buffer.readUInt8(offset + 22)
-            }
+               child.server.resources[buffer.readUInt32(offset + 4)] // Window
+            , {
+                  event_window: event_window
+                , above_sibling: child.server.resources[buffer.readUInt32(offset + 8)]
+                , x: buffer.readInt16(offset + 12)
+                , y: buffer.readInt16(offset + 14)
+                , width: buffer.readUInt16(offset + 16)
+                , height: buffer.readUInt16(offset + 18)
+                , border_width: buffer.readUInt16(offset + 20)
+                , override_redirect: buffer.readUInt8(offset + 22)
+              }
           );
     return e;
   }
@@ -342,9 +342,11 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
       , data    = buffer.slice(offset + 4, offset + 32);
     data.endian = buffer.endian;
     var event_type = module.exports.map[name];
-    return event_type && event_type.fromBuffer && event_type.fromBuffer(
-      server, code, buffer, offset + 4
+    var ret = event_type && event_type.fromBuffer && event_type.fromBuffer(
+      server, code, detail, buffer, offset + 4
     );
+    console.log(ret);
+    return ret;
   }
 
   var implemented = Object.keys(module.exports.map);

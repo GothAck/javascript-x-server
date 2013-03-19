@@ -123,6 +123,8 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
       if (typeof self[key] === 'undefined')
         self[key] = child_window[key];
     });
+    this.x = 0;
+    this.y = 0;
   }
   util.inherits(Expose, Event);
   Expose.prototype.dom_events = ['Exposure'];

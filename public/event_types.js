@@ -326,6 +326,25 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   ButtonRelease.grab = 'pointer';
   module.exports.prototypes.push(ButtonRelease);
 
+  function MotionNotify (window, data) {
+    this.constructor.super_.call(this, window, data);
+    this.detail = 0; // TODO: Add PointerMotionHint
+  }
+  util.inherits(MotionNotify, Event_WindowInputDevicePointer);
+  MotionNotify.prototype.dom_events = ['MotionNotify', 'ButtonMotion'];
+  MotionNotify.dom_events = ['mousemove'];
+  MotionNotify.grab = 'pointer';
+  module.exports.prototypes.push(MotionNotify);
+  MotionNotify.prototype.testReady = function () {
+    switch (this.event_type) {
+      case 'MotionNotify':
+        return true;
+      case 'ButtonMotion':
+        return !!this.window.owner.server.buttons;
+    }
+    return false;
+  }
+
   function EnterNotify (window, data) {
     this.constructor.super_.call(this, window, data);
   }

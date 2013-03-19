@@ -241,6 +241,7 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   }
   util.inherits(KeyPress, Event_WindowInputDevicePointer);
   KeyPress.dom_events = ['keydown'];
+  KeyPress.grab = 'keyboard';
   module.exports.prototypes.push(KeyPress);
 
   function KeyRelease (window, data) {
@@ -249,6 +250,7 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   }
   util.inherits(KeyRelease, Event_WindowInputDevicePointer);
   KeyRelease.dom_events = ['keyup'];
+  KeyRelease.grab = 'keyboard';
   module.exports.prototypes.push(KeyRelease);
 
   function ButtonPress (window, data) {
@@ -256,7 +258,9 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.detail = data.button;
   }
   util.inherits(ButtonPress, Event_WindowInputDevicePointer);
+  ButtonPress.prototype.dom_events = ['ButtonPress'];
   ButtonPress.dom_events = ['mousedown'];
+  ButtonPress.grab = 'pointer';
   module.exports.prototypes.push(ButtonPress);
 
   function ButtonRelease (window, data) {
@@ -264,7 +268,9 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.detail = data.button;
   }
   util.inherits(ButtonRelease, Event_WindowInputDevicePointer);
+  ButtonRelease.prototype.dom_events = ['ButtonRelease'];
   ButtonRelease.dom_events = ['mouseup'];
+  ButtonRelease.grab = 'pointer';
   module.exports.prototypes.push(ButtonRelease);
 
   function EnterNotify (window, data) {

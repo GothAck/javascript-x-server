@@ -52,14 +52,14 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
           }
         }
         this.reqs.push(null); // Force a processReps after this batch!
-        if ((!this.server.grabbed) || this === this.server.grabbed )
+        if ((!this.server.grab) || this === this.server.grab )
           this.processReqs();
     }
   }
 
   XServerClient.prototype.processReqs = function () {
     var self = this;
-    if (self.server.grabbed && self.server.grabbed !== self)
+    if (self.server.grab && self.server.grab !== self)
       return self.reqs_processing = false;
     if (self.reqs_processing)
       return;
@@ -115,6 +115,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
               );
           res.endian = self.endian;
           reps.reduce(function (o, rep) {
+            if (rep instanceof x_types.events.Event)
+              rep.sequence = self.sequence_sent;
             if(self.sequence_sent < rep.sequence)
               self.sequence_sent = rep.sequence;
             return rep.writeBuffer(res, o);
@@ -129,7 +131,9 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.sendEvent = function (event) {
     this.reps.push(event);
-    this.processReps();
+    console.warn('client.sendEvent', event);
+    if (! (this.reps_processing || this.reqs_processing))
+      this.processReps();
   }
 
   XServerClient.prototype.disconnect = function () {
@@ -343,6 +347,10 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     , 20: 'GetProperty'
     , 23: 'GetSelectionOwner'
     , 25: 'SendEvent'
+    , 26: 'GrabPointer'
+    , 27: 'UngrabPointer'
+    , 31: 'GrabKeyboard'
+    , 32: 'UngrabKeyboard'
     , 36: 'GrabServer'
     , 37: 'UngrabServer'
     , 38: 'QueryPointer'
@@ -642,14 +650,92 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     callback();
   }
 
+  XServerClient.prototype.GrabPointer = function (req, callback) {
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
+      , owner_events = req.data_byte
+      , events = req.data.readUInt16(4)
+      , mouse_async = req.data.readUInt8(6)
+      , keybd_async = req.data.readUInt8(7)
+      , confine = this.server.getResource(req.data.readUInt32(8))
+      , cursor = req.data.readUInt32(12)
+      , timestamp = req.data.readUInt32(16)
+      , rep = new x_types.Reply(req);
+
+    if (this.server.grab_pointer) {
+      rep.data_byte = 1;
+    } else if (! window.isMapped()) {
+      rep.data_byte = 3;
+    } else {
+      var root = window.getRoot();
+      if (cursor) {
+        var cursor_class = 'cursor_' + cursor + '_important';
+        root.element
+          .addClass(cursor_class).data('grab_pointer_class', cursor_class);
+      }
+      var event_filter = root.element.parent().parent().parent();
+      event_filter.addClass('grab_pointer');
+      if (owner_events)
+        event_filter.addClass('owner_events');
+      this.server.grab_pointer = window;
+      this.server.grab_pointer_owner_events = owner_events;
+      this.server.grab_pointer_mask = window.processEventMask(events);
+      rep.data_byte = 0;
+    }
+    console.log('GrabPointer', window, owner_events, events, mouse_async, keybd_async, confine, timestamp);
+    callback(null, rep);
+  }
+
+  XServerClient.prototype.UngrabPointer = function (req, callback) {
+    var time = req.data.readUInt32(0);
+    if (this.server.grab_pointer) {
+      this.server.grab_pointer = null;
+      var cursor = this.server.root.element.data('grab_pointer_class');
+      if (cursor)
+        this.server.root.element.removeClass(cursor);
+      this.server.root.element.parent().parent().parent().removeClass('grab_pointer');
+    }
+    callback();
+  }
+  
+  XServerClient.prototype.GrabKeyboard = function (req, callback) {
+    var window = this.server.getResource(req.data.readUInt32(0))
+      , owner_events = req.data_byte
+      , timestamp = req.data.readUInt32(4)
+      , mouse_async = req.data.readUInt8(8)
+      , keybd_async = req.data.readUInt8(9)
+      , rep = new x_types.Reply(req);
+
+    if (this.server.grab_pointer) {
+      rep.data_byte = 1;
+    } else if (! window.isMapped()) {
+      rep.data_byte = 3;
+    } else {
+      var root = window.getRoot();
+      root.element.parent().parent().parent().addClass('grab_keyboard');
+      this.server.grab_keyboard = window;
+      rep.data_byte = 0;
+    }
+    console.log('GrabKeyboard', window, owner_events, timestamp, mouse_async, keybd_async);
+    callback(null, rep);
+  }
+  
+  XServerClient.prototype.UngrabKeyboard = function (req, callback) {
+    var time = req.data.readUInt32(0);
+    if (this.server.grab_keyboard) {
+      this.server.grab_keyboard = null;
+      this.server.root.element.parent().parent().parent().removeClass('grab_keyboard');
+    }
+    callback();
+  }
+
   XServerClient.prototype.GrabServer = function (req, callback) {
-    this.server.grabbed = this;
-    this.server.grabbed_reason = 'GrabServer';
+    this.server.grab = this;
+    this.server.grab_reason = 'GrabServer';
     callback();
   }
 
   XServerClient.prototype.UngrabServer = function (req, callback) {
-    this.server.grabbed = null;
+    this.server.grab = null;
     this.server.flushGrabBuffer();
     callback();
   }
@@ -699,8 +785,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var fid = req.data.readUInt32(0)
       , length = req.data.readUInt16(4)
       , name = req.data.toString('ascii', 8, length + 8);
-    this.server.grabbed = this;
-    this.server.grabbed_reason = 'OpenFont';
+    this.server.grab = this;
+    this.server.grab_reason = 'OpenFont';
     var font = this.server.openFont(fid, name);
     if (font)
       this.server.resources[fid] = font;
@@ -777,7 +863,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
         }
       , function (err, fonts) {
           fonts = fonts.filter(function (font) { return font && !font.error });
-          this.server.grabbed = false;
+          this.server.grab = false;
           this.server.flushGrabBuffer();
           var reps = fonts.map(function (font) {
             var rep = new x_types.Reply(req);

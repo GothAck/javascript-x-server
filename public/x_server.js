@@ -85,8 +85,11 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     this.release = 11300000;
     this.vendor = 'JavaScript X';
     this.event_cache = [];
-    this.grabbed = null;
+    this.grab = null;
     this.grab_buffer = [];
+    this.grab_pointer = null;
+    this.grab_keyboard = null;
+    this.buttons = 0;
     this.input_focus = null;
     this.input_focus_revert = 0;
     this.keymap = keymap.maps.gb.clone();
@@ -291,7 +294,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
   XServer.prototype.loadFont = function (resolved_name, server_name, callback) {
     if (resolved_name in this.fonts_cache)
       return this.fonts_cache[resolved_name];
-    this.grabbed = 'loadFont';
+    this.grab = 'loadFont';
     var font = this.fonts_cache[resolved_name] =
       new x_types.Font(0, resolved_name, server_name, function (err) {
         if (err)
@@ -319,17 +322,17 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     if (resolved_name[1]) {
       var font = this.loadFont(resolved_name[1], resolved_name[0], function () {
         setTimeout(function () {
-          this.grabbed = false;
+          this.grab = false;
           this.flushGrabBuffer();
         }.bind(this), 250);
       }.bind(this));
       if (!font.loading)
-        this.grabbed = false;
+        this.grab = false;
       font.id = fid;
       return font;
     }
     console.log('Name not resolved', name);
-    this.grabbed = false;
+    this.grab = false;
     this.flushGrabBuffer();
 
   }

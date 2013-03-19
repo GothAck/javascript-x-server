@@ -294,6 +294,13 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
       throw new x_types.Error({}, Type.error_code || 1, id);
     delete this.resources[id];
   }
+  
+  XServer.prototype.getAtom = function (id) {
+    var atom = this.atoms[id];
+    if (! atom)
+      throw new x_types.Error({}, 5, id);
+    return atom;
+  }
 
   XServer.prototype.flushGrabBuffer = function() {
     var item = null;

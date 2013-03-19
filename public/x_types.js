@@ -577,7 +577,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.input_output = _class ? (!(_class - 1)) : parent.input_output;
     this.visual = visual;
     this.events = [];
-
+    this.events.mask = 0;
+    this.event_clients = {};
     this.element.css('display', 'none');
     this.element.children().append(this.canvas.attr('id', this.id));
     this.changeData(owner, vmask, vdata);
@@ -635,26 +636,29 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     , 'KeymapState', 'Exposure', 'VisibilityChange', 'StructureNotify', 'ResizeRedirect', 'SubstructureNotify', 'SubstructureRedirect'
     , 'FocusChange', 'PropertyNotify', 'ColormapChange', 'OwnerGrabButton'
   ];
+  Window.prototype.processEventMask = function (event_mask) {
+    return _event_mask_fields.filter(function (mask, i) {
+      return event_mask & (1 << i);
+    });
+  }
   Window.prototype.__defineSetter__('event_mask', function (event_mask) {
     var self = this
       , set_client = this.__lookupSetter__('event_mask').caller.arguments[0];
-    this.event_clients[set_client.id] = _event_mask_fields.filter(function (mask, i) {
-      return event_mask & Math.pow(2, i);
-    });
+    this.event_clients[set_client.id] = this.processEventMask(event_mask);
     this.event_clients[set_client.id].mask = event_mask;
 
     event_mask = Object.keys(this.event_clients).reduce(function (o, k) {
       return o | self.event_clients[k].mask;
     }, 0);
-    this.events = _event_mask_fields.filter(function (mask, i) {
-      return event_mask & Math.pow(2, i);
-    });
+    this.events = this.processEventMask(event_mask);
     this.events.mask = event_mask;
 
     this.element.removeClass(_event_mask_fields.join(' '));
     this.element.addClass(this.events.join(' '));
   });
   Window.prototype.__defineGetter__('event_mask', function () {
+    var set_client = this.__lookupGetter__('event_mask').caller.arguments[0];
+    //TODO: Return correct event_mask
     return this.events.mask || 0;
   });
 
@@ -763,6 +767,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     else
       event = new events.map[event](this, data || {});
     console.log('sendEvent', event, data, event_mask);
+    event.send_event = true;
     return this.element.trigger('SendEvent', { event: event, event_mask: event_mask });
   }
 
@@ -784,6 +789,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
       if (event.testReady())
         Object.keys(self.event_clients).forEach(function (k) {
           if (~ self.event_clients[k].indexOf(event.event_type)) {
+            if (! self.owner.server.clients[k])
+              return delete self.event_clients[k];
             self.owner.server.clients[k].sendEvent(event);
           }
         });

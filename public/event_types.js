@@ -151,6 +151,32 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.data.writeUInt8(this.major, 6);
   }
 
+  // DestroyNotify
+  function DestroyNotify (window, data) { // event, window, data
+    this.constructor.super_.call(this, window, data);
+    this.window = window;
+  }
+  util.inherits(DestroyNotify, Event);
+  DestroyNotify.prototype.dom_events = ['StructureNotify', 'SubstructureNotify'];
+  module.exports.prototypes.push(DestroyNotify);
+  DestroyNotify.prototype.writeData = function (buffer, offset) {
+    this.data.writeUInt32((this.event_window || this.window).id, 0);
+    this.data.writeUInt32(this.window.id, 4);
+  }
+  DestroyNotify.prototype.testReady = function () {
+    switch (this.event_type) {
+      case 'StructureNotify':
+        if (this.event_window === this.window) {
+          delete this.window.owner.server.resources[this.window.id];
+          return true;
+        }
+        return false;
+      case 'SubstructureNotify':
+        return this.window.isChildOf(this.event_window);
+    }
+    return false;
+  }
+
   // MapNotify
   function MapNotify (window, data) { // event, window, data
     this.constructor.super_.call(this, window, data);

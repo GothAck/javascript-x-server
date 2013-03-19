@@ -236,7 +236,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     if (!this.clients[id])
       throw new Error('Invalid client! Disconnected?');
 
-    if (this.grabbed && this.grabbed.id !== id) {
+    if (this.grab && this.grab.id !== id) {
       return this.grab_buffer.push([this, 'disconnect', id]);
     }
 

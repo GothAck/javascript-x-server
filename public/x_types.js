@@ -308,8 +308,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     buffer.writeUInt8(this.code, offset + 1);
     buffer.writeUInt16(this.sequence, offset + 2);
     buffer.writeUInt32(this.value, offset + 4);
-    buffer.writeUInt16(this.opcode, offset + 8);
-    buffer.writeUInt8(this.opcode_minor, offset + 10);
+    buffer.writeUInt16(this.opcode_minor, offset + 8);
+    buffer.writeUInt8(this.opcode, offset + 10);
     buffer.fill(0, offset + 11, offset + 32);
     return offset + 32;
   }

@@ -1,5 +1,7 @@
 define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_types, EndianBuffer, rgb_colors) {
-  function XServerClient (server, id) {
+  var window = null;
+  
+  function XServerClient (server, id, resource_id_base, resource_id_mask) {
     this.server = server;
     this.id = id;
     this.state = 0;
@@ -977,6 +979,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , data   = src.getImageData(src_x, src_y, width, height);
     console.log('CopyArea', src, dst, src_x, src_y, dst_x, dst_y, width, height);
     dst.putImageData(data, dst_x, dst_y);
+    if (gc.graphics_exposures)
+      dst.owner.sendEvent(new x_types.events.map.NoExposure(dst, { major: req.opcode, minor: 0 }));
     callback();
   }
 

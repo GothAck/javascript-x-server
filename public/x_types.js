@@ -343,6 +343,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   GraphicsContext.prototype.line_width = 0;
   GraphicsContext.prototype.line_style = 0;
   GraphicsContext.prototype.fill_style = 0;
+  GraphicsContext.prototype.graphics_exposures = true;
 
   GraphicsContext.prototype.__defineSetter__('font', function (fid) {
     this._font = (typeof fid === 'number') ? this.owner.server.resources[fid] : '';

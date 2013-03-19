@@ -138,6 +138,19 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.data.writeUInt16(this.count, 12);
   }
 
+  //NoExposure
+  
+  function NoExposure (window, data) {
+    this.constructor.super_.call(this, window, data);
+  }
+  util.inherits(NoExposure, Event);
+  module.exports.prototypes.push(NoExposure);
+  NoExposure.prototype.writeData = function (buffer, offset) {
+    this.data.writeUInt32(this.window.id, 0);
+    this.data.writeUInt16(this.minor, 4);
+    this.data.writeUInt8(this.major, 6);
+  }
+
   // MapNotify
   function MapNotify (window, data) { // event, window, data
     this.constructor.super_.call(this, window, data);

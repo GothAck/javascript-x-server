@@ -291,11 +291,12 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return this.data_extra.writeBuffer(buffer           , offset += this.data.length);
   }
 
-  function _Error (req, code, value) {
+  var _Error = function Error (req, code, value) {
+    Error.apply(this, arguments);
     this.code = code || 1;
     this.opcode = req.opcode;
     this.opcode_minor = 0;
-    this.sequence = req.sequence;
+    this.sequence = req.sequence & 0xffff;
     this.value = value || 0;
     this.length = 32;
   }
@@ -330,6 +331,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.x = 0;
     this.y = 0;
   }
+  
+  GraphicsContext.error_code = 13;
 
   module.exports.GraphicsContext = GraphicsContext;
 
@@ -409,6 +412,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.loading = true;
     this.loadMeta('fonts/' + file_name, cb);
   }
+  
+  Font.error_code = 7;
 
   module.exports.Font = Font;
 
@@ -482,6 +487,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this._height = height;
     this.canvas.attr('height', height);
   });
+  
+  Drawable.error_code = 9;
 
   Drawable.prototype.getImageData = function (x, y, width, height) {
     return this.canvas[0].getContext('2d').getImageData(x, y, width, height);
@@ -505,12 +512,16 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
 
   util.inherits(Pixmap, Drawable);
 
+  Pixmap.error_code = 4;
+
   module.exports.Pixmap = Pixmap;
 
   function ColorMap (id, lookup_func) {
     this.id = id;
     this.lookup_func = lookup_func;
   }
+  
+  ColorMap.error_code = 12;
 
   module.exports.ColorMap = ColorMap;
 
@@ -555,6 +566,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   }
 
   util.inherits(Window, Drawable);
+
+  Window.error_code = 3;
 
   module.exports.Window = Window;
 
@@ -798,6 +811,17 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     while (current.parent && current.parent.id)
       current = current.parent;
     return current;
+  }
+
+  Window.prototype.getParents = function (until) {
+    var parents = [];
+    while (current.parent && current.parent.id && current.parent !== until)
+      parents.push(current = current.parent);
+    return parents;
+  }
+
+  Window.prototype.isChildOf = function (window) {
+    return window.element.find(this.element).length > 0;
   }
 
   Window.prototype.changeData = function (owner, vmask, vdata) {

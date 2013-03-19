@@ -263,6 +263,27 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
       throw new Error('Invalid client! Disconnected?');
     this.clients[id].processData(data);
   }
+  
+  XServer.prototype.getResource = function (id, Type, allowed_values) {
+    var resource = this.resources[id];
+    allowed_values = Array.isArray(allowed_values) ? 
+      allowed_values : Array.prototype.slice.call(arguments, 2);
+    if (~ allowed_values.indexOf(id))
+      return id;
+    if (Type && !(resource instanceof Type))
+      throw new x_types.Error({}, Type.error_code || 1, id);
+    return resource;
+  }
+  
+  XServer.prototype.putResource = function (resource) {
+    var owner = resource.owner;
+    console.warn('server.putResource', resource.id, resource);
+    if (((~ owner.resource_id_mask) & owner.resource_id_base) !== owner.resource_id_base)
+      throw new x_types.Error({}, 14 /* IDChoise */, resource.id); 
+    if (this.resources[resource.id])
+      throw new x_types.Error({}, 14 /* IDChoice */, resource.id);
+    return this.resources[resource.id] = resource;
+  }
 
   XServer.prototype.flushGrabBuffer = function() {
     var item = null;

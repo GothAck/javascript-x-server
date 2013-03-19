@@ -71,20 +71,32 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
         if (req) {
           var func = self[XServerClient.opcodes[req.opcode]];
           if (func) {
-            console.group(req.sequence, self.sequence, self.sequence_sent, req.opcode, XServerClient.opcodes[req.opcode]);
-            func && func.call(self, req, function (err, rep) {
-              if (rep) {
-                if (Array.isArray(rep))
-                  self.reps = self.reps.concat(rep)
-                else
-                  self.reps.push(rep);
-              }
-              self.reqs_processing = false;
-              self.processReqs()
-            });
+            console.group(req.sequence, self.sequence, self.sequence_sent, self.id, req.opcode, XServerClient.opcodes[req.opcode]);
+            try {
+              func && func.call(self, req, function (err, rep) {
+                if (rep) {
+                  if (Array.isArray(rep))
+                    self.reps = self.reps.concat(rep)
+                  else
+                    self.reps.push(rep);
+                }
+                self.reqs_processing = false;
+                self.processReqs()
+              });
+            } catch (e) {
+              if (e instanceof x_types.Error) {
+                e.opcode = req.opcode;
+                e.sequence = req.sequence & 0xffff;
+                console.error(self.id, e, e.stack);
+                self.reps.push(e);
+                self.reqs_processing = false;
+                self.processReqs();
+              } else
+                throw e;
+            }
             console.groupEnd();
           } else {
-            console.log('################### UNKNOWN OPCODE', req.opcode);
+            console.error('################### UNKNOWN OPCODE', req.opcode);
             self.reqs_processing = false;
             self.processReqs()
           }
@@ -397,7 +409,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var self = this
       , depth = req.data_byte
       , id = req.data.readUInt32(0)
-      , parent = this.server.resources[req.data.readUInt32(4)]
+      , parent = this.server.getResource(req.data.readUInt32(4))
       , x = req.data.readInt16(8)
       , y = req.data.readInt16(10)
       , width = req.data.readUInt16(12)
@@ -408,13 +420,13 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , vmask = req.data.readUInt32(24)
       , vdata = req.data.slice(28);
     console.log('CreateWindow', id, depth, parent, x, y, width, height);
-    var window = this.resources[id] = new x_types.Window(this, id, depth, x, y, width, height, border_width, _class, visual, vmask, vdata);
+    var window = this.server.putResource(new x_types.Window(this, id, depth, x, y, width, height, border_width, _class, visual, vmask, vdata));
     window.parent = parent;
     callback();
   }
 
   XServerClient.prototype.ChangeWindowAttributes = function (req, callback) {
-    var window = this.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , rep = new x_types.Reply(req)
       , vmask = req.data.readUInt32(4)
       , vdata = req.data.slice(8);
@@ -424,7 +436,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.GetWindowAttributes = function (req, callback) {
-    var window = this.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , rep = new x_types.Reply(req);
     rep.data_byte = 2; // Backing store (0 NotUseful, 1 WhenMapper, 2 Always)
     rep.data.writeUInt32(0, 0); // Visual id
@@ -446,7 +458,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.ChangeSaveSet = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)];
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
     if (req.data_byte) {
       delete this.save_set[this.save_set.indexOf(window)];
     } else {
@@ -456,8 +468,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.ReparentWindow = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)]
-      , parent = this.server.resources[req.data.readUInt32(4)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
+      , parent = this.server.getResourcde(req.data.readUInt32(4))
       , x = req.data.readInt16(8)
       , y = req.data.readInt16(10)
       , was_mapped = window.isMapped();
@@ -475,7 +487,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.MapWindow = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)];
+    var self = this
+      , window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
     console.log('MapWindow', window.id);
     reps = [];
     if (window.map()) {
@@ -485,7 +498,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.MapSubwindows = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)];
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
     console.log('MapSubwindows', window.id);
     var reps = [];
     function run (parent_children) {
@@ -505,7 +518,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.UnmapWindow = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)];
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
     console.log('UnmapWindow');
     if (window.unmap())
       console.log('Success - events go here!');
@@ -516,7 +529,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     'x', 'y', 'width', 'height', 'border_width', 'sibling', 'stack_mode'
   ]
   XServerClient.prototype.ConfigureWindow = function (req, callback) {
-    var window = this.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , vmask = req.data.readUInt16(4)
       , vdata = req.data.slice(8);
     vdata.endian = this.endian;
@@ -529,7 +542,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.GetGeometry = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
       , rep = new x_types.Reply(req);
     rep.data_byte = drawable.depth;
 
@@ -543,7 +556,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.QueryTree = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , rep = new x_types.Reply(req);
     rep.data.writeUInt32(window.getRoot(), 0);
     rep.data.writeUInt32((window.parent && window.parent.id) || 0, 4);
@@ -583,7 +596,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.ChangeProperty = function (req, callback) {
     var mode = req.data_byte
-      , window = this.server.resources[req.data.readUInt32(0)]
+      , window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , atom = req.data.readUInt32(4)
       , property = this.server.atoms[atom - 1]
       , type = req.data.readUInt32(8)
@@ -598,7 +611,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.DeleteProperty = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , atom = req.data.readUInt32(4)
       , property = this.server.atoms[atom - 1];
 
@@ -611,7 +624,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
 
   XServerClient.prototype.GetProperty = function (req, callback) {
-    var window = this.server.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , atom = req.data.readUInt32(4)
       , property = this.server.atoms[atom - 1]
       , type = req.data.readUInt32(8)
@@ -639,17 +652,19 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , atom = this.server.atoms[atom_id]
       , owner = this.server.atom_owners[atom_id]
       , rep = new x_types.Reply(req);
-    rep.data.writeUInt32((owner && this.server.resources[owner] && owner) || 0)
+    rep.data.writeUInt32((owner && this.server.getResource(owner) && owner) || 0)
     callback(null, rep);
   }
 
   XServerClient.prototype.SendEvent = function (req, callback) {
     var propagate = req.data_byte
       , wid = req.data.readUInt32(0)
-      , window = this.server.resources[wid]
+      , window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , event_mask = req.data.readUInt32(4)
       , event = x_types.events.fromBuffer(this, req.data, 8);
-    window.sendEvent('SendEvent', { event_mask: event_mask, event: event });
+    if (! event)
+      throw new Error('SendEvent sent an unknown event');
+    window.sendEvent(event, event_mask);
     callback();
   }
 
@@ -744,7 +759,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.QueryPointer = function (req, callback) {
-    var window = this.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , rep = new x_types.Reply(req);
     rep.data.writeUInt32(0x26, 0);
     rep.data.writeUInt32(0, 4);
@@ -757,12 +772,11 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.SetInputFocus = function (req, callback) {
     var revert = req.data_byte
-      , wid = req.data.readUInt32(0)
-      , window = this.server.resources[wid]
+      , window = this.server.getResource(req.data.readUInt32(0), x_types.Window, 0, 1)
       , time = req.data.readUInt32(4) || ~~(Date.now() / 1000);
     if (time < this.server.input_focus_time)
       return;
-    switch (wid) {
+    switch (window) {
       case 0:
         this.server.input_focus = null;
       break;
@@ -792,13 +806,12 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     this.server.grab_reason = 'OpenFont';
     var font = this.server.openFont(fid, name);
     if (font)
-      this.server.resources[fid] = font;
+      this.server.putResource(font);
     callback();
   }
 
   XServerClient.prototype.QueryFont = function (req, callback) {
-    var fid = req.data.readUInt32(0)
-      , font = this.server.resources[fid];
+    var font = this.server.getResource(req.data.readUInt32(0), x_types.Font);
     if (font && !(font instanceof x_types.Font))
       font = font.font;
     if (!font)
@@ -895,23 +908,16 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.CreatePixmap = function (req, callback) {
-    var depth = req.data_byte
-      , pid = req.data.readUInt32(0)
-      , drawable = req.data.readUInt32(4)
+    var pid = req.data.readUInt32(0)
+      , drawable = this.server.getResource(req.data.readUInt32(4), x_types.Drawable)
+      , depth = req.data_byte
       , width = req.data.readUInt16(8)
       , height = req.data.readUInt16(10);
-    if (this.resources[pid])
-      console.log('TODO: Throw error?');
-    if (!(drawable = this.resources[drawable]))
-      console.log('TODO: Throw error! (No drawable)');
-    console.log(drawable.depth, depth);
+    console.log('CreatePixmap', depth, pid, drawable, width, height);
     if (drawable.depth !== depth && depth !== 1) {
-      var rep = new x_types.Error(req, 4, depth);
-      console.log('Depth Error');
-      callback(null, rep);
+      throw new x_types.Error(req, 4, depth);
     }
-
-    this.resources[pid] = new x_types.Pixmap(pid, depth, drawable, width, height);
+    this.server.putResource(new x_types.Pixmap(pid, depth, drawable, width, height));
     callback();
   }
 
@@ -929,20 +935,16 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.CreateGC = function (req, callback) {
     var cid = req.data.readUInt32(0)
-      , drawable = req.data.readUInt32(4)
+      , drawable = this.server.getResource(req.data.readUInt32(4), x_types.Drawable)
       , vmask = req.data.readUInt32(8)
       , vdata = req.data.slice(12);
-    vdata.endian = this.endian;
-    if (this.resources[cid])
-      console.log('TODO: Throw error?');
-    if (! this.resources[drawable])
-      console.log('TODO: Throw error?', cid, drawable);
-    this.resources[cid] = new x_types.GraphicsContext(this, cid, this.resources[drawable], vmask, vdata);
+    console.log(this, cid, drawable, vmask, vdata);
+    this.server.putResource(new x_types.GraphicsContext(this, cid, drawable, vmask, vdata));
     callback();
   }
 
   XServerClient.prototype.ChangeGC = function (req, callback) {
-    var gc = this.server.resources[req.data.readUInt32(0)]
+    var gc = this.server.getResource(req.data.readUInt32(0), x_types.GraphicsContext)
       , vmask = req.data.readUInt32(4)
       , vdata = req.data.slice(8);
     vdata.endian = this.endian;
@@ -952,7 +954,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.ClearArea = function (req, callback) {
-    var window = this.resources[req.data.readUInt32(0)]
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , x = req.data.readUInt16(4)
       , y = req.data.readUInt16(6)
       , w = req.data.readUInt16(8) || (window.width - y)
@@ -965,9 +967,9 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.CopyArea = function (req, callback) {
-    var src    = this.server.resources[req.data.readUInt32( 0)]
-      , dst    = this.server.resources[req.data.readUInt32( 4)]
-      , gc     = this.server.resources[req.data.readUInt32( 8)]
+    var src    = this.server.getResource(req.data.readUInt32( 0), x_types.Drawable)
+      , dst    = this.server.getResource(req.data.readUInt32( 4), x_types.Drawable)
+      , gc     = this.server.getResource(req.data.readUInt32( 8), x_types.GraphicsContext)
       , src_x  = req.data.readInt16 (12)
       , src_y  = req.data.readInt16 (14)
       , dst_x  = req.data.readInt16 (16)
@@ -987,9 +989,9 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.PolyLine = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
       , coord_mode = req.data_byte
-      , gc = this.resources[req.data.readUInt32(4)]
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = req.length_quad - 3;
     context.moveTo(0, 0);
@@ -1009,8 +1011,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.PolySegment = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
-      , gc = this.resources[req.data.readUInt32(4)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad - 3) / 2;
     for (var i = 8; i < ((count + 1) * 8); i += 8) {
@@ -1027,8 +1029,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.PolyRectangle = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
-      , gc = this.resources[req.data.readUInt32(4)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad - 3) / 2;
     // x, y, width, height
@@ -1045,8 +1047,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.FillPoly = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
-      , gc = this.resources[req.data.readUInt32(4)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , shape = req.data.readUInt8(8)
       , coordinate_mode = req.data.readUInt8(9)
@@ -1075,8 +1077,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.PolyFillRectangle = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
-      , gc = this.resources[req.data.readUInt32(4)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad - 3) / 2;
     // x, y, width, height
@@ -1093,10 +1095,10 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.PolyFillArc = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
       , d_w = drawable.canvas[0].width
       , d_h = drawable.canvas[0].height
-      , gc = this.resources[req.data.readUInt32(4)]
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad - 3) / 3
       , end = (count * 12) + 8;
@@ -1124,8 +1126,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   var _image_formats = ['Bitmap', 'XYPixmap', 'ZPixmap'];
   XServerClient.prototype.PutImage = function (req, callback) {
     var format = _image_formats[req.data_byte]
-      , drawable = this.resources[req.data.readUInt32(0)]
-      , context = this.resources[req.data.readUInt32(4)]
+      , drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
+      , context = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , width = req.data.readUInt16(8)
       , height = req.data.readUInt16(10)
       , x = req.data.readInt16(12)
@@ -1141,7 +1143,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.GetImage = function (req, callback) {
     var format = _image_formats[req.data_byte]
-      , drawable = this.resources[req.data.readUInt32(0)]
+      , drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
       , x = req.data.readInt16(4)
       , y = req.data.readInt16(6)
       , w = req.data.readUInt16(8)
@@ -1162,8 +1164,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.PolyText8 = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
-      , gc = this.resources[req.data.readUInt32(4)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad / 4) - 1
       , x = req.data.readInt16(8)
@@ -1193,8 +1195,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.PolyText16 = function (req, callback) {
-    var drawable = this.resources[req.data.readUInt32(0)]
-      , gc = this.resources[req.data.readUInt32(4)]
+    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
+      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad - 1) / 4
       , x = req.data.readInt16(8)
@@ -1224,7 +1226,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.AllocColor = function (req, callback) {
-    var cmap = this.server.resources[req.data.readUInt32(0)]
+    var cmap = this.server.getResource(req.data.readUInt32(0), x_types.ColorMap)
       , r = req.data.readUInt16(4) >> 8
       , g = req.data.readUInt16(6) >> 8
       , b = req.data.readUInt16(8) >> 8
@@ -1240,7 +1242,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     console.log('QueryColors');
     var count = req.length_quad - 2
       , length = count * 4
-      , colormap = this.resources[req.data.readUInt32(0)]
+      , colormap = this.server.getResource(req.data.readUInt32(0), x_types.ColorMap)
       , rep = new x_types.Reply(req);
     rep.data.writeUInt16(count);
     for (var i = 4; i < length + 4; i += 4) {
@@ -1255,7 +1257,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
 
   XServerClient.prototype.LookupColor = function (req, callback) {
-    var cmap = this.server.resources[req.data.readUInt32(0)]
+    var cmap = this.server.getResource(req.data.readUInt32(0), x_types.ColorMap)
       , length = req.data.readUInt16(4)
       , name = req.data.toString('ascii', 8, length + 8)
       , color = rgb_colors[name] || 0
@@ -1273,8 +1275,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.CreateGlyphCursor = function (req, callback) {
     var cursor_id = req.data.readUInt32(0)
-      , source_font = this.resources[req.data.readUInt32(4)]
-      , mask_font = this.resources[req.data.readUInt32(8)]
+      , source_font = this.server.getResource(req.data.readUInt32(4), x_types.Font)
+      , mask_font = this.server.getResource(req.data.readUInt32(8), x_types.Font)
       , source_char = req.data.readUInt16(12)
       , mask_char = req.data.readUInt16(14)
       , source_char_meta = source_font && source_char && source_font.font.characters[source_char]
@@ -1350,7 +1352,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   XServerClient.prototype.QueryBestSize = function (req, callback) {
     console.log('QueryBestSize');
     var _class = req.data_byte
-      , drawable = this.resources[req.data.readUInt32(0)]
+      , drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
       , width = req.data.readUInt16(4)
       , height = req.data.readUInt16(6);
     var rep = new x_types.Reply(req);

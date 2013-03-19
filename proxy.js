@@ -4,7 +4,10 @@ var connect = require('connect')
   , fs = require('fs')
   , path = require('path')
   , net = require('net')
-  , WSS = require('websocket').server;
+  , WSS = require('websocket').server
+  , child_process = require('child_process')
+  , util = require('util')
+  , EventEmitter = require('events').EventEmitter;
 
 var app = connect()
   .use(connect.static('public'))
@@ -39,6 +42,95 @@ var wss = new WSS({
   , autoAcceptConnections: false
 });
 
+function X11Proxy (screen, connection, window_manager) {
+  var self = this;
+  this.screen = screen;
+  this.connection = connection;
+  this.client_sockets = {};
+  this.ping = {
+      counter: 0
+    , interval: null
+    , timeout: null
+    , start: null
+    , results: []
+    , average: 0
+  };
+  this.processes = [];
+  this.connection.on('message', this.data.bind(this));
+  this.connection.on('close', this.close.bind(this));
+  this.connection.sendUTF('SCR ' + this.screen);
+  this.server_socket = net.createServer(this.newClient.bind(this)).listen(6000 + this.screen);
+  if (window_manager)
+    setTimeout(function () {
+      self.spawnProcess(window_manager);
+    }, 750);
+}
+util.inherits(X11Proxy, EventEmitter);
+X11Proxy.prototype.newClient = function (socket) {
+  var self = this
+    , id = socket.remotePort;
+  this.client_sockets[id] = socket;
+  this.connection.sendUTF('NEW ' + id);
+  socket.on('close', function () {
+    self.connection.sendUTF('END ' + id);
+    delete self.client_sockets[id];
+  });
+  socket.on('data', function (data) {
+    var buffer = new Buffer(data.length + 2);
+    data.copy(buffer, 2);
+    buffer.writeUInt16BE(id, 0);
+    self.connection.sendBytes(buffer);
+  });
+}
+X11Proxy.prototype.data = function (message) {
+  if (message.type === 'utf8') {
+    var data = message.utf8Data.split(' ');
+    switch (data[0]) {
+      case 'PONG':
+        if (data[1] == this.ping.counter - 1) {
+          this.ping.results.unshift(Date.now() - this.ping.start);
+          this.ping.results.splice(10, 10);
+          this.ping.average = this.ping.results.reduce(function (o, v) { return o + v }) / this.ping.results.length
+          clearTimeout(this.ping.timeout);
+          this.ping.timeout = null;
+        } else {
+          console.log('Out of order ping', data[1], this.ping.counter - 1);
+        }
+      break;
+    }
+  } else {
+    var data = message.binaryData;
+    this.client_sockets[data.readUInt16LE(0)].write(data.slice(2));
+  }
+}
+X11Proxy.prototype.close = function () {
+  var self = this;
+  console.log('closed');
+  clearTimeout(this.ping.timeout);
+  clearInterval(this.ping.interval);
+  this.processes.forEach(function (process) {
+    process.kill();
+  });
+  Object.keys(this.client_sockets).forEach(function (id) {
+    self.client_sockets[id].end();
+  })
+  try {
+    this.server_socket.close();
+  } catch (e) {}
+  screens.push(this.screen);
+}
+X11Proxy.prototype.spawnProcess = function (command, arguments) {
+  var env = {};
+  Object.keys(process.env)
+    .forEach(function (k) {
+      env[k] = process.env[k];
+    });
+  env.DISPLAY = 'localhost:' + this.screen;
+  this.processes.push(
+    child_process.spawn(command, arguments || [], { stdio: 'inherit', env: env})
+  );
+}
+
 wss.on('request', function (req) {
   var screen = screens.shift();
 
@@ -46,35 +138,9 @@ wss.on('request', function (req) {
     console.log('reject');
     return req.reject();
   }
-
-  var con = req.accept('x11-proxy', req.origin)
-    , sockets = {}
-    , ping_counter = 0
-    , ping_interval = null
-    , ping_timeout = null
-    , ping_start = null
-    , ping_results = []
-    , ping_average = 0;
-
-  console.log('connected', screen);
-  con.sendUTF('SCR ' + screen);
-  var local_socket = net.createServer(function (socket) {
-    var id = socket.remotePort;
-    sockets[id] = socket;
-    console.log('New client', id);
-    con.sendUTF('NEW ' + id);
-    socket.on('close', function () {
-      con.sendUTF('END ' + id);
-      delete sockets[id];
-    });
-    socket.on('data', function (data) {
-      var buffer = new Buffer(data.length + 2);
-      data.copy(buffer, 2);
-      buffer.writeUInt16BE(id, 0);
-      con.sendBytes(buffer);
-    });
-  }).listen(6000 + screen);
-
+  console.log('New client');
+  var proxy = new X11Proxy(screen, req.accept('x11-proxy', req.origin), 'blackbox');
+/*
   ping_interval = setInterval(function () {
     var counter = ping_counter ++;
     con.sendUTF('PING ' + counter);
@@ -84,37 +150,6 @@ wss.on('request', function (req) {
       ping_timeout = null;
     }, 500);
   }, 5000);
-
-  con.on('message', function (message) {
-    if (message.type === 'utf8') {
-      var data = message.utf8Data.split(' ');
-      switch (data[0]) {
-        case 'PONG':
-          if (data[1] == ping_counter - 1) {
-            ping_results.unshift(Date.now() - ping_start);
-            ping_results.splice(10, 10);
-            ping_average = ping_results.reduce(function (o, v) { return o + v }) / ping_results.length
-            clearTimeout(ping_timeout);
-            ping_timeout = null;
-          } else {
-            console.log('Out of order ping', data[1], ping_counter - 1);
-          }
-        break;
-      }
-    } else {
-      var data = message.binaryData;
-      sockets[data.readUInt16LE(0)].write(data.slice(2));
-    }
-  });
-  con.on('close', function () {
-    console.log('closed');
-    clearTimeout(ping_timeout);
-    clearInterval(ping_interval);
-    Object.keys(sockets).forEach(function (id) {
-      sockets[id].end();
-    })
-    local_socket.close();
-    screens.push(screen);
-  });
+*/
 });
 

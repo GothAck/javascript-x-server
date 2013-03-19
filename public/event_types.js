@@ -64,7 +64,12 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   module.exports.Event = Event;
 
   Event.prototype.writeBuffer = function (buffer, offset) {
-    buffer.writeUInt8(this.code, offset);
+    this.data.endian = buffer.endian;
+    this.writeData();
+    var code = this.code;
+    if (this.send_event)
+      code ^= 128; // Flip msb if this is an event sent from another client (SendEvent)
+    buffer.writeUInt8(code, offset);
     buffer.writeUInt8(this.detail, offset + 1);
     buffer.writeUInt16(this.sequence, offset + 2);
     this.data.copy(buffer, offset + 4);
@@ -122,14 +127,13 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   util.inherits(Expose, Event);
   Expose.prototype.dom_events = ['Exposure'];
   module.exports.prototypes.push(Expose);
-  Expose.prototype.writeBuffer = function (buffer, offset) {
+  Expose.prototype.writeData = function (buffer, offset) {
     this.data.writeUInt32(this.window.id, 0);
     this.data.writeUInt16(this.x, 4);
     this.data.writeUInt16(this.y, 6);
-    this.data.writeUInt16(this.width, 8);
-    this.data.writeUInt16(this.height, 10);
+    this.data.writeUInt16(this.child_window.width, 8);
+    this.data.writeUInt16(this.child_window.height, 10);
     this.data.writeUInt16(this.count, 12);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
 
   // MapNotify
@@ -140,11 +144,10 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   util.inherits(MapNotify, Event);
   MapNotify.prototype.dom_events = ['StructureNotify', 'SubstructureNotify'];
   module.exports.prototypes.push(MapNotify);
-  MapNotify.prototype.writeBuffer = function (buffer, offset) {
+  MapNotify.prototype.writeData = function (buffer, offset) {
     this.data.writeUInt32((this.event_window || this.window).id, 0);
     this.data.writeUInt32(this.window.id, 4);
     this.data.writeUInt8(this.window.override_redirect ? 1 : 0, 8);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
   MapNotify.prototype.testReady = function () {
     switch (this.event_type) {
@@ -164,11 +167,10 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   util.inherits(UnmapNotify, Event);
   UnmapNotify.prototype.dom_events = ['StructureNotify'];
   module.exports.prototypes.push(UnmapNotify);
-  UnmapNotify.prototype.writeBuffer = function (buffer, offset) {
+  UnmapNotify.prototype.writeData = function (buffer, offset) {
     this.data.writeUInt32((this.event_window || this.window).id, 0);
     this.data.writeUInt32(this.window.id, 4);
     this.data.writeUInt8(this.from_configure, 8)
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
 
   function ReparentNotify (window, data) {
@@ -177,14 +179,13 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   util.inherits(ReparentNotify, Event);
   ReparentNotify.prototype.dom_events = ['StructureNotify'];
   module.exports.prototypes.push(ReparentNotify);
-  ReparentNotify.prototype.writeBuffer = function (buffer, offset) {
+  ReparentNotify.prototype.writeData = function (buffer, offset) {
     this.data.writeUInt32(this.event_window.id, 0);
     this.data.writeUInt32(this.window.id, 4);
     this.data.writeUInt32(this.new_parent.id, 8);
     this.data.writeInt16(this.window.x, 12);
     this.data.writeInt16(this.window.y, 14);
     this.data.writeUInt8(this.window.override_redirect, 16);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
   ReparentNotify.prototype.testReady = function () {
     switch (this.event_type) {
@@ -204,12 +205,11 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   util.inherits(PropertyNotify, Event);
   PropertyNotify.prototype.dom_events = ['PropertyNotify'];
   module.exports.prototypes.push(PropertyNotify);
-  PropertyNotify.prototype.writeBuffer = function (buffer, offset) {
+  PropertyNotify.prototype.writeData = function (buffer, offset) {
     this.data.writeUInt32(this.window.id, 0);
     this.data.writeUInt32(this.atom, 4);
     this.data.writeUInt32(this.timestamp, 8);
     this.data.writeUInt8(~~this.deleted, 12);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
 
   function Event_WindowInputDevicePointer (window, data) {
@@ -218,7 +218,7 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.btn_state = window.owner.server.btn_state = data.btn_state
   }
   util.inherits(Event_WindowInputDevicePointer, Event);
-  Event_WindowInputDevicePointer.prototype.writeBuffer = function (buffer, offset) {
+  Event_WindowInputDevicePointer.prototype.writeData = function (buffer, offset) {
     this.data.writeUInt32(0, 0); //Time
     this.data.writeUInt32(this.window.getRoot().id, 4); // Root id
     this.data.writeUInt32((this.event_window || this.window).id, 8); // Parent / event win id
@@ -232,7 +232,6 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.data.writeInt16(this.y, 22); // y
     this.data.writeUInt16(this.keybutmask, 24);
     this.data.writeUInt8(this.same_screen, 26);
-    return Event.prototype.writeBuffer.call(this, buffer, offset);
   }
 
   function KeyPress (window, data) {
@@ -294,7 +293,7 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
   }
   util.inherits(ConfigureNotify, Event);
   module.exports.prototypes.push(ConfigureNotify);
-  ConfigureNotify.prototype.writeBuffer = function (buffer, offset) {
+  ConfigureNotify.prototype.writeData = function (buffer, offset) {
     this.data.writeUInt32(this.event_window.id, 0);
     this.data.writeUInt32(this.window.id, 4);
     this.data.writeUInt32((this.above_sibling && this.above_sibling.id) || 0, 8);
@@ -304,7 +303,6 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.data.writeUInt16(this.height, 18);
     this.data.writeUInt16(this.border_width, 20);
     this.data.writeUInt8 (this.override_redirect, 22);
-    return this.constructor.super_.prototype.writeBuffer.call(this, buffer, offset);
   }
   ConfigureNotify.fromBuffer = function (child, code, buffer, offset) {
     var event_window = child.server.resources[buffer.readUInt32(offset)]

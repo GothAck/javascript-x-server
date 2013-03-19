@@ -75,15 +75,20 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
     var mouse_buttons = [1,3,2];
     function event_data (dom_event) {
       var keybutmask = (
-              current_mouse |
-              (
-                  dom_event.type === 'mousedown' &&
-                  (1 << (mouse_buttons[dom_event.button] - 1))
-              )
+              (server && server.buttons || 0) |
+//              (
+//                  dom_event.type === 'mousedown' &&
+//                  (1 << (mouse_buttons[dom_event.button] - 1))
+//              )
+              0
           ) << 8;
-      keybutmask |= dom_event.shiftKey && 1;
+      if (dom_event.type === 'mousedown' || dom_event.type === 'mouseup') {
+        keybutmask |= 0x10;
+        keybutmask &= ~((1 << (mouse_buttons[dom_event.button] - 1)) << 8); 
+      }
+      // keybutmask |= dom_event.shiftKey && 1;
       // lock? = 2
-      keybutmask |= dom_event.ctrlKey  && 4;
+      // keybutmask |= dom_event.ctrlKey  && 4;
       var event_source = $(event.srcElement)
         , root_offset = event_source.parents('.screen').andSelf().first().offset()
         , win_offset = event_source.offset();

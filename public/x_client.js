@@ -216,7 +216,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.imageFromBitmap = function (dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
-      , scanline = width + ((format.scanline_pad / format.bpp) - width % (format.scanline_pad / format.bpp));
+      , scanline_pad_unit = format.scanline_pad / format.bpp
+      , scanline = width + (scanline_pad_unit - (width % scanline_pad_unit || format.scanline));
     switch (depth) {
       case 1:
         var byte;
@@ -225,7 +226,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
             var data_offset = (row * scanline) + col
               , dest_offset = (row * width) + col
               , bit = col % 8
-              , bit_mask = Math.pow(2, bit)
+              , bit_mask = Math.pow(2, bit);
             if (bit == 0)
               byte = data.readUInt8(data_offset / 8);
             dest.data[dest_offset] =
@@ -316,9 +317,9 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
             if (x < width) {
               var offset = ((y * width) + x) * 4;
               data[func_pp](
-                  (from.data[offset    ] << 16) |
+                  (from.data[offset    ]      ) |
                   (from.data[offset + 1] <<  8) |
-                  (from.data[offset + 2]      )
+                  (from.data[offset + 2] << 16)
                 , ((y * scanline) + x) * byte_pp
               );
             }

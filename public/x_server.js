@@ -242,6 +242,8 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
 
     this.clients[id].disconnect();
   }
+  
+  XServer.prototype.sendEvent = function () {}
 
   XServer.prototype.write = function (client, data) {
     if (! this.clients[client.id])

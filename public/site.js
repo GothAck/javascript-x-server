@@ -199,7 +199,7 @@ require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianB
     });
     $('.screen').on('SendEvent', '.drawable', function (event, data) {
       var xob = $(this).data('xob');
-      if (xob.event_mask && data.event_mask) {
+      if ((xob.event_mask && data.event_mask) || ! data.event_mask ) {
         data.event.event_window = xob;
         xob.onEvent('SendEvent', data.event);
         return event.stopImmediatePropagation();

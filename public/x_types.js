@@ -351,6 +351,21 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   GraphicsContext.prototype.__defineGetter__('font', function () {
     return this._font || null;
   });
+  GraphicsContext.prototype.__defineSetter__('clip_mask', function (did) {
+    if (! did)
+      return this._clip_mask = null;
+    this._clip_mask = this.owner.server.resources[did];
+    return;
+    this._clip_mask_data = this._clip_mask.canvas[0].getContext('2d').getImageData(0, 0, this._clip_mask.width, this._clip_mask.height);
+    for (var i = 3; i < this._clip_mask_data.data.length; i += 4) {
+      this._clip_mask_data.data[i] = this._clip_mask_data.data[i-1];
+    }
+    this._clip_mask_alpha = this._clip_mask.canvas.clone();
+    this._clip_mask_alpha[0].getContext('2d').putImageData(this._clip_mask_data, 0, 0);
+  });
+  GraphicsContext.prototype.__defineGetter__('clip_mask', function () {
+    return this._clip_mask;
+  });
 
   GraphicsContext.prototype.destroy = function () {
     delete this.owner.server.resources[this.id];

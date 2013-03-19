@@ -1101,6 +1101,10 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       context.rect(x, y, w, h);
       context.fill();
     }
+    if (gc.clip_mask) {
+      gc.globalCompositeOperation = 'xor';
+      //context.drawImage(gc.clip_mask.canvas[0], gc.clip_x_origin || 0, gc.clip_y_origin || 0);
+    }
     callback();
   }
 

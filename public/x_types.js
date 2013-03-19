@@ -232,10 +232,10 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     buffer.writeUInt32(this.white, offset + 8);
     buffer.writeUInt32(this.black, offset + 12);
     buffer.writeUInt32(this.current_input_masks, offset + 16);
-    buffer.writeUInt16(this.height_px, offset + 20);
-    buffer.writeUInt16(this.width_px, offset + 22);
-    buffer.writeUInt16(this.height_mm, offset + 24);
-    buffer.writeUInt16(this.width_mm, offset + 26);
+    buffer.writeUInt16(this.width_px, offset + 20);
+    buffer.writeUInt16(this.height_px, offset + 22);
+    buffer.writeUInt16(this.width_mm, offset + 24);
+    buffer.writeUInt16(this.height_mm, offset + 26);
     buffer.writeUInt16(this.maps_min, offset + 28);
     buffer.writeUInt16(this.maps_max, offset + 30);
     buffer.writeUInt32(this.root_visual, offset + 32);

@@ -286,6 +286,14 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
       throw new x_types.Error({}, 14 /* IDChoice */, resource.id);
     return this.resources[resource.id] = resource;
   }
+  
+  XServer.prototype.freeResource = function (id, Type) {
+    var resource = this.resources[id];
+    console.warn('server.freeResource', id, resource);
+    if (Type && !(resource instanceof Type))
+      throw new x_types.Error({}, Type.error_code || 1, id);
+    delete this.resources[id];
+  }
 
   XServer.prototype.flushGrabBuffer = function() {
     var item = null;

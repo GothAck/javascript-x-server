@@ -934,14 +934,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.FreePixmap = function (req, callback) {
-    var pid = req.data.readUInt32(0);
-    if (! (this.resources[pid] instanceof x_types.Pixmap)) {
-      var rep = new x_types.Error(req, 2, pid);
-      console.log('Error');
-      callback(null, rep);
-    }
-    this.resources[pid].canvas.remove();
-    delete this.resources[pid];
+    this.server.freeResource(req.data.readUInt32(0), x_types.Pixmap);
     callback();
   }
 
@@ -995,8 +988,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   }
 
   XServerClient.prototype.FreeGC = function (req, callback) {
-    var cid = req.data.readUInt32(0);
-    delete this.resources[cid];
+    this.server.freeResource(req.data.readUInt32(0), x_types.GraphicsContext);
     callback();
   }
 

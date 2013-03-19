@@ -200,6 +200,19 @@ define(['util', 'endianbuffer'], function (util, EndianBuffer) {
     return false;
   }
 
+  // MapRequest
+  function MapRequest (window, data) {
+    this.constructor.super_.call(this, window, data);
+    this.window = window;
+  }
+  util.inherits(MapRequest, Event);
+  MapRequest.prototype.dom_events = ['SubstructureRedirect'];
+  module.exports.prototypes.push(MapRequest);
+  MapRequest.prototype.writeData = function (buffer, offset) {
+    this.data.writeUInt32(this.window.parent.id, 0);
+    this.data.writeUInt32(this.window.id, 4);
+  }
+
   // UnmapNotify
   function UnmapNotify (window, data) {
     this.constructor.super_.call(this, window, data);

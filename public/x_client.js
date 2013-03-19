@@ -505,6 +505,15 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
     console.log('MapWindow', window.id);
     reps = [];
+    if (
+      (~ window.parent.events.indexOf('SubstructureRedirect')) &&
+      Object.keys(window.parent.event_clients).filter(function (id) { return ~ window.parent.event_clients[id].indexOf('SubstructureRedirect') && id != self.id }).length &&
+      ! window.override_redirect
+    ) {
+      xt = x_types;
+      window.parent.triggerEvent(new x_types.events.map.MapRequest(window, {}));
+      console.log('!REDIRECT!');
+    } else
     if (window.map()) {
       window.triggerEvent('Expose', { count: 0 });
     }

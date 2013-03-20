@@ -987,7 +987,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , width  = req.data.readUInt16(20)
       , height = req.data.readUInt16(22)
       , data   = src.getImageData(src_x, src_y, width, height);
-    console.log('CopyArea', src, dst, src_x, src_y, dst_x, dst_y, width, height);
+    console.log('CopyArea', src.id, dst.id, src_x, src_y, dst_x, dst_y, width, height);
     dst.putImageData(data, dst_x, dst_y);
     if (gc.graphics_exposures)
       dst.owner.sendEvent(new x_types.events.map.NoExposure(dst, { major: req.opcode, minor: 0 }));

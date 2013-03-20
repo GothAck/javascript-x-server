@@ -633,6 +633,15 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.element.addClass('cursor_' + cursor);
     this._cursor = cursor;
   });
+  Window.prototype.__defineSetter__('background_pixel', function (pixel) {
+    this._background_pixel = pixel;
+    pixel = pixel.toString(16)
+    pixel = (new Array(7 - pixel.length)).join('0') + pixel;
+    this.element.css('background-color', '#' + pixel);
+  })
+  Window.prototype.__defineGetter__('background_pixel', function () {
+    return this._background_pixel;
+  })
 
   var _event_mask_fields = [
       'KeyPress', 'KeyRelease', 'ButtonPress', 'ButtonRelease', 'EnterWindow', 'LeaveWindow'

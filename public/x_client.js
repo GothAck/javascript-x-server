@@ -1353,10 +1353,20 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 //    source_char.drawTo(context, x, y, fore_r, fore_g, fore_b);
     canvas.id = cursor_id;
     context.restore();
-    $('style#cursors')[0].innerText += '\n' + 
-      '.cursor_' + cursor_id + ' { ' +
-        'cursor: url(' + canvas.toDataURL() + ') ' + x + ' ' + y + ';' +
-      '}'
+    $('style#cursors')[0].innerHTML += [
+      , '.cursor_' , cursor_id , ' { '
+      ,   'cursor: url(' , canvas.toDataURL() , ') ' , x , ' ' , y , ', default;'
+      , '}'
+      , '.cursor_' , cursor_id , ':active { '
+      ,   'cursor: url(' , canvas.toDataURL() , ') ' , x , ' ' , y , ', default;'
+      , '}'
+      , '.cursor_' , cursor_id , '_important { '
+      ,   'cursor: url(' , canvas.toDataURL() , ') ' , x , ' ' , y , ', default !important;'
+      , '}'
+      , '.cursor_' , cursor_id , '_important:active { '
+      ,   'cursor: url(' , canvas.toDataURL() , ') ' , x , ' ' , y , ', default !important;'
+      , '}'
+    ].join('') + '\n';
     setTimeout(function () {
       callback();
     }, 20);

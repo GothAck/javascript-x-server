@@ -291,7 +291,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return this.data_extra.writeBuffer(buffer           , offset += this.data.length);
   }
 
-  var _Error = function Error (req, code, value) {
+  var _Error = function XError (req, code, value) {
     Error.apply(this, arguments);
     this.code = code || 1;
     this.opcode = req.opcode;

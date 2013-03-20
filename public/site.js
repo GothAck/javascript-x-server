@@ -1,7 +1,7 @@
 require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianBuffer, XServer, x_types) {
   function connect () {
     var server
-      , socket = new WebSocket('ws://localhost:3000', 'x11-proxy');
+      , socket = new WebSocket('ws://' + window.location.host, 'x11-proxy');
     socket.binaryType = 'arraybuffer';
 
     socket.onmessage = function (event) {

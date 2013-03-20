@@ -957,8 +957,6 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var gc = this.server.getResource(req.data.readUInt32(0), x_types.GraphicsContext)
       , vmask = req.data.readUInt32(4)
       , vdata = req.data.slice(8);
-    vdata.endian = this.endian;
-
     gc.changeData(this, vmask, vdata);
     callback();
   }

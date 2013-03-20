@@ -557,6 +557,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , vdata = req.data.slice(8);
     vdata.endian = this.endian;
     var offset = 0;
+    window.sibling = null;
     for (var i = 0; i < _win_configure_vfields.length; i++)
       if (vmask & Math.pow(2, i))
         window[_win_configure_vfields[i]] = vdata.readUInt32((offset ++) * 4);

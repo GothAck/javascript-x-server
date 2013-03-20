@@ -574,7 +574,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.constructor.super_.call(this, depth, width, height);
     this.owner = owner;
     this.border_width = border_width;
-    this.input_output = _class ? (!(_class - 1)) : parent.input_output;
+    this.class = _class;
     this.visual = visual;
     this.events = [];
     this.events.mask = 0;
@@ -622,6 +622,9 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
   });
   Window.prototype.__defineGetter__('parent', function () {
     return this._parent;
+  });
+  Window.prototype.__defineGetter__('input_output', function () {
+    return this._parent ? (this.class ? (!(this.class - 1)) : parent.input_output) : this.class;
   });
   Window.prototype.__defineSetter__('cursor', function (cursor) {
     if (this._cursor)

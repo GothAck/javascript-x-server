@@ -7,8 +7,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     this.state = 0;
     this.endian = null;
     this.release = 11300000;
-    this.resource_id_mask = 0x001fffff;
-    this.resource_id_base = 0x00200000;
+    this.resource_id_mask = resource_id_mask;
+    this.resource_id_base = resource_id_base;
     this.vendor = 'JavaScript X';
     this.motion_buffer_size = 0xff;
     this.maximum_request_length = 0xffff;

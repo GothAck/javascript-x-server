@@ -93,6 +93,14 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     this.input_focus = null;
     this.input_focus_revert = 0;
     this.keymap = keymap.maps.gb.clone();
+    this.resource_id_mask = 0x001fffff;
+    this.resource_id_bases = [];
+    var res_base = this.resource_id_mask + 1;
+    var res_id = 0;
+    while (!(res_id & 0xE0000000)) {
+      this.resource_id_bases.push(res_id += res_base);
+    }
+    
     this.formats = [
         new x_types.Format(0x01, 0x01, 0x20)
       , new x_types.Format(0x04, 0x08, 0x20)
@@ -223,7 +231,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
   }
 
   XServer.prototype.newClient = function (id) {
-    return this.clients[id] = new XServerClient(this, id);
+    return this.clients[id] = new XServerClient(this, id, this.resource_id_bases.shift(), this.resource_id_mask);
   }
 
   XServer.prototype.disconnect = function (id) {
@@ -240,6 +248,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
       return this.grab_buffer.push([this, 'disconnect', id]);
     }
 
+    this.resource_id_bases.push(this.clients[id].resource_id_base);
     this.clients[id].disconnect();
   }
   

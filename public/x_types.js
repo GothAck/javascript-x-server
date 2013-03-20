@@ -489,7 +489,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     }.bind(this));
   }
 
-  function Drawable (depth, width, height) {
+  function Drawable (owner, depth, width, height) {
+    this.owner = owner;
     this.depth = depth;
     this.canvas = $('<canvas></canvas>');
     this.width = width;
@@ -524,8 +525,8 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return this.canvas[0].getContext('2d').createImageData(width, height);
   }
 
-  function Pixmap (id, depth, drawable, width, height) {
-    this.constructor.super_.call(this, depth, width, height);
+  function Pixmap (owner, id, depth, drawable, width, height) {
+    this.constructor.super_.call(this, owner, depth, width, height);
     this.id = id;
     this.drawable = drawable;
     // FIXME: create correct buffer size for image!
@@ -572,8 +573,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
         .attr('id', 'e' + this.id)
         .attr('owner', owner.id)
         .data('xob', this);
-    this.constructor.super_.call(this, depth, width, height);
-    this.owner = owner;
+    this.constructor.super_.call(this, owner, depth, width, height);
     this.border_width = border_width;
     this.class = _class;
     this.visual = visual;

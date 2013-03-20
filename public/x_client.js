@@ -936,7 +936,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     if (drawable.depth !== depth && depth !== 1) {
       throw new x_types.Error(req, 4, depth);
     }
-    this.server.putResource(new x_types.Pixmap(pid, depth, drawable, width, height));
+    this.server.putResource(new x_types.Pixmap(this, pid, depth, drawable, width, height));
     callback();
   }
 

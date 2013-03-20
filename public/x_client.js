@@ -811,7 +811,10 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   XServerClient.prototype.GetInputFocus = function (req, callback) {
     var rep = new x_types.Reply(req);
     rep.data_byte = this.server.input_focus_revert;
-    rep.data.writeUInt32((this.server.input_focus === this.server.root ? 1 : this.server.input_focus) || 0, 0);
+    rep.data.writeUInt32(
+        (this.server.input_focus === this.server.root ? 1 : this.server.input_focus) || 0
+      , 0
+    );
     callback(null, rep);
   }
 

@@ -570,6 +570,7 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     this.id = id;
     this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>')
         .attr('id', 'e' + this.id)
+        .attr('owner', owner.id)
         .data('xob', this);
     this.constructor.super_.call(this, depth, width, height);
     this.owner = owner;

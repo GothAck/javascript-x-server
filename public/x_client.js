@@ -14,7 +14,6 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     this.maximum_request_length = 0xffff;
     this.sequence = 1;
     this.sequence_sent = 0;
-    this.resources = this.server.resources;
     this.save_set = [];
     this.reqs = [];
     this.reps = [];

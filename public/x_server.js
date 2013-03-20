@@ -221,9 +221,9 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     this.screen.on('mousemove.xy', function (event) {
       self.mouseX = event.offsetX;
       self.mouseY = event.offsetY;
-    }.bind(this));
+    });
   }
-
+\
   XServer.prototype.getFormatByDepth = function (depth) {
     return this.formats.filter(function (format) {
       return format.depth === depth;

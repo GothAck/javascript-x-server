@@ -1407,9 +1407,12 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     for (var key = first; key < first + count; key++) {
       var keyObj = self.server.keymap.get(key);
       for (var mod = 0; mod < rep.data_byte; mod ++) {
-        var modifier = ~~Math.pow(2, mod - 1)
-          , keycode = keyObj['' + ~~Math.pow(2, mod - 1)] || keyObj['0'];
-        rep.data_extra.push(x_types.UInt32(self.server.keymap.getKeysym(keycode, modifier & 1)));
+        if (keyObj) {
+          var modifier = ~~Math.pow(2, mod - 1)
+            , keycode = keyObj['' + ~~Math.pow(2, mod - 1)] || keyObj['0'];
+          rep.data_extra.push(new x_types.UInt32(self.server.keymap.getKeysym(keycode, modifier & 1)));
+        } else
+          rep.data_extra.push(new x_types.UInt32(0));
       }
     }
     callback(null, rep);

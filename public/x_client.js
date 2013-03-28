@@ -482,7 +482,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.ReparentWindow = function (req, callback) {
     var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
-      , parent = this.server.getResourcde(req.data.readUInt32(4))
+      , parent = this.server.getResource(req.data.readUInt32(4))
       , x = req.data.readInt16(8)
       , y = req.data.readInt16(10)
       , was_mapped = window.isMapped();

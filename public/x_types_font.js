@@ -1,5 +1,83 @@
-define(['require'], function (require) {
+define(['util', 'fs', 'endianbuffer'], function (util, fs, EndianBuffer) {
   var module = { exports: {} }
+
+  function CharInfo (char) {
+    this.char = char;
+  }
+  module.exports.CharInfo = CharInfo;
+  CharInfo.length = CharInfo.prototype.length = 12;
+  CharInfo.prototype.writeBuffer = function (buffer, offset) {
+    buffer.writeInt16(this.char.left,            offset      );
+    buffer.writeInt16(this.char.right,           offset  +  2);
+    buffer.writeInt16(this.char.width,           offset  +  4);
+    buffer.writeInt16(this.char.ascent,          offset  +  6);
+    buffer.writeInt16(this.char.descent,         offset  +  8);
+    buffer.writeUInt16(this.char.attribues || 0, offset  + 10);
+    return offset + this.length;
+  }
+
+  function FontInfo (font) {
+    this.font = font;
+  }
+  module.exports.FontInfo = FontInfo;
+  FontInfo.length = FontInfo.prototype.length = 16;
+  FontInfo.prototype.writeBuffer = function (buffer, offset) {
+    buffer.writeUInt16(this.font.min_char_or_byte2   , offset     );
+    buffer.writeUInt16(this.font.max_char_or_byte2   , offset + 2 );
+    buffer.writeUInt16(this.font.default_char        , offset + 4 );
+    var props = Object.keys(this.font.properties);
+    buffer.writeUInt16(props.length                  , offset + 6 );
+    buffer.writeUInt8 (this.font.draw_direction      , offset + 8 );
+    buffer.writeUInt8 (this.font.min_byte1           , offset + 9 );
+    buffer.writeUInt8 (this.font.max_byte1           , offset + 10 );
+    buffer.writeUInt8 (true                          , offset + 11 );
+    var accelerators = this.font.bdf_accelerators || this.font.accelerators;
+    buffer.writeInt16 (accelerators.fontAscent       , offset + 12 );
+    buffer.writeInt16 (accelerators.fontDecent      , offset + 14 );
+    return offset + this.length;
+  }
+
+  function FontProp (atom, data) {
+    this.atom = atom;
+    this.data = data;
+  }
+  module.exports.FontProp = FontProp;
+  FontProp.length = FontProp.prototype.length = 8;
+  FontProp.prototype.writeBuffer = function (buffer, offset) {
+    buffer.writeUInt32(this.atom, offset    );
+    buffer.writeInt32 (this.data, offset + 4);
+    return offset + this.length;
+  }
+
+  function Font (type, file_name, name) {
+    this.type = type;
+    this.file_name = file_name;
+    this.css_name = file_name.replace(/\./g, '_');
+    this.name = name;
+    this.original_type = file_name.match(/\.([^.]+)$/)[1];
+  }
+  
+  Font.error_code = 7;
+
+  module.exports.Font = Font;
+
+  Font.prototype.loadData = function (callback) {
+    switch (this.type) {
+    case 'ttf':
+    case 'woff':
+      this.__proto__ = VectorFont.prototype;
+      this.constructor = VectorFont;
+    break;
+    case 'pcf':
+      this.__proto__ = PCFFont.prototype;
+      this.constructor = PCFFont;
+    break;
+    default:
+      throw new Error('Invalid font type ' + this.type);
+    }
+    this.constructor.call(this);
+    this.loadData.apply(this, arguments);
+  }
 
   function PCFCharacter (left, right, width, ascent, descent, attrs) {
     this.left       = left;
@@ -16,7 +94,7 @@ define(['require'], function (require) {
   });
 
   PCFCharacter.prototype.toCharInfo = function () {
-    return new (require('x_types').CharInfo)(this);
+    return new CharInfo(this);
   }
 
   PCFCharacter.prototype.toPixels = function () {
@@ -266,7 +344,7 @@ define(['require'], function (require) {
     , 'bitmaps', 'ink_metrics', 'bdf_encodings'
     , 'swidths', 'glyph_names', 'bdf_accelerators'
   ];
-  function PCF (data) {
+  function PCFFont (data) {
     this.data = data;
     this.data.endian = true; // Little endian
     if (! (this.data.readUInt8(0) === 1 && this.data.toString('ascii', 1, 4) === 'fcp'))
@@ -290,16 +368,28 @@ define(['require'], function (require) {
     }
     delete this.data;
   }
+  util.inherits(PCFFont, Font);
 
-  PCF.prototype.getOrNewCharacter = function (index) {
+  PCFFont.prototype.loadData = function (callback) {
+    var self = this
+      , path = 'fonts/' + this.file_name;
+    fs.readFile(path, function (err, data) {
+      if (err)
+        return callback(err);
+      self.data = new EndianBuffer(data);
+      callback();
+    });
+  }
+
+  PCFFont.prototype.getOrNewCharacter = function (index) {
     if (this.characters[index])
       return this.characters[index];
     return this.characters[index] = new PCFCharacter;
   }
 
-  module.exports.PCF = PCF;
+  module.exports.PCFFont = PCFFont;
 
-  PCF.prototype.getChar = function (index) {
+  PCFFont.prototype.getChar = function (index) {
     // index == index || -1 for min -2 for max
     if (index === -1)
       return (this.bdf_accelerators || this.accelerators).maxbounds
@@ -308,11 +398,11 @@ define(['require'], function (require) {
     return this.characters[index]
   }
   
-  PCF.prototype.toFontInfo = function () {
-    return new (require('x_types').FontInfo)(this);
+  PCFFont.prototype.toFontInfo = function () {
+    return new FontInfo(this);
   }
 
-  PCF.prototype.drawTo = function (string, context, x, y, red, green, blue) {
+  PCFFont.prototype.drawTo = function (string, context, x, y, red, green, blue) {
     for (var i = 0; i < string.length; i ++) {
       var char = this.characters[string.charCodeAt(i)];
       if (char) {
@@ -323,47 +413,70 @@ define(['require'], function (require) {
     return x;
   }
 
-  function JSONCharacter (data) {
+  function VectorCharacter (data) {
     var self = this;
     Object.keys(data).forEach(function (key) {
       self[key] = data[key];
     });
   }
 
-  JSONCharacter.prototype.toCharInfo = function () {
-    return new (require('x_types').CharInfo)(this);
+  VectorCharacter.prototype.toCharInfo = function () {
+    return new CharInfo(this);
   }
 
-  function JSON (data, font) {
+  function VectorFont () {
     var self = this;
-    self.font = font;
-    Object.keys(data).forEach(function (key) {
-      self[key] = data[key];
+    Object.keys(self.meta).forEach(function (key) {
+      self[key] = self.meta[key];
     });
     this.characters = this.characters.map(function (data) {
-      return new JSONCharacter(data);
+      return new VectorCharacter(data);
     });
     ['bdf_accelerators', 'accelerators'].forEach(function (key_a) {
       var obj = self[key_a];
       if (obj)
         ['minbounds', 'maxbounds'].forEach(function (key) {
-          obj[key] = new JSONCharacter(obj[key]);
+          obj[key] = new VectorCharacter(obj[key]);
         });
     });
   }
-  module.exports.JSON = JSON;
+  util.inherits(VectorFont, Font);
+  module.exports.VectorFont = VectorFont;
+  
+  VectorFont.prototype.loadData = function (callback) {
+    this.constructor.call(this);
+    var height = this.getChar(-1);
+    height = height.ascent + height.descent - 1;
+    if (! $('style#' + this.css_name).length) {
+      $('head').append('<style id=' + this.css_name + '>\n' +
+        '@font-face { ' +
+          'font-family: "' + this.file_name + '"; ' +
+          'src: url(\'fonts/' + this.file_name + '.' + this.type + '\') format(\'' + this.type + '\'); ' +
+        '}\n' +
+        '.font_' + this.name + ' { ' +
+          'font-family: "' + this.file_name + '"; ' +
+          'font-size: ' + height + 'px; ' +
+          'line-height: ' + height + 'px; ' +
+        '}\n</style>'
+      );
+      $('.buffers').append($('<p />').addClass('font_' + this.name).addClass('hidden').text('rar'));
+    }
+    setTimeout(function () {
+      callback();
+    }, 100);
+  }
 
-  JSON.prototype.__defineGetter__('height', function () {
+  VectorFont.prototype.__defineGetter__('height', function () {
     var _ = this.getChar(-2);
     return _.ascent + _.descent - 1;
   });
 
-  JSON.prototype.__defineGetter__('width', function () {
+  VectorFont.prototype.__defineGetter__('width', function () {
     var _ = this.getChar(-1);
     return _.width;
   });
 
-  JSON.prototype.getChar = function (index) {
+  VectorFont.prototype.getChar = function (index) {
     var char;
     // index == index || -1 for min -2 for max
     if (index === -2)
@@ -375,8 +488,9 @@ define(['require'], function (require) {
     return char;
   }
 
-  JSON.prototype.toFontInfo = function () {
-    return new (require('x_types').FontInfo)(this);
+  VectorFont.prototype.toFontInfo = function () {
+    return new FontInfo(this);
   }
+  
   return module.exports;
 });

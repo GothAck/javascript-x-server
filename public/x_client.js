@@ -823,9 +823,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , name = req.data.toString('ascii', 8, length + 8);
     this.server.grab = this;
     this.server.grab_reason = 'OpenFont';
-    var font = this.server.openFont(fid, name);
-    if (font)
-      this.server.putResource(font);
+    this.server.openFont(this, fid, name);
     callback();
   }
 
@@ -838,23 +836,23 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var rep = new x_types.Reply(req);
     rep.data = new EndianBuffer(32);
     rep.data.endian = req.data.endian;
-    font.font.getChar(-1).toCharInfo().writeBuffer(rep.data,  0); // Write min bounds
-    font.font.getChar(-2).toCharInfo().writeBuffer(rep.data, 16); // Write max bounds
+    font.getChar(-1).toCharInfo().writeBuffer(rep.data,  0); // Write min bounds
+    font.getChar(-2).toCharInfo().writeBuffer(rep.data, 16); // Write max bounds
     // Extra data
-    rep.data_extra.push(font.font.toFontInfo());
-    rep.data_extra.push(new x_types.UInt32(font.font.characters.length));
-    for (var i in font.font.properties) {
-      if (typeof font.font.properties[i] === 'string') {
+    rep.data_extra.push(font.toFontInfo());
+    rep.data_extra.push(new x_types.UInt32(font.characters.length));
+    for (var i in font.properties) {
+      if (typeof font.properties[i] === 'string') {
         // Convert string properties to atoms
-        font.font.properties[i] = this.server.atoms.push(font.font.properties[i]);
+        font.properties[i] = this.server.atoms.push(font.properties[i]);
       }
       rep.data_extra.push(new x_types.FontProp(
           this.server.atoms.indexOf(i) + 1
-        , font.font.properties[i]
+        , font.properties[i]
       ));
     }
-    for (var i = 0; i < font.font.characters.length; i++)
-      rep.data_extra.push(font.font.getChar(i).toCharInfo());
+    for (var i = 0; i < font.characters.length; i++)
+      rep.data_extra.push(font.getChar(i).toCharInfo());
     callback(null, rep);
   }
 
@@ -1294,8 +1292,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       , mask_font = this.server.getResource(req.data.readUInt32(8), x_types.Font)
       , source_char = req.data.readUInt16(12)
       , mask_char = req.data.readUInt16(14)
-      , source_char_meta = source_font && source_char && source_font.font.characters[source_char]
-      , mask_char_meta = mask_font && mask_char && mask_font.font.characters[mask_char]
+      , source_char_meta = source_font && source_char && source_font.characters[source_char]
+      , mask_char_meta = mask_font && mask_char && mask_font.characters[mask_char]
       , fore_r = req.data.readUInt16(16)
       , fore_g = req.data.readUInt16(18)
       , fore_b = req.data.readUInt16(20)

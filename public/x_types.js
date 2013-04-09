@@ -1,7 +1,11 @@
-define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (util, fs, EndianBuffer, font_types, events) {
+define(['util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (util, fs, EndianBuffer, types_font, events) {
   var module = { exports: {} }
 
   module.exports.events = events;
+  
+  Object.keys(types_font).forEach(function (key) {
+    module.exports[key] = types_font[key];
+  });
 
   Array.prototype.writeBuffer = function (buffer, offset) {
     this.forEach(function (item) {
@@ -44,53 +48,6 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
     return offset + this.length;
   }
 
-  function CharInfo (char) {
-    this.char = char;
-  }
-  module.exports.CharInfo = CharInfo;
-  CharInfo.length = CharInfo.prototype.length = 12;
-  CharInfo.prototype.writeBuffer = function (buffer, offset) {
-    buffer.writeInt16(this.char.left,            offset      );
-    buffer.writeInt16(this.char.right,           offset  +  2);
-    buffer.writeInt16(this.char.width,           offset  +  4);
-    buffer.writeInt16(this.char.ascent,          offset  +  6);
-    buffer.writeInt16(this.char.descent,         offset  +  8);
-    buffer.writeUInt16(this.char.attribues || 0, offset  + 10);
-    return offset + this.length;
-  }
-
-  function FontInfo (font) {
-    this.font = font;
-  }
-  module.exports.FontInfo = FontInfo;
-  FontInfo.length = FontInfo.prototype.length = 16;
-  FontInfo.prototype.writeBuffer = function (buffer, offset) {
-    buffer.writeUInt16(this.font.min_char_or_byte2   , offset     );
-    buffer.writeUInt16(this.font.max_char_or_byte2   , offset + 2 );
-    buffer.writeUInt16(this.font.default_char        , offset + 4 );
-    var props = Object.keys(this.font.properties);
-    buffer.writeUInt16(props.length                  , offset + 6 );
-    buffer.writeUInt8 (this.font.draw_direction      , offset + 8 );
-    buffer.writeUInt8 (this.font.min_byte1           , offset + 9 );
-    buffer.writeUInt8 (this.font.max_byte1           , offset + 10 );
-    buffer.writeUInt8 (true                          , offset + 11 );
-    var accelerators = this.font.bdf_accelerators || this.font.accelerators;
-    buffer.writeInt16 (accelerators.fontAscent       , offset + 12 );
-    buffer.writeInt16 (accelerators.fontDecent      , offset + 14 );
-    return offset + this.length;
-  }
-
-  function FontProp (atom, data) {
-    this.atom = atom;
-    this.data = data;
-  }
-  module.exports.FontProp = FontProp;
-  FontProp.length = FontProp.prototype.length = 8;
-  FontProp.prototype.writeBuffer = function (buffer, offset) {
-    buffer.writeUInt32(this.atom, offset    );
-    buffer.writeInt32 (this.data, offset + 4);
-    return offset + this.length;
-  }
 
   function Nulls (count) {
     this.length = count || 1;
@@ -419,74 +376,6 @@ define(['util', 'fs', 'endianbuffer', 'font_types', 'event_types'], function (ut
       break;
     }
     context.putImageData(rgba, x, y);
-  }
-
-  function Font (id, file_name, name, cb) {
-    this.id = id;
-    this.file_name = file_name;
-    this.css_name = file_name.replace(/\./g, '_');
-    this.name = name;
-    this.type = file_name.match(/\.([^.]+)$/)[1];
-    this.data = null;
-    this.loading = true;
-    this.loadMeta('fonts/' + file_name, cb);
-  }
-  
-  Font.error_code = 7;
-
-  module.exports.Font = Font;
-
-  Font.prototype.loadMeta = function (path, cb) {
-    fs.readFile(path + '.meta.json', 'utf8', function (err, meta) {
-      this.loading = false;
-      if (err) {
-        this.error = true;
-        return cb(err);
-      }
-      try {
-        this.font = new font_types.JSON(JSON.parse(meta), this);
-      } catch (e) {
-        this.error = true;
-        console.error(e);
-        return cb(e);
-      }
-      var height = this.font.getChar(-1);
-      height = height.ascent + height.descent - 1;
-      if (! $('style#' + this.css_name).length) {
-        $('head').append('<style id=' + this.css_name + '>\n' +
-          '@font-face { ' +
-            'font-family: "' + this.file_name + '"; ' +
-            'src: url(\'fonts/' + this.file_name + '.woff\') format(\'woff\'); ' +
-          '}\n' +
-          '.font_' + this.name + ' { ' +
-            'font-family: "' + this.file_name + '"; ' +
-            'font-size: ' + height + 'px; ' +
-            'line-height: ' + height + 'px; ' +
-          '}\n</style>'
-        );
-        $('.buffers').append($('<p />').addClass('font_' + this.name).addClass('hidden').text('rar'));
-      }
-      cb();
-    }.bind(this));
-  }
-  Font.prototype.loadData = function (path, cb) {
-    fs.readFile(path, function (err, data) {
-      this.loading = false;
-      if (err) {
-        this.error = true;
-        return cb(err);
-      }
-      if (! font_types[this.type.toUpperCase()]) {
-        this.error = true;
-        return cb('Not valid format');
-      }
-      if (! data) {
-        this.error = true;
-        return cb('No data');
-      }
-      this.font = new font_types[this.type.toUpperCase()](new EndianBuffer(data), 'pcf' );
-      cb();
-    }.bind(this));
   }
 
   function Drawable (owner, depth, width, height) {

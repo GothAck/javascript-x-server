@@ -339,44 +339,52 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
   }
 
   XServer.prototype.loadFont = function (resolved_name, server_name, callback) {
+    var self = this;
+    console.log('XServer.loadFont', [].slice.call(arguments));
     if (resolved_name in this.fonts_cache)
-      return this.fonts_cache[resolved_name];
-    this.grab = 'loadFont';
-    var font = this.fonts_cache[resolved_name] =
-      new x_types.Font(0, resolved_name, server_name, function (err) {
-        if (err)
-          font.error = true;
-        if (font.font && font.font.properties)
-          Object.keys(font.font.properties).forEach(function (prop_name) {
-            var value = font.font.properties[prop_name];
-            if (!~this.atoms.indexOf(prop_name))
-              this.atoms.push(prop_name);
-            if (typeof value === 'string') {
-              if (~this.atoms.indexOf(value))
-                font.font.properties[prop_name] = this.atoms.indexOf(value) + 1;
-              else
-                font.font.properties[prop_name] = this.atoms.push(value);
-            }
-            callback && callback(err, font);
-          }.bind(this))
-        this.flushGrabBuffer();
-      }.bind(this));
-    return font;
+      return callback(null, this.fonts_cache[resolved_name]);
+    self.grabbed = 'loadFont';
+    fs.readFile('fonts/' + resolved_name + '.meta.json', 'utf8', function (err, meta) {
+      console.log('read meta');
+      if (err)
+        return callback(err);
+      try {
+        meta = JSON.parse(meta);
+      } catch (e) {
+        return callback(e);
+      }
+      var font = new x_types.Font(meta.type, resolved_name, server_name);
+      font.meta = meta;
+      font.loadData(function (err) {
+        self.grabbed = null;
+        console.log('XServer.loadFont callback', [].slice.call(arguments));
+        if (!err) {
+          console.log('Font loaded', font);
+        }
+        self.fonts_cache[server_name] = font;
+        console.log('Font loaded2', font);
+        callback(err, font);
+      });
+    });
   }
 
-  XServer.prototype.openFont = function (fid, name) {
-    var resolved_name = this.resolveFont(name);
+  XServer.prototype.openFont = function (client, fid, name) {
+    var self = this
+      , resolved_name = this.resolveFont(name);
     if (resolved_name[1]) {
-      var font = this.loadFont(resolved_name[1], resolved_name[0], function () {
-        setTimeout(function () {
-          this.grab = false;
-          this.flushGrabBuffer();
-        }.bind(this), 250);
-      }.bind(this));
-      if (!font.loading)
-        this.grab = false;
-      font.id = fid;
-      return font;
+      this.grab = 'openFont';
+      this.loadFont(resolved_name[1], resolved_name[0], function (err, font) {
+        font.id = fid;
+        font.owner = client;
+        if (err)
+          font.error = err;
+        else
+          self.putResource(font);
+        console.log('XServer.openFont callback', err, font);
+        self.grab = false;
+        self.flushGrabBuffer();
+      });
+      return;
     }
     console.log('Name not resolved', name);
     this.grab = false;

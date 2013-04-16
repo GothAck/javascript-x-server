@@ -447,23 +447,8 @@ define(['util', 'fs', 'endianbuffer'], function (util, fs, EndianBuffer) {
     this.constructor.call(this);
     var height = this.getChar(-1);
     height = height.ascent + height.descent - 1;
-    if (! $('style#' + this.css_name).length) {
-      $('head').append('<style id=' + this.css_name + '>\n' +
-        '@font-face { ' +
-          'font-family: "' + this.file_name + '"; ' +
-          'src: url(\'fonts/' + this.file_name + '.' + this.type + '\') format(\'' + this.type + '\'); ' +
-        '}\n' +
-        '.font_' + this.name + ' { ' +
-          'font-family: "' + this.file_name + '"; ' +
-          'font-size: ' + height + 'px; ' +
-          'line-height: ' + height + 'px; ' +
-        '}\n</style>'
-      );
-      $('.buffers').append($('<p />').addClass('font_' + this.name).addClass('hidden').text('rar'));
-    }
-    setTimeout(function () {
-      callback();
-    }, 100);
+    if (! $('style#' + this.css_name).length)
+      loadCSSFont('fonts/' + this.file_name, this.type, height, 'font_' + this.name, this.css_name, function () { callback() });
   }
 
   VectorFont.prototype.__defineGetter__('height', function () {

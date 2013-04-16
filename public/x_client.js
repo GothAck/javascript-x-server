@@ -885,12 +885,8 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
         fonts
       , function (font_name, callback) {
           var resolved_name = this.server.resolveFont(font_name);
-          if (resolved_name[1]) {
-            var font = this.server.loadFont(resolved_name[1], resolved_name[0], callback);
-            if (!font.loading)
-              callback(null, font);
-            return;
-          }
+          if (resolved_name[1])
+            return this.server.loadFont(resolved_name[1], resolved_name[0], callback);
           console.log('Not loading invalid name');
           callback('Not resolved');
         }

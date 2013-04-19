@@ -602,8 +602,11 @@ define(['util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (
   Window.prototype.__defineGetter__('sibling', function () { return this._sibling });
   Window.prototype.__defineSetter__('stack_mode', function (mode) {
     var siblings = this.parent.children
-      , elem_siblings = this.parent.element.children().children()
+      , elem_siblings = this.parent.element.children().children().not(this.element)
       , elem = this.element;
+    if (! elem_siblings.length)
+      return;
+    console.log('Window.stack_mode', mode, this.sibling);
     switch (mode) {
       case 0: // Above
         if (this.sibling && ~siblings.indexOf(this.sibling)) {

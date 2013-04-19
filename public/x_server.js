@@ -341,6 +341,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
   XServer.prototype.loadFont = function (resolved_name, server_name, callback) {
     var self = this;
     console.log('XServer.loadFont', [].slice.call(arguments));
+    console.log('Font cached?', resolved_name in this.fonts_cache);
     if (resolved_name in this.fonts_cache)
       return callback(null, this.fonts_cache[resolved_name]);
     self.grabbed = 'loadFont';
@@ -361,7 +362,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
         if (!err) {
           console.log('Font loaded', font);
         }
-        self.fonts_cache[server_name] = font;
+        self.fonts_cache[resolved_name] = font;
         console.log('Font loaded2', font);
         callback(err, font);
       });

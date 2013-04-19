@@ -223,7 +223,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
       self.mouseY = event.offsetY;
     });
   }
-\
+
   XServer.prototype.getFormatByDepth = function (depth) {
     return this.formats.filter(function (format) {
       return format.depth === depth;

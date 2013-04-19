@@ -830,10 +830,6 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
 
   XServerClient.prototype.QueryFont = function (req, callback) {
     var font = this.server.getResource(req.data.readUInt32(0), x_types.Font);
-    if (font && !(font instanceof x_types.Font))
-      font = font.font;
-    if (!font)
-      throw new Error('FIXME: Error handling!');
     var rep = new x_types.Reply(req);
     rep.data = new EndianBuffer(32);
     rep.data.endian = req.data.endian;
@@ -900,15 +896,15 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
             rep.data = new EndianBuffer(32);
             rep.data.endian = req.data.endian;
             rep.data_byte = font.name.length;
-            font.font.getChar(-1).toCharInfo().writeBuffer(rep.data, 0);
-            font.font.getChar(-2).toCharInfo().writeBuffer(rep.data, 16);
+            font.getChar(-1).toCharInfo().writeBuffer(rep.data, 0);
+            font.getChar(-2).toCharInfo().writeBuffer(rep.data, 16);
             // Extra data
-            rep.data_extra.push(font.font.toFontInfo());
+            rep.data_extra.push(font.toFontInfo());
             rep.data_extra.push(new x_types.UInt32(fonts.length));
-            for (var i in font.font.properties)
+            for (var i in font.properties)
               rep.data_extra.push(new x_types.FontProp(
                   this.server.atoms.indexOf(i)
-                , font.font.properties[i]
+                , font.properties[i]
               ));
             rep.data_extra.push(new x_types.String(font.name));
             return rep;

@@ -347,7 +347,7 @@ define(['util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (
     context.fillStyle = '#' + rgb.slice(2);
     context.strokeStyle = context.fillStyle;
     if (this.font) {
-      context.font = this.font.font.height + 'px "' + this.font.file_name + '"';
+      context.font = this.font.height + 'px "' + this.font.file_name + '"';
     }
 //    context.webkitImageSmoothingEnabled = false;
     return context;

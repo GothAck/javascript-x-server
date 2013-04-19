@@ -405,6 +405,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     , 112: 'SetCloseDownMode'
     , 113: 'KillClient'
     , 119: 'GetModifierMapping'
+    , 127: 'NoOperation'
   }; // 34 or 127
   (function () {
     var opcodes = Object.keys(XServerClient.opcodes).length;
@@ -1448,6 +1449,10 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     rep.data_byte = datas.reduce(function (o, v) { return Math.max(o, v.length) }, 0);
     rep.data_extra = datas.reduce(function (array, values) { for (var i = 0; i < rep.data_byte; i++) { array.push(new x_types.UInt8(values [i] || 0)) }; return array }, []);
     callback(null, rep);
+  }
+
+  XServerClient.prototype.NoOperation = function (req, callback) {
+    callback();
   }
 
   function stringPad (string) {

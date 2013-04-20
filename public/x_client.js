@@ -403,15 +403,12 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     , 98: 'QueryExtension'
     , 99: 'ListExtensions'
     , 101: 'GetKeyboardMapping'
+    , 104: 'Bell'
     , 112: 'SetCloseDownMode'
     , 113: 'KillClient'
     , 119: 'GetModifierMapping'
     , 127: 'NoOperation'
   }; // 34 or 127
-  (function () {
-    var opcodes = Object.keys(XServerClient.opcodes).length;
-    console.log('Implemented', opcodes, 'opcodes of 127, that\'s', opcodes / 127 * 100, '%');
-  })();
 
   XServerClient.prototype.CreateWindow = function (req, callback) {
     var self = this
@@ -1428,6 +1425,12 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
       }
     }
     callback(null, rep);
+  }
+
+  XServerClient.prototype.Bell = function (req, callback) {
+    var percent = req.data_byte;
+    $('audio#bell')[0].play();
+    callback();
   }
 
   var _closedown_mode = ['destroy', 'permanent', 'temporary'];

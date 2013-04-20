@@ -93,12 +93,17 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
                 self.reps.push(e);
                 self.reqs_processing = false;
                 self.processReqs();
-              } else
+              } else {
+                console.error('Implementation Error');
+                self.reps.push(new x_types.Error(req, 17, 0));
                 throw e;
+              }
             }
             console.groupEnd();
           } else {
             console.error('################### UNKNOWN OPCODE', req.opcode);
+            // Send Implementation error
+            self.reps.push(new x_types.Error(req, 17, 0));
             self.reqs_processing = false;
             self.processReqs()
           }

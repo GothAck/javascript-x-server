@@ -348,6 +348,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     , 2: 'ChangeWindowAttributes'
     , 3: 'GetWindowAttributes'
     , 4: 'DestroyWindow'
+    , 5: 'DestroySubWindows'
     , 6: 'ChangeSaveSet'
     , 7: 'ReparentWindow'
     , 8: 'MapWindow'
@@ -468,6 +469,14 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
     if (window !== window.owner.server.root)
       window.destroy();
+    callback();
+  }
+
+  XServerClient.prototype.DestroySubWindows = function (req, callback) {
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
+    window.children.forEach(function (child) {
+      child.destroy();
+    });
     callback();
   }
 

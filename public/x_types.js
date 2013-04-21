@@ -335,6 +335,13 @@ define(['util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (
         this[_gc_vfields[i]] = vdata.readUInt32((offset ++) * 4);
   }
 
+  GraphicsContext.prototype.copyTo = function (dst, vmask) {
+    var offset = 0;
+    for (var i = 0; i < _gc_vfields.length; i++)
+      if (vmask & Math.pow(2, i))
+        dst[_gc_vfields[i]] = this[_gc_vfields[i]];
+  }
+
   GraphicsContext.prototype.getContext = function (drawable) {
     var context = drawable.canvas[0].getContext('2d')
       , rgb = (this.foreground || 0).toString(16);
@@ -823,5 +830,16 @@ define(['util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (
     }
     return false;
   }
+
+  function Atom (owner, id, value) {
+    this.owner = owner;
+    this.id = id;
+    this.value = value;
+  }
+
+  Atom.error_code = 5;
+
+  module.exports.Atom = Atom;
+  
   return module.exports;
 });

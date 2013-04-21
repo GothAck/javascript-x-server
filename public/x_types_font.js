@@ -79,6 +79,8 @@ define(['util', 'fs', 'endianbuffer'], function (util, fs, EndianBuffer) {
     this.loadData.apply(this, arguments);
   }
 
+  Font.prototype.close = function () {}
+
   function PCFCharacter (left, right, width, ascent, descent, attrs) {
     this.left       = left;
     this.right      = right;
@@ -449,6 +451,10 @@ define(['util', 'fs', 'endianbuffer'], function (util, fs, EndianBuffer) {
     height = height.ascent + height.descent - 1;
     if (! $('style#' + this.css_name).length)
       loadCSSFont('fonts/' + this.file_name, this.type, height, 'font_' + this.name, this.css_name, function () { callback() });
+  }
+
+  VectorFont.prototype.close = function () {
+    $('style#' + this.css_name).remove();
   }
 
   VectorFont.prototype.__defineGetter__('height', function () {

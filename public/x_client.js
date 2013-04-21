@@ -917,6 +917,12 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     callback();
   }
 
+  XServerClient.prototype.CloseFont = function (req, callback) {
+    var font = this.server.getResource(req.data.readUInt32(0), x_types.Font);
+    font.close();
+    callback();
+  }
+
   XServerClient.prototype.QueryFont = function (req, callback) {
     var font = this.server.getResource(req.data.readUInt32(0), x_types.Font);
     var rep = new x_types.Reply(req);

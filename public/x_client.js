@@ -1049,6 +1049,14 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     callback();
   }
 
+  XServerClient.prototype.CopyGC = function (req, callback) {
+    var src_gc = this.server.getResource(req.data.readUInt32(0), x_types.GraphicsContext)
+      , dst_gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
+      , vmask = req.data.readUInt(8);
+    src_gc.copyTo(dst_gc, vmask);
+    callback();
+  }
+
   XServerClient.prototype.ClearArea = function (req, callback) {
     var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
       , x = req.data.readUInt16(4)

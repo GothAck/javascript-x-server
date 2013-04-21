@@ -306,8 +306,8 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
   
   XServer.prototype.getAtom = function (id) {
     var atom = this.atoms[id];
-    if (! atom)
-      throw new x_types.Error({}, 5, id);
+    if (!(atom instanceof x_types.Atom))
+      throw new x_types.Error({}, x_types.Atom.error_code);
     return atom;
   }
 

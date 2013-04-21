@@ -554,8 +554,7 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
   XServerClient.prototype.UnmapWindow = function (req, callback) {
     var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
     console.log('UnmapWindow');
-    if (window.unmap())
-      console.log('Success - events go here!');
+    window.unmap()
     callback();
   }
 

@@ -311,6 +311,19 @@ define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function
     return atom;
   }
 
+  XServer.prototype.putAtom = function (atom) {
+    if (this.atoms[atom.id])
+      throw new x_types.Error({}, 14 /* IDChoice */, atom.id);
+    return this.atoms[atom.id] = atom;
+  }
+  
+  XServer.prototype.freeAtom = function (id) {
+    var atom = this.atoms[id];
+    if (!(resource instanceof x_types.Atom))
+      throw new x_types.Error({}, 14 /* IDChoice */);
+    delete this.atoms[id];
+  }
+
   XServer.prototype.flushGrabBuffer = function() {
     var item = null;
     while (item = this.grab_buffer.shift())

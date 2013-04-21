@@ -739,6 +739,20 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     callback(null, rep);
   }
 
+  XServerClient.prototype.ListProperties = function (req, callback) {
+    var self = this
+      , window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
+      , rep = new x_types.Reply(req)
+      , atoms = Object.keys(window.properties).map(function (name) { return self.atoms.indexOf(name) + 1 });
+    rep.data.writeUInt16(atoms.length, 0);
+
+    atoms.forEach(function (atom) {
+      rep.data_extra.push(new x_types.UInt32(atom));
+    });
+
+    callback(null, rep);
+  }
+
   XServerClient.prototype.GetSelectionOwner = function (req, callback) {
     var atom_id = req.data.readUInt32(0)
       , atom = this.server.atoms[atom_id]

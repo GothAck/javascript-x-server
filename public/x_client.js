@@ -613,6 +613,15 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     window.unmap()
     callback();
   }
+  
+  XServerClient.prototype.UnmapSubwindows = function (req, callback) {
+    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window);
+    console.log('UnmapSubwindows');
+    window.children.forEach(function (child) {
+      child.unmap();
+    });
+    callback();
+  }
 
   var _win_configure_vfields = [
     'x', 'y', 'width', 'height', 'border_width', 'sibling', 'stack_mode'

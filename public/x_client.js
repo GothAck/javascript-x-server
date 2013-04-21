@@ -1564,5 +1564,16 @@ define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_ty
     return string.length + (4 - ((string.length % 4) || 4));
   }
 
+  (function () {
+    console.log(
+        'Missing these opcode functions:'
+      , Object.keys(XServerClient.opcodes).map(function (i) { return XServerClient.opcodes[i] })
+          .filter(function (n) { return ! XServerClient.prototype[n] })
+    );
+    var opcodes = Object.keys(XServerClient.opcodes).filter(function (n) { return XServerClient.prototype[XServerClient.opcodes[n]] }).length;
+    console.log(Object.keys(XServerClient.opcodes).length);
+    console.log('Implemented', opcodes, 'opcodes of 127, that\'s', opcodes / 127 * 100, '%');
+  })();
+
   return XServerClient;
 });

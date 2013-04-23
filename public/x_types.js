@@ -214,8 +214,6 @@ define(['util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (
     this.sequence = sequence;
   }
 
-  Request.sequence = 1;
-
   module.exports.Request = Request;
 
   function Reply (request) {

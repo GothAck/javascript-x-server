@@ -1,4 +1,4 @@
-define(['util', 'fs', 'endianbuffer'], function (util, fs, EndianBuffer) {
+define(['worker_console', 'util', 'fs', 'endianbuffer'], function (console, util, fs, EndianBuffer) {
   var module = { exports: {} }
 
   function CharInfo (char) {

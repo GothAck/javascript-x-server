@@ -1,4 +1,4 @@
-define(['util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function (util, fs, EndianBuffer, x_types, XServerClient, keymap) {
+define(['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function (console, util, fs, EndianBuffer, x_types, XServerClient, keymap) {
   var module = { exports: {} };
 
   var default_atoms = [

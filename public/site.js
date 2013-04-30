@@ -1,4 +1,4 @@
-require(['util', 'endianbuffer', 'x_server', 'x_types'], function (util, EndianBuffer, XServer, x_types) {
+require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], function (console, util, EndianBuffer, XServer, x_types) {
   var debug = /debug=on/.test(window.location);
   if (!debug)
     console = Object.keys(console.__proto__).reduce(function (o, k) { o[k] = new Function; return o }, {}); 

@@ -1,4 +1,4 @@
-define(['util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (util, fs, EndianBuffer, types_font, events) {
+define(['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (console, util, fs, EndianBuffer, types_font, events) {
   var module = { exports: {} }
 
   module.exports.events = events;

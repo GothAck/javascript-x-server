@@ -1,4 +1,4 @@
-define(['async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_types, EndianBuffer, rgb_colors) {
+define(['lib/async', 'x_types', 'endianbuffer', 'rgb_colors'], function (async, x_types, EndianBuffer, rgb_colors) {
   var window = null;
   
   function XServerClient (server, id, resource_id_base, resource_id_mask) {

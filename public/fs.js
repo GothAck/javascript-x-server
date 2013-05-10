@@ -1,4 +1,4 @@
-define(function () {
+define('fs', function () {
   var exports = {};
   exports.readFile = function (filename, encoding, callback) {
     if (typeof encoding === 'function') {

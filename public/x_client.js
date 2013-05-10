@@ -1,4 +1,4 @@
-define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'], function (console, async, x_types, EndianBuffer, rgb_colors) {
+define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'], function (console, async, x_types, EndianBuffer, rgb_colors) {
   var window = null;
   
   function XServerClient (server, id, resource_id_base, resource_id_mask) {
@@ -16,6 +16,7 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
     this.sequence_sent = 0;
     this.save_set = [];
     this.reqs = [];
+    this.requests = [];
     this.reps = [];
     this.events = [];
     this.closedown = 'destroy';
@@ -59,6 +60,46 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
     }
   }
 
+  XServerClient.prototype.processRequest = function (message) {
+    var req = message.request;
+    if (message.type === 'SetupRequest') {
+      if (this.state !== 0)
+        throw new Error('SetupRequest received at the wrong time?!');
+      this.setup(req)
+    } else {
+      console.log('client endian', this.endian);
+      var self = this;
+      if (self.server.grab && self.server.grab !== self)
+        return self.requests.push(message);
+      var func = self[message.type];
+      try {
+        func && func.call(self, req, function (err, rep) {
+          if (rep) {
+            if (Array.isArray(rep))
+              rep.forEach(function (rep) {
+                self.write(rep.toBuffer());
+              });
+            else {
+              self.write(rep.toBuffer());
+            }
+          }
+        });
+      } catch (e) {
+        if (e instanceof x_types.Error) {
+          e.opcode = req.opcode;
+          e.sequence = req.sequence & 0xffff;
+          console.error(self.id, e, e.stack);
+          self.write(rep);
+        } else {
+          console.error('Implementation Error', e.stack);
+          self.write(new x_types.Error(req, 17, 0));
+          throw e.stack;
+        }
+      }
+      
+    }
+  }
+  
   XServerClient.prototype.processReqs = function () {
     var self = this;
     if (self.server.grab && self.server.grab !== self)
@@ -171,22 +212,14 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
   }
 
   XServerClient.prototype.setup = function (data) {
-    data.endian = this.endian = data.readUInt8(0) !== 66; // TODO: Investigate endianness issues here (swapped?)... (true === LE, arrghhhhhhh!)
-    this.protocol_major = data.readUInt16(2);
-    this.protocol_minor = data.readUInt16(4);
+    this.endian = data.endian;
+    this.protocol_major = data.protocol_major;
+    this.protocol_minor = data.protocol_minor;
 
-    this.auth_name = data.toString(
-        'ascii'
-      , 12
-      , 12 + data.readUInt16(6, data.endian)
-    );
+    this.auth_name = data.auth_name;
 
-    this.auth_data = data.toString(
-        'ascii'
-      , 12 + data.readUInt16(6, data.endian) + 2
-      , 12 + data.readUInt16(6, data.endian) + 2 + data.readUInt16(8, data.endian)
-    );
-
+    this.auth_data = data.auth_data;
+    
     /* Deny connection
     var reason = 'No Way'
       , pad = 4 - ((reason.length % 4) || 4);
@@ -230,8 +263,8 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
     var rep = new EndianBuffer(base);
     rep.fill(0);
     res.copy(rep, 0, 0, base);
-    this.write(rep);
     this.state = 1;
+    this.write(rep);
   }
 
   XServerClient.prototype.imageFromBitmap = function (dest, data, depth, width, height, pad) {
@@ -668,9 +701,9 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
 
   XServerClient.prototype.InternAtom = function (req, callback) {
     var only_if_exists = req.data_byte
-      , length = req.data.readUInt16(0)
-      , name = req.data.toString('ascii', 4, 4 + length)
-      , index = this.server.atoms.indexOf(name) + 1;
+      , length = req.length
+      , name = name
+      , index = index
     if ((!index) && ! only_if_exists)
       index = this.server.atoms.push(name);
     var rep = new x_types.Reply(req)
@@ -716,12 +749,11 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
 
 
   XServerClient.prototype.GetProperty = function (req, callback) {
-    var window = this.server.getResource(req.data.readUInt32(0), x_types.Window)
-      , atom = req.data.readUInt32(4)
-      , property = this.server.atoms[atom - 1]
-      , type = req.data.readUInt32(8)
-      , long_off = req.data.readUInt32(12)
-      , long_len = req.data.readUInt32(16)
+    var window = this.server.getResource(req.window, x_types.Window)
+      , property = this.server.atoms[req.atom - 1]
+      , type = req.type
+      , long_off = req.long_off
+      , long_len = req.long_len
       , rep = new x_types.Reply(req);
 
     //console.log('Get Property', window.id, property);
@@ -908,9 +940,9 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
   }
 
   XServerClient.prototype.OpenFont = function (req, callback) {
-    var fid = req.data.readUInt32(0)
-      , length = req.data.readUInt16(4)
-      , name = req.data.toString('ascii', 8, length + 8);
+    var fid = req.fid
+      , length = req.name_length
+      , name = req.name;
     this.server.grab = this;
     this.server.grab_reason = 'OpenFont';
     this.server.openFont(this, fid, name);
@@ -1032,12 +1064,9 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
   }
 
   XServerClient.prototype.CreateGC = function (req, callback) {
-    var cid = req.data.readUInt32(0)
-      , drawable = this.server.getResource(req.data.readUInt32(4), x_types.Drawable)
-      , vmask = req.data.readUInt32(8)
-      , vdata = req.data.slice(12);
-    console.log(this, cid, drawable, vmask, vdata);
-    this.server.putResource(new x_types.GraphicsContext(this, cid, drawable, vmask, vdata));
+    var drawable = this.server.getResource(req.drawable, x_types.Drawable)
+    console.log(this, req.cid, drawable, req.vmask, req.vdata);
+    this.server.putResource(new x_types.GraphicsContext(this, req.cid, drawable, req.vmask, req.vdata));
     callback();
   }
 
@@ -1366,9 +1395,9 @@ define(['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'],
 
 
   XServerClient.prototype.LookupColor = function (req, callback) {
-    var cmap = this.server.getResource(req.data.readUInt32(0), x_types.ColorMap)
-      , length = req.data.readUInt16(4)
-      , name = req.data.toString('ascii', 8, length + 8)
+    var cmap = this.server.getResource(req.cmap, x_types.ColorMap)
+      , length = req.name_length
+      , name = req.name
       , color = rgb_colors[name] || 0
       , rep = new x_types.Reply(req);
 

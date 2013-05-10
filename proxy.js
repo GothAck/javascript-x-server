@@ -83,8 +83,9 @@ X11Proxy.prototype.newClient = function (socket) {
   });
 }
 X11Proxy.prototype.data = function (message) {
+  console.log('data', message.type, message.utf8Data);
   if (message.type === 'utf8') {
-    var data = message.utf8Data.split(' ');
+    var data = (message.utf8Data || '').split(' ');
     switch (data[0]) {
       case 'PONG':
         if (data[1] == this.ping.counter - 1) {

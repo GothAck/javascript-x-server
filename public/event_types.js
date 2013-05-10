@@ -1,4 +1,4 @@
-define(['util', 'endianbuffer'], function (util, EndianBuffer) {
+define('event_types', ['util', 'endianbuffer'], function (util, EndianBuffer) {
   var module = { exports: {} }
 
   module.exports.prototypes = [];

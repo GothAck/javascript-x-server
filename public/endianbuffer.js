@@ -1,4 +1,4 @@
-define(function () {
+define('endianbuffer', function () {
   function EndianBuffer (buf) {
     this.endian = false;
     if (typeof buf === 'number') {
@@ -57,6 +57,12 @@ define(function () {
           , str = '';
         for (var i = 0; i < arr.length; i += 2)
           str += String.fromCharCode( (arr[i * 2] << 8) + arr[(i * 2) + 1] );
+        return str;
+      case 'hex':
+        var arr = new Uint8Array(this.buffer.slice(from, to))
+          , str = '';
+        for (var i = 0; i < arr.length; i++)
+          str += (arr[i] < 16 ? '0' : '') + arr[i].toString(16);
         return str;
       default:
         return null;

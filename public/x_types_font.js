@@ -1,4 +1,4 @@
-define(['worker_console', 'util', 'fs', 'endianbuffer'], function (console, util, fs, EndianBuffer) {
+define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcssfont'], function (console, util, fs, EndianBuffer, loadCSSFont) {
   var module = { exports: {} }
 
   function CharInfo (char) {

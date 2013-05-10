@@ -1,4 +1,4 @@
-define(function () {
+define('keymap', function () {
   var module = { exports: {} };
 
   var keysyms = {

@@ -1,5 +1,6 @@
 define('worker_console', function () {
   var window = this;
+  var counter = 0;
   if (window.document === undefined) {
     console = ([
         'log'
@@ -14,7 +15,7 @@ define('worker_console', function () {
             try {
               throw new Error
             } catch (e) {
-              postMessage({ cmd: 'console', func: func, arguments: arguments, stack: e.stack });
+              postMessage({ cmd: 'console', func: func, arguments: arguments, stack: e.stack, count: counter++ });
             } 
           };
           return o;
@@ -27,7 +28,7 @@ define('worker_console', function () {
       worker.addEventListener('message', function (event) {
         if (event.data.cmd !== 'console')
           return true;
-        console[event.data.func].bind(console)(event.data.arguments, event.data.stack.split('\n')[2]);
+        console[event.data.func].bind(console)(event.data.arguments, event.data.stack.split('\n')[2], event.data.count);
         event.stopImmediatePropagation();
       });
       worker.addEventListener('error', function (event) {

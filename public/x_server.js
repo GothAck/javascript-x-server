@@ -1,4 +1,4 @@
-define(['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function (console, util, fs, EndianBuffer, x_types, XServerClient, keymap) {
+define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function (console, util, fs, EndianBuffer, x_types, XServerClient, keymap) {
   var module = { exports: {} };
 
   var default_atoms = [
@@ -72,13 +72,13 @@ define(['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', 'x_client', '
     , 'WM_TRANSIENT_FOR'
   ]
 
-  function XServer (id, socket, screen) {
+  function XServer (id, sendBuffer, screen) {
     Object.defineProperty(this, 'server', {
         enumerable: false
       , value: this
     });
     this.id = id;
-    this.socket = socket;
+    this.sendBuffer = sendBuffer;
     this.screen = screen;
     this.protocol_major = 11;
     this.protocol_minor = 0;
@@ -259,11 +259,7 @@ define(['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', 'x_client', '
       throw new Error('Invalid client! Disconnected?');
     if (! (data instanceof EndianBuffer))
       throw new Error('Not a buffer!');
-    var buffer = new EndianBuffer(data.length + 2);
-    buffer.endian = true; // Client id is always Little Endian
-    data.copy(buffer, 2);
-    buffer.writeUInt16(client.id, 0);
-    this.socket.send(buffer.buffer);
+    this.sendBuffer(data.buffer, client);
   }
 
   XServer.prototype.processData = function (buffer) {

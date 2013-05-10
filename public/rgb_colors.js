@@ -1,4 +1,4 @@
-define(function () {
+define('rgb_colors', function () {
   var module = { exports: {} };
 
   module.exports = {

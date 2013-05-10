@@ -1,100 +1,100 @@
 require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], function (console, util, EndianBuffer, XServer, x_types) {
+  /*
   var debug = /debug=on/.test(window.location);
   if (!debug)
-    console = Object.keys(console.__proto__).reduce(function (o, k) { o[k] = new Function; return o }, {}); 
+    console = Object.keys(console.__proto__).reduce(function (o, k) { o[k] = new Function; return o }, {});
+  */ 
   
+  // Worker test
+  
+  /*
+  test = new Worker('worker_test.js');
+  var _cons = console;
+  test.addEventListener('message', function (event) {
+    if (event.data.cmd !== 'console')
+      return;
+    _cons[event.data.func].bind(_cons)(event.data.arguments, event.data.stack.split('\n')[2]);
+    event.stopImmediatePropagation();
+  }, false);
+  test.addEventListener('error', console.error.bind(console));
+  test.postMessage('');
+  */
+  
+  worker_comms = new Worker('worker_comms.js');
+  console.wrapWorker(worker_comms);
   function connect () {
     var server
-      , socket = new WebSocket('ws://' + window.location.host, 'x11-proxy');
-    socket.binaryType = 'arraybuffer';
+      , connected = false;
 
-    socket.onmessage = function (event) {
-      if (event.data.constructor === String) {
-        var data = event.data.split(' ');
-        switch (data[0]) {
-          case 'SCR':
-            server = window.server = new XServer(data[1], socket, $('.screen'));
-            document.title = 'X Session :' + data[1];
-            $('h2').text('0 clients');
-          break;
-          case 'NEW':
-            var id = data[1] ^ 0;
-            server.newClient(data[1] ^ 0);
-            $('h2').text(Object.keys(server.clients).length + ' clients');
-          break;
-          case 'END':
-            server.disconnect(data[1] ^ 0);
-            $('h2').text(Object.keys(server.clients).length + ' clients');
-          break;
-          case 'PING':
-            socket.send('PONG ' + data[1]);
-          break;
-          default:
-            console.log(data);
-        }
-      } else {
-        server.processData(new EndianBuffer(event.data));
+    worker_comms.addEventListener('message', function (event) {
+    console.log(event.data.cmd, event.data);
+      switch (event.data.cmd) {
+        case 'open':
+          connected = true;
+        break;
+        case 'close':
+          connected = false;
+        break;
+        case 'new':
+          server.newClient(event.data.id);
+        break;
+        case 'end':
+          server.disconnect(event.data.id);
+        break;
+        case 'request':
+          console.log('req', event.data);
+          Object.keys(event.data.request).forEach(function (name) {
+            if (event.data.request[name] instanceof ArrayBuffer) {
+              event.data.request[name] = new EndianBuffer(event.data.request[name]);
+            }
+          });
+          server.clients[event.data.id].processRequest(event.data);
+        break;
+        case 'message':
+          if (event.data.data.constructor === String) {
+            var data = event.data.data.split(' ');
+            switch (data[0]) {
+              case 'SCR':
+                server = window.server = new XServer(data[1], function (data) {
+                  worker_comms.postMessage({ cmd: 'message', data: data }, [data]);
+                }, $('.screen'));
+                document.title = 'X Session :' + data[1];
+                $('h2').text('0 clients');
+              break;
+              case 'NEW':
+                server.newClient(data[1] ^ 0);
+                $('h2').text(Object.keys(server.clients).length + ' clients');
+              break;
+              case 'END':
+                server.disconnect(data[1] ^ 0);
+                $('h2').text(Object.keys(server.clients).length + ' clients');
+              break;
+              case 'PING':
+                worker_comms.postMessage({ cmd: 'message', data: 'PONG ' + data[1] });
+              break;
+              default:
+                console.log(data);
+            }
+          } else {
+            server.processData(new EndianBuffer(event.data.data));
+          }
+        break;
+        case 'screen':
+          server = window.server = new XServer(event.data.id, function (data, client) {
+            worker_comms.postMessage({ cmd: 'message', id: client.id, data:data, state: client.state }, [data]);
+          }, $('.screen'));
+          document.title = 'XSession :' + event.data.id;
+          $('h2').text('0 clients');
+        break;
+        default:
+          console.error('Unknown message', event.data);
       }
-    }
-
-    socket.onclose = function () {
-      if (server)
-        server.disconnect();
-      server = window.server = null;
-      socket = null;
-      $('h1').text('Disconnected');
-      $('h2').text('0 clients');
-      $('.screen').children().children().remove();
-      $('.buffers').children().remove();
-      setTimeout(connect, 2500);
-    }
+    });
+    //worker_comms.postMessage();
+    setTimeout(function () {
+      worker_comms.postMessage({ cmd: 'connect', address: window.location.host });
+    }, 500);
   }
-
-  $(function () {
-    (function (w) {
-      w.loadCSSFont = function loadCSSFont (filename, type, height, _class, style_id, callback, timeout, interval) {
-        interval = interval || 1;
-        timeout = (timeout || 5000) / interval;
-        var family = filename.split('/').reverse()[0]
-          , _class_important = _class + '_important'
-          , body = $('body')
-          , test_font = /comic.*sans/i.test(family) ? 'monospace' : 'Comic Sans MS'
-          , test_text = 'qwertyuiopasdfghjklzxcvbnm,,.QWERTYUIOPASDFGHJKLZXCVBNM'
-          , test = $('<span></span>')
-              .text(test_text)
-              .addClass(_class_important)
-              .css({
-                  'font-family': test_font
-                , 'visibility': 'hidden'
-              })
-          , canvas = $('<canvas></canvas>')
-          , ctx = canvas[0].getContext('2d');
-        body.append(test).append(canvas);
-        ctx.font = '20px "' + family + '"';
-        var testcm = ctx.measureText(test_text).width;
-        var testm = test.width()
-          , i = 0
-          , testi = setInterval(function () { 
-              i++;
-              if (test.width() !== testm && ctx.measureText(test_text).width !== testcm) {
-                clearInterval(testi);
-                return callback(null, i);
-              }
-              if (i > timeout) {
-                clearInterval(testi);
-                callback('Timeout');
-              }
-            }, interval);
-        body.append(
-          "<style id=\"" + style_id + "\">\n"+
-          "  @font-face { font-family: \"" + family + "\"; src: url('" + filename + '.' + type + "') format('" + type + "'); }\n"+
-          "  ." + _class + " { font-family: \"" + family + "\"; font-size: " + height + "px; line-height: " + height + "px; }\n"+
-          "  ." + _class + "_important { font-family: \"" + family + "\" !important; font-size: " + height + "px; line-height: " + height + "px; }\n"+
-          "</style>"
-          );
-      }
-    })(window);
-  });
 
   $(function () {
     var mouse_buttons = [1,3,2];

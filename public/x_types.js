@@ -1,4 +1,4 @@
-define(['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (console, util, fs, EndianBuffer, types_font, events) {
+define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (console, util, fs, EndianBuffer, types_font, events) {
   var module = { exports: {} }
 
   module.exports.events = events;
@@ -244,6 +244,13 @@ define(['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font', 'event_t
     buffer.writeUInt32((this.data_extra.byteLength() + this.data.length - 24)/ 4, offset += 2);
     this.data.copy(buffer                               , offset += 4);
     return this.data_extra.writeBuffer(buffer           , offset += this.data.length);
+  }
+  
+  Reply.prototype.toBuffer = function () {
+    var buffer = new EndianBuffer(this.length);
+    buffer.endian = this.data.endian;
+    this.writeBuffer(buffer, 0);
+    return buffer;
   }
 
   var _Error = function XError (req, code, value) {

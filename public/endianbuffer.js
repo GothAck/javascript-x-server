@@ -101,5 +101,22 @@ define('endianbuffer', function () {
     for (var i = 0; i < arr.length; i++)
       arr[i] = value;
   }
+  
+  EndianBuffer.ensure = function (obj_arr) {
+    if (Array.isArray(obj_arr)) {
+      obj_arr.forEach(function (v, i, a) {
+        if (v instanceof ArrayBuffer)
+          a[i] = new EndianBuffer(v);
+      });
+    } else {
+      var a = obj_arr;
+      Object.keys(obj_arr).forEach(function (i) {
+        var v = obj_arr[i];
+        if (v instanceof ArrayBuffer)
+          a[i] = new EndianBuffer(v);
+      });
+    }
+  }
+  
   return EndianBuffer;
 });

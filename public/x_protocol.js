@@ -81,7 +81,6 @@ define(
         this.socket.send(buffer.buffer);
       }
       XProtocolServer.prototype.socketMessage = function (event) {
-        console.log('socketMessage', event.data);
         if (event.data.constructor === String) {
           var data = event.data.split(' ');
           switch (data[0]) {
@@ -145,7 +144,7 @@ define(
         postMessage({ cmd: 'request', id: this.id, type: type, request: request });
       }
       XProtocolClient.prototype.processData = function (data) {
-        console.log('processData');
+        console.log('processData', this.state, this.buffer);
         data.endian = this.endian;
         if (this.buffer) {
           var data_new = new EndianBuffer(this.buffer.length + data.length);
@@ -178,7 +177,6 @@ define(
               if (data.length > 0)
                 data = data.slice(req.length);
             }
-            console.log('END');
           break;
         }
       }

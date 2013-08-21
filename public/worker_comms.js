@@ -3,15 +3,18 @@ if (typeof define === 'undefined' && typeof importScripts !== 'undefined')
 
 var string_split = /(\w+)(\s\w+){0,1}$/
 
+window = self;
+
 require(
     ['worker_console', 'x_protocol', 'endianbuffer']
   , function (console, x_protocol, EndianBuffer) {
+      self.console = console;
       var buffer = null
         , clients = {}
         , server = null;
       
       var socket = null;
-      addEventListener('message', function (event) {
+      self.addEventListener('message', function (event) {
         switch (event.data.cmd) {
           case 'connect':
             if (server)
@@ -19,6 +22,7 @@ require(
             var socket = new WebSocket('ws://' + event.data.address, 'x11-proxy');
             socket.binaryType = 'arraybuffer';
             server = new x_protocol.XProtocolServer(socket, function () {
+              postMessage({ cmd: 'close' })
               server = null;
             });
           break;

@@ -3,3 +3,4 @@ public/fonts
 public/require.js
 .project
 .settings
+*.sublime-workspace

@@ -172,6 +172,10 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
     });
     Object.keys(x11_event_map).forEach(function (_class) {
       var wrapper = $('#eventwrapper');
+      // wrapper
+      //   .on(_class, '#eventfilter .drawable.' + _class, function (dom_event, x_event) {
+      //     console.error('EVENT', dom_event, x_event);
+      //   });
       if (x11_event_map[_class].grab === 'pointer') {
         wrapper
           .on(_class, '#eventfilter.grab_pointer.owner_event .drawable.' + _class, function (dom_event, x_event) {

@@ -12,11 +12,7 @@ define('worker_console', function () {
     ].reduce(
         function (o, func) {
           o[func] = function () {
-            try {
-              throw new Error
-            } catch (e) {
-              postMessage({ cmd: 'console', func: func, arguments: arguments, stack: e.stack, count: counter++ });
-            } 
+            postMessage({ cmd: 'console', func: func, arguments: arguments, stack: (new Error).stack, count: counter++ });
           };
           return o;
         }

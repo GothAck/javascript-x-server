@@ -163,8 +163,12 @@ define(
           break;
           case 1:
             var req = { length: 0 };
+            var gooj = 200;
             while (data.length > 0) {
+              gooj -= 1;
+              if (gooj < 1) throw new Error('You are out of jail, have a nice day!');
               req = new Request(data, this.sequence);
+              console.log('new Request', req.length, data.length);
               if (req.length > data.length) {
                 this.buffer = data;
                 break;

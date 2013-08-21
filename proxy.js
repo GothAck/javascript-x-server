@@ -98,8 +98,13 @@ X11Proxy.prototype.data = function (message) {
       break;
     }
   } else {
-    var data = message.binaryData;
-    this.client_sockets[data.readUInt16LE(0)].write(data.slice(2));
+    var data = message.binaryData
+      , id = data.readUInt16LE(0);
+    if (this.client_sockets[id] && this.client_sockets[id].writable) {
+      this.client_sockets[data.readUInt16LE(0)].write(data.slice(2));
+    } else {
+      this.connection.sendUTF('END ' + id);
+    }
   }
 }
 X11Proxy.prototype.close = function () {

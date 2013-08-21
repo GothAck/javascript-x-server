@@ -3,8 +3,64 @@ define(
   , ['worker_console', 'util', 'lib/async', 'x_types', 'endianbuffer']
   , function (console, util, async, x_types, EndianBuffer) {
       var module = { exports: {} }
-      
+
+      var _gc_vfields = [
+          'function' , 'plane_mask' , 'foreground' , 'background'
+        , 'line_width' , 'line_style' , 'cap_style' , 'join_style' , 'fill_style' , 'fill_rule'
+        , 'tile' , 'stipple', 'tile_stipple_x_origin', 'tile_stipple_y_origin'
+        , 'font', 'subwindow_mode', 'graphics_exposures', 'clip_x_origin', 'clip_y_origin', 'clip_mask'
+        , 'dash_offset', 'gc_dashes', 'arc_mode'
+      ];
+      function GCVField (vmask, vdata) {
+        var offset = 0;
+        for (var i = 0; i < _gc_vfields.length; i++)
+          if (vmask & Math.pow(2, i))
+            this[_gc_vfields[i]] = vdata.readUInt32((offset ++) * 4);
+      }
+      function getGCVFieldNames (vmask) {
+        var names = []
+          , offset = 0;
+        for (var i = 0; i < _gc_vfields.length; i++)
+          if (vmask & Math.pow(2, i))
+            names.push(_gc_vfields[i]);
+        return names;
+      }
+      var _win_vfields = [
+          'background_pixmap', 'background_pixel', 'border_pixmap', 'border_pixel'
+        , 'bit_gravity', 'win_gravity'
+        , 'backing_store', 'backing_planes', 'backing_pixel'
+        , 'override_redirect', 'save_under', 'event_mask', 'do_not_propagate_mask'
+        , 'colormap', 'cursor'
+      ];
+      var _win_vfield_types = [
+          'UInt32', 'UInt32', 'UInt32', 'UInt32'
+        , 'UInt8', 'UInt8'
+        , 'UInt8', 'UInt32', 'UInt32'
+        , 'UInt8', 'UInt8', 'UInt32', 'UInt32'
+        , 'UInt32', 'UInt32'
+      ];
+      function WinVField (vmask, vdata) {
+        var offset = 0;
+        for (var i = 0; i < _gc_vfields.length; i++)
+          if (vmask & Math.pow(2, i)) {
+            this[_win_vfields[i]] = vdata['read' + _win_vfield_types[i]](offset);
+            offset += 4;
+          }
+      }
+      var _win_configure_vfields = [
+        'x', 'y', 'width', 'height', 'border_width', 'sibling', 'stack_mode'
+      ]
+      function WinConfigureField (vmask, vdata) {
+        var offset = 0;
+        for (var i = 0; i < _win_configure_vfields.length; i++)
+          if (vmask & Math.pow(2, i))
+            this[_win_configure_vfields[i]] = vdata.readUInt32((offset ++) * 4);
+      }
+
+
+
       function XProtocolServer (socket, onClose) {
+        console.log('new XProtocolServer')
         this.socket = socket;
         this.onClose = onClose;
         this.clients = {};
@@ -14,7 +70,6 @@ define(
       }
       XProtocolServer.prototype.serverMessage = function (message) {
         var client = this.clients[message.id];
-        console.log('serverMessage', message);
         if (! client)
           postMessage({ cmd: 'error', message: 'not connected?' });
         client.state = message.state;
@@ -298,14 +353,18 @@ define(
         this.border_width = this.data.readUInt16(16);
         this.class = this.data.readUInt16(18);
         this.visual = this.data.readUInt32(20);
-        this.vmask = this.data.readUInt32(24);
-        this.vdata = this.data.slice(28);
+        this.fields = new WinVField(
+            this.data.readUInt32(24)
+          , this.data.slice(28)
+        );
       }
     
       Request.ChangeWindowAttributes = function () {
-        this.window = this.data.readUInt32(0)
-        this.vmask = this.data.readUInt32(4)
-        this.vdata = this.data.slice(8);
+        this.window = this.data.readUInt32(0);
+        this.fields = new WinVField(
+            this.data.readUInt32(4)
+          , this.data.slice(8)
+        );
       }
     
       Request.GetWindowAttributes = function () {
@@ -347,13 +406,12 @@ define(
         this.window = this.data.readUInt32(0)
       }
     
-      var _win_configure_vfields = [
-        'x', 'y', 'width', 'height', 'border_width', 'sibling', 'stack_mode'
-      ]
       Request.ConfigureWindow = function () {
         this.window = this.data.readUInt32(0)
-        this.vmask = this.data.readUInt16(4)
-        this.vdata = this.data.slice(8);
+        this.fields = new WinConfigureField(
+            this.data.readUInt16(4)
+          , this.data.slice(8)
+        )
       }
     
       Request.GetGeometry = function () {
@@ -380,9 +438,9 @@ define(
         this.atom = this.data.readUInt32(4)
         this.type = this.data.readUInt32(8)
         this.format = this.data.readUInt8(12)
-        this.value_length = this.data.value_readUInt32(16) *
+        this.value_length = this.data.readUInt32(16) *
           (this.format === 8 ? 1 : (this.format === 16 ? 2 : (this.format === 32) ? 4 : 0))
-        this.value = this.data.slice(20, value_length + 20);
+        this.value = this.data.slice(20, this.value_length + 20);
       }
     
       Request.DeleteProperty = function () {
@@ -412,6 +470,7 @@ define(
         this.wid = this.data.readUInt32(0)
         this.window = this.data.readUInt32(0)
         this.event_mask = this.data.readUInt32(4)
+        this.event_data = this.data.slice(8)
       }
     
       Request.GrabPointer = function () {
@@ -435,7 +494,6 @@ define(
         this.timestamp = this.data.readUInt32(4)
         this.mouse_async = this.data.readUInt8(8)
         this.keybd_async = this.data.readUInt8(9)
-        callback(null, rep);
       }
       
       Request.UngrabKeyboard = function () {
@@ -496,30 +554,35 @@ define(
       }
     
       Request.FreePixmap = function () {
-        this.pixmap = this.data.readUInt32(0)
+        this.pid = this.data.readUInt32(0);
       }
     
       Request.CreateGC = function () {
         this.cid = this.data.readUInt32(0)
         this.drawable = this.data.readUInt32(4)
-        this.vmask = this.data.readUInt32(8)
-        this.vdata = this.data.slice(12);
+        this.fields = new GCVField(
+            this.data.readUInt32(8)
+          , this.data.slice(12)
+        );
       }
     
       Request.ChangeGC = function () {
         this.gc = this.data.readUInt32(0)
-        this.vmask = this.data.readUInt32(4)
-        this.vdata = this.data.slice(8);
+        this.fields = new GCVField(
+            this.data.readUInt32(4)
+          , this.data.slice(8)
+        );
       }
     
       Request.CopyGC = function () {
         this.src_gc = this.data.readUInt32(0)
         this.dst_gc = this.data.readUInt32(4)
-        this.vmask = this.data.readUInt(8);
+        this.fields = getGCVFieldNames(this.data.readUInt32(8));
       }
     
       Request.ClearArea = function () {
         this.window = this.data.readUInt32(0)
+        this.exposures = this.data_byte
         this.x = this.data.readUInt16(4)
         this.y = this.data.readUInt16(6)
         this.w = this.data.readUInt16(8)
@@ -544,9 +607,9 @@ define(
     
       Request.PolyLine = function () {
         this.drawable = this.data.readUInt32(0)
-        this.coord_mode = this.data_byte
+        this.coordinate_mode = this.data_byte
         this.gc = this.data.readUInt32(4)
-        this.count = req.length_quad - 3;
+        this.count = this.length_quad - 3;
         this.lines = [];
         var prev = [0, 0]
           , pair = []
@@ -556,7 +619,7 @@ define(
               this.data.readInt16(i)
             , this.data.readInt16(i + 2)
           ];
-          if (coord_mode)
+          if (this.coord_mode)
             prev = [ (curr[0] += prev[0]), (curr[1] += prev[1]) ];
           pair.push(curr);
           if (pair.length === 2)
@@ -567,12 +630,12 @@ define(
       Request.PolySegment = function () {
         this.drawable = this.data.readUInt32(0)
         this.gc = this.data.readUInt32(4)
-        this.count = (req.length_quad - 3) / 2;
+        this.count = (this.length_quad - 3) / 2;
         this.lines = [];
-        for (var i = 8; i < ((count + 1) * 8); i += 8) {
+        for (var i = 8; i < ((this.count + 1) * 8); i += 8) {
           this.lines.push([
-              [ this.data.readInt16(i), y1 = this.data.readInt16(i + 2) ]
-            , [this.data.readUInt16(i + 4), y2 = this.data.readUInt16(i + 6) ]
+              [ this.data.readInt16(i), this.data.readInt16(i + 2) ]
+            , [this.data.readUInt16(i + 4), this.data.readUInt16(i + 6) ]
           ]);
         }
       }
@@ -580,10 +643,10 @@ define(
       Request.PolyRectangle = function () {
         this.drawable = this.data.readUInt32(0)
         this.gc = this.data.readUInt32(4)
-        this.count = (req.length_quad - 3) / 2;
+        this.count = (this.length_quad - 3) / 2;
         this.rectangles = [];
         // x, y, width, height
-        for (var i = 8; i < ((count + 1) * 8); i += 8) {
+        for (var i = 8; i < ((this.count + 1) * 8); i += 8) {
           this.rectangles.push([
               this.data.readInt16(i)
             , this.data.readInt16(i + 2)
@@ -598,14 +661,14 @@ define(
         this.gc = this.data.readUInt32(4)
         this.shape = this.data.readUInt8(8)
         this.coordinate_mode = this.data.readUInt8(9)
-        this.count = (req.length_quad - 4) * 4
+        this.count = (this.length_quad - 4) * 4
         this.coordinates = [];
         // Unused 2
         // 12
-        if (coordinate_mode != 0)
+        if (this.coordinate_mode != 0)
           throw new Error('Previous coordinate mode not implemented');
         for (var i = 12; i < this.count + 12; i += 4)
-          coordinates.push([this.data.readUInt16(i), this.data.readUInt16(i + 2)]);
+          this.coordinates.push([this.data.readUInt16(i), this.data.readUInt16(i + 2)]);
       }
     
       Request.PolyFillRectangle = function () {
@@ -614,13 +677,11 @@ define(
     
       Request.PolyFillArc = function () {
         this.drawable = this.data.readUInt32(0)
-        this.d_w = drawable.canvas[0].width
-        this.d_h = drawable.canvas[0].height
         this.gc = this.data.readUInt32(4)
-        this.count = (req.length_quad - 3) / 3
-        this.end = (count * 12) + 8;
+        this.count = (this.length_quad - 3) / 3
+        this.end = (this.count * 12) + 8;
         this.arcs = [];
-        for (var i = 8; i < end; i += 12) {
+        for (var i = 8; i < this.end; i += 12) {
           var x = this.data.readInt16 (i)
             , y = this.data.readInt16 (i + 2)
             , w = this.data.readUInt16(i + 4)
@@ -656,7 +717,7 @@ define(
         this.y = this.data.readInt16(14)
         this.pad = this.data.readUInt8(16)
         this.depth = this.data.readUInt8(17)
-        this.data = this.data.slice(20);
+        this.image = this.data.slice(20);
       }
     
       Request.GetImage = function () {
@@ -673,12 +734,12 @@ define(
         this.drawable = this.data.readUInt32(0)
         this.gc = this.data.readUInt32(4)
         this.context = gc.getContext(drawable)
-        this.count = (req.length_quad / 4) - 1
+        this.count = (this.length_quad / 4) - 1
         this.x = this.data.readInt16(8)
         this.y = this.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
         this.textitems = []
         var req_offset = 12;
-        for (var i = 0; i < count; i ++) {
+        for (var i = 0; i < this.count; i ++) {
           var len = this.data.readUInt8(req_offset);
           if (len === 0)
             break;
@@ -708,7 +769,7 @@ define(
         this.y = this.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
         this.textitems = []
         var req_offset = 12;
-        for (var i = 0; i < count; i ++) {
+        for (var i = 0; i < this.count; i ++) {
           var len = this.data.readUInt8(req_offset);
           if (len === 0)
             break;
@@ -738,7 +799,7 @@ define(
     
       Request.QueryColors = function () {
         this.count = this.length_quad - 2
-        this.colormap_length = count * 4
+        this.colormap_length = this.count * 4
         this.colormap = this.data.readUInt32(0)
       }
     

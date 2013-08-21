@@ -56,6 +56,7 @@ define('event_types', ['util', 'endianbuffer'], function (util, EndianBuffer) {
     });
     this.data = new EndianBuffer(28);
     this.data.endian = owner_obj.endian;
+    this.endian = owner_obj.endian;
     this.length = 32;
   }
 
@@ -74,6 +75,13 @@ define('event_types', ['util', 'endianbuffer'], function (util, EndianBuffer) {
     buffer.writeUInt16(this.sequence, offset + 2);
     this.data.copy(buffer, offset + 4);
     return offset + this.length;
+  }
+
+  Event.prototype.toBuffer = function () {
+    var buffer = new EndianBuffer(this.length);
+    buffer.endian = this.endian;
+    this.writeBuffer(buffer, 0);
+    return buffer;
   }
 
   Event.prototype.testReady = function () {

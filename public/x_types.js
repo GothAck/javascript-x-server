@@ -217,6 +217,7 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   module.exports.Request = Request;
 
   function Reply (request) {
+    this.endian = request.endian;
     this.opcode = request.opcode;
     this.sequence = request.sequence;
     this.data_byte = 0;
@@ -255,6 +256,7 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
 
   var _Error = function XError (req, code, value) {
     Error.apply(this, arguments);
+    this.endian = req.endian;
     this.code = code || 1;
     this.opcode = req.opcode;
     this.opcode_minor = 0;
@@ -262,6 +264,8 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     this.value = value || 0;
     this.length = 32;
   }
+
+  util.inherits(_Error, Error);
 
   module.exports.Error = _Error;
 
@@ -275,6 +279,13 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     buffer.fill(0, offset + 11, offset + 32);
     return offset + 32;
   }
+  
+  _Error.prototype.toBuffer = function () {
+    var buffer = new EndianBuffer(this.length);
+    buffer.endian = this.endian;
+    this.writeBuffer(buffer, 0);
+    return buffer;
+  }
 
   var _gc_vfields = [
       'function' , 'plane_mask' , 'foreground' , 'background'
@@ -284,12 +295,12 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     , 'dash_offset', 'gc_dashes', 'arc_mode'
   ]
 
-  function GraphicsContext (owner, id, drawable, vmask, vdata) {
+  function GraphicsContext (owner, id, drawable, fields) {
     this.owner = owner;
     this.id = id;
     this.drawable = drawable;
     this.context = drawable.canvas[0].getContext('2d');
-    this.changeData(owner, vmask, vdata);
+    this.changeFields(owner, fields);
     this.x = 0;
     this.y = 0;
   }
@@ -333,18 +344,15 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     delete this.owner.server.resources[this.id];
   }
 
-  GraphicsContext.prototype.changeData = function (owner, vmask, vdata) {
-    var offset = 0;
-    for (var i = 0; i < _gc_vfields.length; i++)
-      if (vmask & Math.pow(2, i))
-        this[_gc_vfields[i]] = vdata.readUInt32((offset ++) * 4);
+  GraphicsContext.prototype.changeFields = function (owner, fields) {
+    for (var key in fields)
+      if (fields.hasOwnProperty(key))
+        this[key] = fields[key];
   }
 
-  GraphicsContext.prototype.copyTo = function (dst, vmask) {
-    var offset = 0;
-    for (var i = 0; i < _gc_vfields.length; i++)
-      if (vmask & Math.pow(2, i))
-        dst[_gc_vfields[i]] = this[_gc_vfields[i]];
+  GraphicsContext.prototype.copyTo = function (dst, fields) {
+    for (var i in fields)
+      dst[fields[i]] = this[fields[i]];
   }
 
   GraphicsContext.prototype.getContext = function (drawable) {
@@ -468,7 +476,8 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     , 'UInt32', 'UInt32'
   ];
 
-  function Window (owner, id, depth, x, y, width, height, border_width, _class, visual, vmask, vdata) {
+  function Window (owner, id, depth, x, y, width, height, border_width, _class, visual, fields) {
+    fields = fields || {}
     this.id = id;
     this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>')
         .attr('id', 'e' + this.id)
@@ -483,7 +492,7 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     this.event_clients = {};
     this.element.css('display', 'none');
     this.element.children().append(this.canvas.attr('id', this.id));
-    this.changeData(owner, vmask, vdata);
+    this.changeFields(owner, fields);
     this.properties = {}
 //    var ctx = this.canvas[0].getContext('2d');
     this.x = x;
@@ -537,8 +546,9 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   Window.prototype.__defineSetter__('background_pixel', function (pixel) {
     this._background_pixel = pixel;
     pixel = pixel.toString(16)
-    pixel = (new Array(7 - pixel.length)).join('0') + pixel;
-    this.element.css('background-color', '#' + pixel);
+    if (pixel.length < 6)
+      pixel = (new Array(7 - pixel.length)).join('0') + pixel;
+    this.element.css('background-color', '#' + pixel.slice(0, 6));
   })
   Window.prototype.__defineGetter__('background_pixel', function () {
     return this._background_pixel;
@@ -555,11 +565,22 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
       return event_mask & (1 << i);
     });
   }
-  Window.prototype.__defineSetter__('event_mask', function (event_mask) {
+  var Window_event_mask_setter;
+  Window.prototype.__defineSetter__('event_mask', Window_event_mask_setter = function (event_mask) {
     var self = this
-      , set_client = this.__lookupSetter__('event_mask').caller.arguments[0];
+      , set_client = Window_event_mask_setter.caller.arguments[0];
+      console.log('Window event_mask setter', set_client)
+      console.log(Window_event_mask_setter.caller.arguments, Window_event_mask_setter.caller.caller.caller);
     this.event_clients[set_client.id] = this.processEventMask(event_mask);
     this.event_clients[set_client.id].mask = event_mask;
+    
+    console.log(
+        'Window.event_mask set'
+      , set_client.id
+      , this.event_clients[set_client.id].join(', ')
+      , this.event_clients[set_client.id].mask
+      , this.event_clients[set_client.id].mask.toString(2)
+    ) 
 
     event_mask = Object.keys(this.event_clients).reduce(function (o, k) {
       return o | self.event_clients[k].mask;
@@ -679,6 +700,7 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   }
 
   Window.prototype.sendEvent = function (event, data, event_mask) {
+    console.log('Window.sendEvent', event, data, event_mask);
     if (event instanceof events.Event)
       event_mask = data;
     else
@@ -689,23 +711,35 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   }
 
   Window.prototype.triggerEvent = function (event, data) {
+    console.log('Window.triggerEvent', event, data);
     var self = this;
     if (! (event instanceof events.Event))
       event = new events.map[event](this, data || {});
+    //var des = (event.dom_events || []).slice(0);
+    //des.push(event.constructor.name);
+    //console.log(self.element.parents('body').length);
+    //console.log('.' + des.join(',.'));
+    //console.log(self.element.parentsUntil('#eventfilter').andSelf().filter('.' + des.join(',.')).length)
     if (event.dom_events)
       return event.dom_events.forEach(function (dom_event) {
+        console.log('triggering de', dom_event, self.element.hasClass(dom_event));
         self.element.trigger(dom_event, [event]);
       });
+    console.log('triggering', event.constructor.name, self.element.hasClass(event.constructor.name));
     return this.element.trigger(event.constructor.name, [event]);
   }
 
   Window.prototype.onEvent = function (event, data) {
+    console.log('Window.onEvent', event, data);
     var self = this;
 //    if (~this.events.indexOf(event)) {
     if (event instanceof events.Event) {
+      console.log('Event ready', event.testReady(), self.event_clients);
       if (event.testReady())
         Object.keys(self.event_clients).forEach(function (k) {
+          console.log('Event client', k, ~ self.event_clients[k].indexOf(event.event_type), event.event_type);
           if (~ self.event_clients[k].indexOf(event.event_type)) {
+            console.log('Test client', ! self.owner.server.clients[k]);
             if (! self.owner.server.clients[k])
               return delete self.event_clients[k];
             self.owner.server.clients[k].sendEvent(event);
@@ -775,13 +809,10 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     return window.element.find(this.element).length > 0;
   }
 
-  Window.prototype.changeData = function (owner, vmask, vdata) {
-    var offset = 0;
-    for (var i = 0; i < _gc_vfields.length; i++)
-      if (vmask & Math.pow(2, i)) {
-        this[_win_vfields[i]] = vdata['read' + _win_vfield_types[i]](offset);
-        offset += 4;
-      }
+  Window.prototype.changeFields = function (owner, fields) {
+    for (var key in fields)
+      if (fields.hasOwnProperty(key))
+        this[key] = fields[key];
     // var server = this.owner.server || this.owner;
     // this.element.css('background-color', server.resources[server.screens[0].colormap].lookup_func(this.background_pixel, 'hex'));
   }
@@ -836,11 +867,12 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     return false;
   }
 
-  function Atom (owner, id, value) {
+  function Atom (value, owner) {
     this.owner = owner;
-    this.id = id;
-    this.value = value;
+    String.call(this, value);
   }
+
+  util.inherits(Atom, String);
 
   Atom.error_code = 5;
 

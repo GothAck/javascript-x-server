@@ -182,7 +182,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       , 0x18 // depth 24
       , 0, 0
       , this.screen.width(), this.screen.height()
-      , 0, 1, 0, 0, 0
+      , 0, 1, 0
     );
     this.root.parent = { element: $('.screen'), owner: this, children: [this.root] }
     this.font_path = 'fonts';
@@ -257,20 +257,21 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
   XServer.prototype.write = function (client, data) {
     if (! this.clients[client.id])
       throw new Error('Invalid client! Disconnected?');
+    if (! data)
+      return console.warn('Empty data');
     if (! (data instanceof EndianBuffer))
-      throw new Error('Not a buffer!');
+      throw new Error('Not a buffer! ' + data.constructor.name);
     this.sendBuffer(data.buffer, client);
   }
 
-  XServer.prototype.processData = function (buffer) {
-    var id = buffer.readUInt16(0)
-      , data = buffer.slice(2);
-
-    if (! this.clients[id])
-      throw new Error('Invalid client! Disconnected?');
-    this.clients[id].processData(data);
+  XServer.prototype.processRequest = function (message) {
+    var client = this.clients[message.id];
+    if (this.grab && this.grab !== client)
+      return this.grab_buffer.push([this, 'processRequest', message]);
+    console.log('Request', message.id, message.type);
+    client.processRequest(message);
   }
-  
+
   XServer.prototype.getResource = function (id, Type, allowed_values) {
     var resource = this.resources[id];
     allowed_values = Array.isArray(allowed_values) ? 
@@ -300,15 +301,40 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     delete this.resources[id];
   }
   
-  XServer.prototype.getAtom = function (id) {
-    var atom = this.atoms[id];
-    if (!(atom instanceof x_types.Atom))
-      throw new x_types.Error({}, x_types.Atom.error_code);
-    return atom;
+  XServer.prototype.resolveAtom = function (id) {
+    switch (typeof id) {
+      case 'number':
+      break;
+      case 'string':
+      break;
+      case 'object':
+        if (id instanceof x_types.Atom)
+          return this.atoms[x_types.atom.id]
+        else 
+      break;
+      default:
+        throw new Error('trying to resolve something that is not a number, string or Atom');
+    }
+  }
+  
+  XServer.prototype.getAtom = function (id, dont_throw) {
+    if ('string' === typeof id) {
+      if (~ this.atoms.indexOf(id))
+        return this.atoms.indexOf(id) + 1;
+      if (dont_throw)
+        return 0;
+      throw new x_types.Error({}, 5);
+    } else {
+      if ('string' === typeof this.atoms[id - 1])
+        return this.atoms[id];
+      if (dont_throw)
+        return '';
+      throw new x_types.Error({}, 5);
+    }
   }
 
-  XServer.prototype.putAtom = function (atom) {
-    if (this.atoms[atom.id])
+  XServer.prototype.putAtom = function (id, atom, only_if_exists) {
+    if (this.atoms[id])
       throw new x_types.Error({}, 14 /* IDChoice */, atom.id);
     return this.atoms[atom.id] = atom;
   }
@@ -321,13 +347,13 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
   }
 
   XServer.prototype.flushGrabBuffer = function() {
-    var item = null;
-    while (item = this.grab_buffer.shift())
-      item[0][item[1]].apply(item[0], item.slice(2));
-    Object.keys(this.clients).forEach(function (id) {
-      this.clients[id].reqs_processing = false;
-      this.clients[id].processReqs();
-    }.bind(this));
+    this.grab_buffer.splice(0)
+      .forEach(function (item) {
+        var self = item[0]
+          , func = item[1]
+          , args = item.slice(2);
+        self[func].apply(self, args);
+      });
   }
 
   XServer.prototype.listFonts = function (pattern) {
@@ -353,7 +379,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     console.log('Font cached?', resolved_name in this.fonts_cache);
     if (resolved_name in this.fonts_cache)
       return callback(null, this.fonts_cache[resolved_name]);
-    self.grabbed = 'loadFont';
+    self.grab = 'loadFont';
     fs.readFile('fonts/' + resolved_name + '.meta.json', 'utf8', function (err, meta) {
       console.log('read meta');
       if (err)
@@ -366,7 +392,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       var font = new x_types.Font(meta.type, resolved_name, server_name);
       font.meta = meta;
       font.loadData(function (err) {
-        self.grabbed = null;
+        self.grab = null;
         console.log('XServer.loadFont callback', [].slice.call(arguments));
         if (!err) {
           console.log('Font loaded', font);

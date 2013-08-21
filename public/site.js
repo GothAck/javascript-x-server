@@ -44,13 +44,8 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
           server.disconnect(event.data.id);
         break;
         case 'request':
-          console.log('req', event.data);
-          Object.keys(event.data.request).forEach(function (name) {
-            if (event.data.request[name] instanceof ArrayBuffer) {
-              event.data.request[name] = new EndianBuffer(event.data.request[name]);
-            }
-          });
-          server.clients[event.data.id].processRequest(event.data);
+          EndianBuffer.ensure(event.data.request);
+          server.processRequest(event.data);
         break;
         case 'message':
           if (event.data.data.constructor === String) {
@@ -78,7 +73,7 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
                 console.log(data);
             }
           } else {
-            server.processData(new EndianBuffer(event.data.data));
+            throw new Error('DEPRECATED');
           }
         break;
         case 'screen':
@@ -202,14 +197,16 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
           });
       }
       if (x11_event_map[_class].grab === 'keyboard')
-        wrapper.on(_class, '#eventfilter.grab_keyboard .drawable', function (event, data) {
-          var window = $(this).data('xob');
-          data.event_window = window;
-          data.event_type = event.type;
-          $(this).data('xob').owner.server.grab_keyboard.onEvent(data);
-          event.stopImmediatePropagation();
-        });
-      wrapper.on(_class, '#eventfilter .drawable.NoPropagate' + _class, function (event) {
+        wrapper
+          .on(_class, '#eventfilter.grab_keyboard .drawable', function (event, data) {
+            var window = $(this).data('xob');
+            data.event_window = window;
+            data.event_type = event.type;
+            $(this).data('xob').owner.server.grab_keyboard.onEvent(data);
+            event.stopImmediatePropagation();
+          });
+      wrapper
+        .on(_class, '#eventfilter .drawable.NoPropagate' + _class, function (event) {
           event.stopPropagation();
         })
         .on(_class, '#eventfilter .drawable.' + _class, function (event, data) {

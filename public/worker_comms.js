@@ -40,5 +40,6 @@ require(
           break;
         }
       });
+      self.postMessage({ cmd: 'loaded' });
     }
 )

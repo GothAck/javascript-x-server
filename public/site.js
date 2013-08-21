@@ -27,8 +27,10 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
       , connected = false;
 
     worker_comms.addEventListener('message', function (event) {
-    console.log(event.data.cmd, event.data);
       switch (event.data.cmd) {
+        case 'loaded':
+          worker_comms.postMessage({ cmd: 'connect', address: window.location.host });
+        break;
         case 'open':
           connected = true;
         break;
@@ -90,10 +92,6 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
           console.error('Unknown message', event.data);
       }
     });
-    //worker_comms.postMessage();
-    setTimeout(function () {
-      worker_comms.postMessage({ cmd: 'connect', address: window.location.host });
-    }, 500);
   }
 
   $(function () {

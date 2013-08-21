@@ -22,7 +22,6 @@ var app = connect()
         if (req.query.filter)
           try {
             var re = new RegExp('^'+req.query.filter.replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1").replace(/\\([*?])/g, '.$1')+'\..*$');
-            console.log(re);
             dir = dir.filter(re.test.bind(re));
           } catch (e) {
             return next(e);
@@ -83,7 +82,6 @@ X11Proxy.prototype.newClient = function (socket) {
   });
 }
 X11Proxy.prototype.data = function (message) {
-  console.log('data', message.type, message.utf8Data);
   if (message.type === 'utf8') {
     var data = (message.utf8Data || '').split(' ');
     switch (data[0]) {

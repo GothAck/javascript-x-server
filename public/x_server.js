@@ -224,6 +224,16 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     });
   }
 
+  XServer.prototype.__defineGetter__('clients_array', function () {
+    var self = this;
+    return Object.keys(this.clients).map(function (id) { return self.clients[id] });
+  });
+
+  XServer.prototype.__defineGetter__('resources_array', function () {
+    var self = this;
+    return Object.keys(this.resources).map(function (id) { return self.resources[id] });
+  });
+
   XServer.prototype.getFormatByDepth = function (depth) {
     return this.formats.filter(function (format) {
       return format.depth === depth;

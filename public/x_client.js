@@ -662,7 +662,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       , confine = this.server.getResource(req.confine)
       , cursor = req.cursor
       , timestamp = req.timestamp
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
 
     if (this.server.grab_pointer) {
       rep.data_byte = 1;
@@ -706,7 +706,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       , timestamp = req.timestamp
       , mouse_async = req.mouse_async
       , keybd_async = req.keybd_async
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
 
     if (this.server.grab_pointer) {
       rep.data_byte = 1;
@@ -802,7 +802,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.QueryFont = function (req, callback) {
     var font = this.server.getResource(req.font, x_types.Font);
-    var rep = new x_types.Reply(req);
+    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     rep.data = new EndianBuffer(32);
     rep.data.endian = this.endian;
     font.getChar(-1).toCharInfo().writeBuffer(rep.data,  0); // Write min bounds
@@ -835,7 +835,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     var fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     console.log('ListFontsWithInfo', req.pattern);
     if (!fonts.length) {
-      var rep = new x_types.Reply(req);
+      var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
       rep.data_extra.push(new x_types.Nulls(7 * 4));
       return callback(null, rep);
     }
@@ -853,7 +853,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
           this.server.grab = false;
           this.server.flushGrabBuffer();
           var reps = fonts.map(function (font) {
-            var rep = new x_types.Reply(req);
+            var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
             rep.data = new EndianBuffer(32);
             rep.data.endian = req.data.endian;
             rep.data_byte = font.name.length;
@@ -870,7 +870,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
             rep.data_extra.push(new x_types.String(font.name));
             return rep;
           }.bind(this));
-          var rep = new x_types.Reply(req);
+          var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
           rep.data_extra.push(new x_types.Nulls(7 * 4));
           reps.push(rep);
           callback(null, reps);
@@ -1059,7 +1059,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.GetImage = function (req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     console.log('GetImage', drawable.id);
     rep.data_byte = drawable.depth;
     rep.data_extra.push(
@@ -1110,7 +1110,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     var count = req.length_quad - 2
       , length = count * 4
       , colormap = this.server.getResource(req.colormap, x_types.ColorMap)
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     rep.data.writeUInt16(count);
     for (var i = 4; i < length + 4; i += 4) {
       var rgb = colormap.getRGB(req.rgb);
@@ -1128,7 +1128,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       , length = req.name_length
       , name = req.name
       , color = rgb_colors[name] || 0
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
 
     rep.data.writeUInt16((color & 0xff0000) >> 16,  0);
     rep.data.writeUInt16((color & 0x00ff00) >>  8,  2);
@@ -1223,7 +1223,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       , drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , width = req.width
       , height = req.height;
-    var rep = new x_types.Reply(req);
+    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     switch (_class) {
       case 0: // Cursor
         rep.data.writeUInt16(64, 0); // Cursors are always 64x64
@@ -1237,7 +1237,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.QueryExtension = function (req, callback) {
     console.log('QueryExtension - Incomplete');
-    var rep = new x_types.Reply(req);
+    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     rep.data.writeUInt8(0, 0);
     rep.data.writeUInt8(req.opcode, 1);
     rep.data.writeUInt8(0, 2);
@@ -1247,7 +1247,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.ListExtensions = function (req, callback) {
     console.log('ListExtensions');
-    var rep = new x_types.Reply(req);
+    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     callback(null, rep);
   }
 
@@ -1255,7 +1255,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     var self = this
       , first = req.first
       , count = req.count
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
 
     rep.data_byte = self.server.keymap.maxModifiers;
 
@@ -1297,7 +1297,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.GetModifierMapping = function (req, callback) {
     var self = this
-      , rep = new x_types.Reply(req)
+      , rep = new x_types.Reply(req) // FIXME: Migrate to x_types.WorkReply
       , datas = (['Shift', 'Lock', 'Control', 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5']).map(function (name) { return self.server.keymap.find(name) });
 
     rep.data_byte = datas.reduce(function (o, v) { return Math.max(o, v.length) }, 0);

@@ -59,6 +59,8 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   }
 
   function XString (string) {
+    if ('string' !== typeof string)
+      throw new window.Error('XString: This is not a string' + (typeof string))
     this.string = string;
   }
   module.exports.XString = XString;

@@ -269,6 +269,8 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       throw new Error('Invalid client! Disconnected?');
     if (! data)
       return console.warn('Empty data');
+    if (data instanceof x_types.WorkReply)
+      return this.sendBuffer(data, client, true);
     if (! (data instanceof EndianBuffer))
       throw new Error('Not a buffer! ' + data.constructor.name);
     this.sendBuffer(data.buffer, client);

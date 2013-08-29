@@ -80,6 +80,22 @@ define(
         buffer.writeUInt16(client.id, 0);
         this.socket.send(buffer.buffer);
       }
+      XProtocolServer.prototype.serverReply = function (message) {
+        try {
+          var client = this.clients[message.id]
+            , ReqObj = Request[Request.opcodes[message.data.opcode]]
+            , Rep = ReqObj.Rep;
+          var rep = new Rep(message.data, client)
+            , data = rep.toBuffer()
+            , buffer = new EndianBuffer(data.length + 2);
+          buffer.endian = true;
+          data.copy(buffer, 2);
+          buffer.writeUInt16(client.id);
+          this.socket.send(buffer.buffer);
+        } catch (e) {
+          console.error(e.toString(), e.stack);
+        }
+      }
       XProtocolServer.prototype.socketMessage = function (event) {
         if (event.data.constructor === String) {
           var data = event.data.split(' ');
@@ -198,6 +214,45 @@ define(
         );
       }
       module.exports.SetupRequest = SetupRequest;
+
+      function Reply (rep, client) {
+        this.endian = client.endian;
+        this.opcode = this.constructor.Req.opcode;
+        this.sequence = rep.sequence;
+        this.data_byte = 0;
+        this.data = new EndianBuffer(24);
+        this.data.endian = this.endian;
+        this.data.fill(0);
+        this.data_extra = [];
+      }
+
+      module.exports.Reply = Reply;
+
+      Reply.prototype.__defineGetter__('length', function () {
+        var extra_len = this.data_extra.byteLength();
+        return 8 + this.data.length + extra_len + ((extra_len % 4) ? 4 - (extra_len % 4) : 0);
+      });
+
+      Reply.prototype.writeBuffer = function (buffer, offset) {
+        buffer.writeUInt8(1                                 , offset     );
+        buffer.writeUInt8(this.data_byte                    , offset += 1);
+        buffer.writeUInt16(this.sequence                    , offset += 1);
+        // Auto pad to multiple of 4
+        if ((this.data_extra.byteLength() % 4) !== 0)
+          for (var i = 4 - (this.data_extra.byteLength() % 4); i > 0; i--)
+            this.data_extra.push(new x_types.UInt8(0));
+        buffer.writeUInt32((this.data_extra.byteLength() + this.data.length - 24)/ 4, offset += 2);
+        this.data.copy(buffer                               , offset += 4);
+        return this.data_extra.writeBuffer(buffer           , offset += this.data.length);
+      }
+
+      Reply.prototype.toBuffer = function () {
+        console.error(this.length)
+        var buffer = new EndianBuffer(this.length);
+        buffer.endian = this.data.endian;
+        this.writeBuffer(buffer, 0);
+        return buffer;
+      }
       
       function Request (data, sequence) {
         this.sequence = sequence;
@@ -872,8 +927,16 @@ define(
       }
     
       Object.keys(Request).forEach(function (name) {
-        if (Request[name].constructor === Function)
-            util.inherits(Request[name], Request);
+        if (Request[name].constructor === Function) {
+          var Req = Request[name]
+            , Rep = Req.Rep;
+          util.inherits(Req, Request);
+          Req.opcode = Request.opcodes_name[name];
+          if (Rep && Rep.constructor === Function) {
+            Rep.Req = Request;
+            util.inherits(Rep, Reply);
+          }
+        }
       })
       return module.exports;
     }

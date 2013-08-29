@@ -38,6 +38,13 @@ require(
               throw new Error('Invalid client! Disconnected?');
             server.serverMessage(event.data);
           break;
+          case 'reply':
+            if (! server)
+              return postMessage({ cmd: 'error', message: 'not connected' })
+            if (! server.clients[event.data.id])
+              throw new Error('Invalid client! Disconnected?');
+            server.serverReply(event.data);
+          break;
         }
       });
       self.postMessage({ cmd: 'loaded' });

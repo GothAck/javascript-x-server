@@ -216,6 +216,13 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
 
   module.exports.Request = Request;
 
+  function WorkReply (request) {
+    this.opcode = request.opcode;
+    this.sequence = request.sequence;
+  }
+
+  module.exports.WorkReply = WorkReply;
+
   function Reply (request) {
     this.endian = request.endian;
     this.opcode = request.opcode;

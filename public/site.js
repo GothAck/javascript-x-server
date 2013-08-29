@@ -77,7 +77,9 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
           }
         break;
         case 'screen':
-          server = window.server = new XServer(event.data.id, function (data, client) {
+          server = window.server = new XServer(event.data.id, function (data, client, new_reply) {
+            if (new_reply)
+              return worker_comms.postMessage({ cmd: 'reply', id: client.id, data: data, state: client.state });
             worker_comms.postMessage({ cmd: 'message', id: client.id, data:data, state: client.state }, [data]);
           }, $('.screen'));
           document.title = 'XSession :' + event.data.id;

@@ -24,7 +24,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.write = function (data) {
     console.log('XServerClient.write', data, data instanceof x_types.Error);
-    if ((data instanceof x_types.Error) || (data instanceof x_types.events.Event))
+    if ((data instanceof x_types.Reply) || (data instanceof x_types.Error) || (data instanceof x_types.events.Event)) // FIXME: Migrate to x_types.WorkReply
       return this.server.write(this, data.toBuffer());
     return this.server.write(this, data);
   }
@@ -109,8 +109,8 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       rep.sequence = this.sequence_sent;
     if (this.sequence_sent < rep.sequence)
       this.sequence_sent = rep.sequence;
-    console.log('XServerClient.processReply', rep);
-    this.write(rep.toBuffer());
+    // console.log('XServerClient.processReply', rep);
+    this.write(rep);
   }
   
   XServerClient.prototype.processReqs = function () {

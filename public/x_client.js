@@ -79,12 +79,9 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
         func && func.call(self, req, function (err, rep) {
           if (rep) {
             if (Array.isArray(rep))
-              rep.forEach(function (rep) {
-                self.processReply(rep);
-              });
-            else {
+              rep.forEach(self.processReply.bind(self));
+            else
               self.processReply(rep);
-            }
           }
         });
       } catch (e) {

@@ -420,23 +420,22 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.GetWindowAttributes = function (req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.Reply(req);
-    rep.data_byte = 2; // Backing store (0 NotUseful, 1 WhenMapper, 2 Always)
-    rep.data.writeUInt32(0, 0); // Visual id
-    rep.data.writeUInt16((!window.input_output) + 1, 4); // Class (1 InputOutput, 2 InputOnly)
-    rep.data.writeUInt8(0, 6); // Bit gravity
-    rep.data.writeUInt8(window.win_gravity, 7); // Win gravity
-    rep.data.writeUInt32(0, 8); // Backing planes
-    rep.data.writeUInt32(window.background_pixel || 0, 12); // Backing pixel
-    rep.data.writeUInt8(0, 16); // Save under
-    rep.data.writeUInt8(window.isMapped() ? 1 : 0, 17); // Map is installed
-    rep.data.writeUInt8(window.isMapped() ? 2 : 0, 18); // Map state (0 Unmapped, 1 Unviewable, 2 Viewable)
-    rep.data.writeUInt8(window.override_redirect, 19); // Override redirect
-    rep.data.writeUInt32((this._colormap && this._colormap.id) || 0, 20); // Colormap
-    rep.data_extra.push(new x_types.UInt32(window.event_mask)); // All event masks
-    rep.data_extra.push(new x_types.UInt32(window.event_mask)); // Your event mask
-    rep.data_extra.push(new x_types.UInt16(window.do_not_propagate_mask)); // Do not propagate mask
-    rep.data_extra.push(new x_types.UInt16(0)); // Unused
+      , rep = new x_types.WorkReply(req);
+    rep.backing_store = 2; // Backing store (0 NotUseful, 1 WhenMapper, 2 Always)
+    rep.visual_id = 0; // Visual id
+    rep.input_output = window.input_output; // Class (1 InputOutput, 2 InputOnly)
+    rep.bit_gravity = 0; // Bit gravity
+    rep.win_gravity = 0; // Win gravity
+    rep.backing_planes = 0; // Backing planes
+    rep.background_pixel = window.background_pixel || 0; // Backing pixel
+    rep.save_under = 0; // Save under
+    rep.map_installed = window.isMapped() ? 1 : 0; // Map is installed
+    // Map state (0 Unmapped, 1 Unviewable, 2 Viewable)
+    rep.override_redirect = window.override_redirect; // Override redirect
+    rep.colormap = (this._colormap && this._colormap.id) || 0;// Colormap
+    rep.event_mask = window.event_mask;// All event masks
+    // Your event mask
+    rep.do_not_propagate_mask = window.do_not_propagate_mask; // Do not propagate mask
     callback(null, rep);
   }
   
@@ -551,44 +550,44 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.GetGeometry = function (req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
-      , rep = new x_types.Reply(req);
-    rep.data_byte = drawable.depth;
+      , rep = new x_types.WorkReply(req);
+    rep.depth = drawable.depth;
 
-    rep.data.writeUInt32(drawable.getRoot().id, 0);
-    rep.data.writeInt16(drawable.x, 4);
-    rep.data.writeInt16(drawable.y, 6);
-    rep.data.writeInt16(drawable.width, 8);
-    rep.data.writeInt16(drawable.height, 10);
+    rep.root = drawable.getRoot().id;
+    rep.x = drawable.x;
+    rep.y = drawable.y;
+    rep.width = drawable.width;
+    rep.height = drawable.height;
     // TODO: 2 byte border-geom
     callback(null, rep);
   }
 
   XServerClient.prototype.QueryTree = function (req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.Reply(req);
-    rep.data.writeUInt32(window.getRoot(), 0);
-    rep.data.writeUInt32((window.parent && window.parent.id) || 0, 4);
-    rep.data.writeUInt16(window.children.length, 8);
-    window.children.forEach(function (child) {
-      rep.data_extra.push(new x_types.UInt32(child.id));
+      , rep = new x_types.WorkReply(req)
+      , root = window.getRoot();
+    rep.root = root && root.id;
+    rep.parent = window.parent && window.parent.id;
+    rep.children = window.children.map(function (child) {
+      return child.id;
     });
+    console.log(rep.children);
     callback(null, rep);
   }
 
   XServerClient.prototype.InternAtom = function (req, callback) {
     var index = this.server.getAtom(req.name, true)
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.WorkReply(req);
     if ((!index) && ! req.only_if_exists)
       index = this.server.atoms.push(req.name);
-    rep.data.writeUInt32(index, 0);
+    rep.atom = index;
     callback(null, rep);
   }
 
   XServerClient.prototype.GetAtomName = function (req, callback) {
     var atom = this.server.getAtom(req.atom)
-      , rep = new x_types.Reply(req);
-    rep.data.writeUInt16(atom.length);
-    rep.data_extra.push(new x_types.String(atom));
+      , rep = new x_types.WorkReply(req);
+    rep.name = atom;
     callback(null, rep);
   }
 
@@ -614,7 +613,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       , type = req.type
       , long_off = req.long_off
       , long_len = req.long_len
-      , rep = new x_types.Reply(req);
+      , rep = new x_types.WorkReply(req);
 
     //console.log('Get Property', window.id, property);
 
@@ -622,26 +621,18 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     if (!value)
       return callback(null, rep);
 
-    rep.data_byte = value.format;
-    rep.data.writeUInt32(value.type || 0, 0);
-    rep.data.writeUInt32(value.length || 0, 4);
-    console.log(value.length / (value.format / 8));
-    rep.data.writeUInt32(value.length / (value.format / 8), 8);
-    rep.data_extra.push(new x_types.DataBuffer(value));
+    rep.format = value.format;
+    rep.type = value.type;
+    rep.length = value.length;
+    rep.value = value.buffer;
     callback(null, rep);
   }
 
   XServerClient.prototype.ListProperties = function (req, callback) {
     var self = this
       , window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.Reply(req)
-      , atoms = Object.keys(window.properties).map(function (name) { return self.atoms.indexOf(name) + 1 });
-    rep.data.writeUInt16(atoms.length, 0);
-
-    atoms.forEach(function (atom) {
-      rep.data_extra.push(new x_types.UInt32(atom));
-    });
-
+      , rep = new x_types.WorkReply(req);
+    rep.atoms = Object.keys(window.properties).map(function (name) { return self.atoms.indexOf(name) + 1 });
     callback(null, rep);
   }
 
@@ -649,8 +640,8 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     var atom_id = req.atom
       , atom = this.server.atoms[atom_id]
       , owner = this.server.atom_owners[atom_id]
-      , rep = new x_types.Reply(req);
-    rep.data.writeUInt32((owner && this.server.getResource(owner) && owner) || 0)
+      , rep = new x_types.WorkReply(req);
+    rep.owner = (owner && this.server.getResource(owner) && owner) || 0;
     callback(null, rep);
   }
 
@@ -754,13 +745,11 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.QueryPointer = function (req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.Reply(req);
-    rep.data.writeUInt32(0x26, 0);
-    rep.data.writeUInt32(0, 4);
-    rep.data.writeUInt16(this.server.mouseX, 8);
-    rep.data.writeUInt16(this.server.mouseY, 10);
-    rep.data.writeUInt16(this.server.mouseX - window.x, 12);
-    rep.data.writeUInt16(this.server.mouseY - window.y, 14);
+      , rep = new x_types.WorkReply(req);
+    rep.serverX = this.server.mouseX;
+    rep.serverY = this.server.mouseY;
+    rep.windowX = this.server.mouseX - window.x;
+    rep.windowY = this.server.mouseY - window.y;
     callback(null, rep);
   }
 
@@ -784,12 +773,14 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.GetInputFocus = function (req, callback) {
-    var rep = new x_types.Reply(req);
-    rep.data_byte = this.server.input_focus_revert;
-    rep.data.writeUInt32(
-        (this.server.input_focus === this.server.root ? 1 : this.server.input_focus) || 0
-      , 0
-    );
+    var rep = new x_types.WorkReply(req);
+    rep.revert_to = this.server.input_focus_revert;
+    if (this.server.input_focus === this.server.root)
+      rep.focus = 1;
+    else if (this.server.input_focus)
+      rep.focus = this.server.input_focus.id;
+    else
+      rep.focus = 0;
     callback(null, rep);
   }
 
@@ -835,13 +826,8 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.ListFonts = function (req, callback) {
-    var fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
-
-    var rep = new x_types.Reply(req);
-    rep.data.writeUInt16(fonts.length);
-    fonts.forEach(function (font) {
-      rep.data_extra.push(new x_types.XString(font));
-    });
+    var rep = new x_types.WorkReply(req);
+    rep.fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     callback(null, rep);
   }
 
@@ -1111,11 +1097,11 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.AllocColor = function (req, callback) {
     var cmap = this.server.getResource(req.cmap, x_types.ColorMap)
-      , rep = new x_types.Reply(req);
-    rep.data.writeUInt16(req.r, 0);
-    rep.data.writeUInt16(req.g, 2);
-    rep.data.writeUInt16(req.b, 4);
-    rep.data.writeUInt32( (req.r << 16) | (req.g << 8) | req.b, 8);
+      , rep = new x_types.WorkReply(req);
+    rep.r = req.r;
+    rep.g = req.g;
+    rep.b = req.b;
+    rep.id =  (req.r << 16) | (req.g << 8) | req.b;
     callback(null, rep);
   }
 

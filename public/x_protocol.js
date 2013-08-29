@@ -432,6 +432,26 @@ define(
       Request.GetWindowAttributes = function () {
         this.window = this.data.readUInt32(0)
       }
+
+      Request.GetWindowAttributes.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data_byte = rep.backing_store;
+        this.data.writeUInt32(rep.visual_id, 0); // Visual id
+        this.data.writeUInt16((!rep.input_output) + 1, 4); // Class (1 InputOutput, 2 InputOnly)
+        this.data.writeUInt8(rep.bit_gravity, 6); // Bit gravity
+        this.data.writeUInt8(rep.win_gravity, 7); // Win gravity
+        this.data.writeUInt32(rep.backing_planes, 8); // Backing planes
+        this.data.writeUInt32(rep.background_pixel || 0, 12); // Backing pixel
+        this.data.writeUInt8(rep.save_under, 16); // Save under
+        this.data.writeUInt8(rep.map_installed, 17); // Map is installed
+        this.data.writeUInt8(rep.map_state, 18); // Map state (0 Unmapped, 1 Unviewable, 2 Viewable)
+        this.data.writeUInt8(rep.override_redirect, 19); // Override redirect
+        this.data.writeUInt32(rep.colormap, 20); // Colormap
+        this.data_extra.push(new x_types.UInt32(rep.event_mask)); // All event masks
+        this.data_extra.push(new x_types.UInt32(rep.event_mask)); // Your event mask
+        this.data_extra.push(new x_types.UInt16(rep.do_not_propagate_mask)); // Do not propagate mask
+        this.data_extra.push(new x_types.UInt16(0)); // Unused
+      }
       
       Request.DestroyWindow = function () {
         this.window = this.data.readUInt32(0)
@@ -479,9 +499,30 @@ define(
       Request.GetGeometry = function () {
         this.drawable = this.data.readUInt32(0)
       }
+
+      Request.GetGeometry.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data_byte = rep.depth;
+        this.data.writeUInt32(rep.root.id, 0);
+        this.data.writeInt16(rep.x, 4);
+        this.data.writeInt16(rep.y, 6);
+        this.data.writeInt16(rep.width, 8);
+        this.data.writeInt16(rep.height, 10);
+        // TODO: 2 byte border-geom
+      }
     
       Request.QueryTree = function () {
         this.window = this.data.readUInt32(0)
+      }
+
+      Request.QueryTree.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data.writeUInt32(rep.root, 0);
+        this.data.writeUInt32(rep.parent || 0, 4);
+        this.data.writeUInt16(rep.children.length, 8);
+        this.data_extra = rep.children.map(function (child) {
+          return new x_types.UInt32(child);
+        });
       }
     
       Request.InternAtom = function () {
@@ -489,9 +530,20 @@ define(
         this.name_length = this.data.readUInt16(0)
         this.name = this.data.toString('ascii', 4, 4 + this.name_length)
       }
+
+      Request.InternAtom.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data.writeUInt32(rep.atom, 0);
+      }
     
       Request.GetAtomName = function () {
         this.atom = this.data.readUInt32(0);
+      }
+
+      Request.GetAtomName.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        rep.data.writeUInt16(rep.name.length);
+        rep.data_extra.push(new x_types.String(rep.name));
       }
     
       Request.ChangeProperty = function () {
@@ -518,13 +570,39 @@ define(
         this.long_off = this.data.readUInt32(12)
         this.long_len = this.data.readUInt32(16)
       }
+
+      Request.GetProperty.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data_byte = rep.format;
+        if (rep.format) {
+          this.data.writeUInt32(rep.type || 0, 0);
+          this.data.writeUInt32(rep.length || 0, 4);
+          this.data.writeUInt32(rep.length / (rep.format / 8), 8);
+          console.error(rep.value);
+          this.data_extra.push(new x_types.DataBuffer(rep.value));
+        }
+      }
     
       Request.ListProperties = function () {
         this.window = this.data.readUInt32(0)
       }
+
+      Request.ListProperties.Rep = function (rep) {
+        var self = this;
+        this.constructor.super_.apply(this, arguments);
+        rep.data.writeUInt32(rep.atoms.length);
+        rep.atoms.forEach(function (atom){
+          self.data_extra.push(new x_types.UInt32(atom));
+        });
+      }
     
       Request.GetSelectionOwner = function () {
         this.atom_id = this.data.readUInt32(0)
+      }
+
+      Request.GetSelectionOwner.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data.writeUInt32(rep.owner);
       }
     
       Request.SendEvent = function () {
@@ -571,6 +649,16 @@ define(
       Request.QueryPointer = function () {
         this.window = this.data.readUInt32(0)
       }
+
+      Request.QueryPointer.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data.writeUInt32(0x26, 0);
+        this.data.writeUInt32(0, 4);
+        this.data.writeUInt16(rep.serverX, 8);
+        this.data.writeUInt16(rep.serverY, 10);
+        this.data.writeUInt16(rep.windowX, 12);
+        this.data.writeUInt16(rep.windowY, 14);
+      }
     
       Request.SetInputFocus = function () {
         this.revert = this.data_byte
@@ -579,6 +667,12 @@ define(
       }
     
       Request.GetInputFocus = function () {
+      }
+
+      Request.GetInputFocus.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data_byte = rep.revert_to;
+        this.data.writeUInt32(rep.focus, 0);
       }
     
       Request.OpenFont = function () {
@@ -594,11 +688,26 @@ define(
       Request.QueryFont = function () {
         this.font = this.data.readUInt32(0)
       }
+
+      Request.QueryFont.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data = new EndianBuffer(32);
+        this.data.endian = this.endian;
+      }
     
       Request.ListFonts = function () {
         this.max_names = this.data.readUInt16(0)
         this.pattern_length = this.data.readUInt16(2)
         this.pattern = this.data.toString('ascii', 4, 4 + this.pattern_length)
+      }
+
+      Request.ListFonts.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data.writeUInt16(rep.fonts.length, 0);
+        this.data_extra = rep.fonts.map(function (font) {
+          console.error('ListFonts, Font: ', font);
+          return new x_types.XString(font);
+        })
       }
     
       Request.ListFontsWithInfo = function () {
@@ -857,6 +966,14 @@ define(
         this.r = this.data.readUInt16(4) >> 8
         this.g = this.data.readUInt16(6) >> 8
         this.b = this.data.readUInt16(8) >> 8
+      }
+
+      Request.AllocColor.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data.writeUInt16(rep.r, 0);
+        this.data.writeUInt16(rep.g, 2);
+        this.data.writeUInt16(rep.b, 4);
+        this.data.writeUInt32(rep.id, 8);
       }
     
       Request.QueryColors = function () {

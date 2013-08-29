@@ -76,7 +76,9 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
         return self.requests.push(message);
       var func = self[message.type];
       try {
+        console.time('Request ' + message.type)
         func && func.call(self, req, function (err, rep) {
+          console.timeEnd('Request ' + message.type)
           if (rep) {
             if (Array.isArray(rep))
               rep.forEach(self.processReply.bind(self));
@@ -85,6 +87,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
           }
         });
       } catch (e) {
+        console.timeEnd('Request ' + message.type)
         if (e instanceof x_types.Error) {
           e.endian = req.endian;
           e.opcode = req.opcode;

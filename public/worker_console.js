@@ -1,7 +1,7 @@
 define('worker_console', function () {
   var window = this;
   var counter = 0;
-  if (window.document === undefined) {
+  if (window.document === undefined && window.console === undefined) {
     console = ([
         'log'
       , 'warn'

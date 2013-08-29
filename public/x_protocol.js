@@ -149,7 +149,6 @@ define(
         postMessage({ cmd: 'end', id: this.id });
       }
       XProtocolClient.prototype.postRequest = function (request) {
-        console.log('postRequest');
         var type = request.constructor.name || request.opname
           , transferrable = [];
         Object.keys(request).forEach(function (name) {
@@ -160,7 +159,6 @@ define(
         postMessage({ cmd: 'request', id: this.id, type: type, request: request });
       }
       XProtocolClient.prototype.processData = function (data) {
-        console.log('processData', this.state, this.buffer);
         data.endian = this.endian;
         if (this.buffer) {
           var data_new = new EndianBuffer(this.buffer.length + data.length);
@@ -183,7 +181,6 @@ define(
               gooj -= 1;
               if (gooj < 1) throw new Error('You are out of jail, have a nice day!');
               req = new Request(data, this.sequence);
-              console.log('new Request', req.length, data.length);
               if (req.length > data.length) {
                 this.buffer = data;
                 break;

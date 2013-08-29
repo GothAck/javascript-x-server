@@ -64,7 +64,6 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
           throw e;
         }
       }
-      
     }
   }
   
@@ -896,7 +895,6 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   XServerClient.prototype.CreateGC = function (req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
     console.log('CreateGC', drawable, req.cid, req.fields)
-    console.log(this, req.cid, drawable, req.vmask, req.vdata);
     this.server.putResource(new x_types.GraphicsContext(this, req.cid, drawable, req.fields));
     callback();
   }

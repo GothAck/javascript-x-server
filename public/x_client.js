@@ -1215,64 +1215,26 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.PolyText8 = function (req, callback) {
-    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
-      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
+    var drawable = this.server.getResource(req.drawable, x_types.Drawable)
+      , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
-      , count = (req.length_quad / 4) - 1
-      , x = req.data.readInt16(8)
-      , y = req.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
-      , textitems = []
-      , req_offset = 12;
-    for (var i = 0; i < count; i ++) {
-      var len = req.data.readUInt8(req_offset);
-      if (len === 0)
-        break;
-      if (len === 255)
-        throw new Error('Type 255');
-      else {
-        var delta = req.data.readInt8(req_offset + 1)
-          , start = req_offset + 2
-          , end = req_offset + 2 + len
-          , str = req.data.toString('ascii', start, end);
-        context.fillText(str, x + delta, y)
-        x += context.measureText(str).width + delta;
-//        x += gc.font.font.drawTo(str, gc.getContext(drawable), x + delta, y, 255, 255, 255);
-        req_offset = end + ((end % 4) ? (4 - (end % 4)) : 0);
-        if (req_offset + 4 >= req.data.length)
-          break;
-      }
-    }
+      , x = req.x;
+    req.textitems.forEach(function (item) {
+      context.fillText(item.str, x + item.delta, req.y);
+      x += context.measureText(item.str).width + delta;
+    });
     callback();
   }
 
   XServerClient.prototype.PolyText16 = function (req, callback) {
-    var drawable = this.server.getResource(req.data.readUInt32(0), x_types.Drawable)
-      , gc = this.server.getResource(req.data.readUInt32(4), x_types.GraphicsContext)
+    var drawable = this.server.getResource(req.drawable, x_types.Drawable)
+      , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
-      , count = (req.length_quad - 1) / 4
-      , x = req.data.readInt16(8)
-      , y = req.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
-      , textitems = []
-      , req_offset = 12;
-    for (var i = 0; i < count; i ++) {
-      var len = req.data.readUInt8(req_offset);
-      if (len === 0)
-        break;
-      if (len === 255)
-        throw new Error('Type 255');
-      else {
-        var delta = req.data.readInt8(req_offset + 1)
-          , start = req_offset + 2
-          , end = req_offset + 2 + (len * 2)
-          , str = this.server.encodeString(req.data.toString('2charb', start, end));
-        context.fillText(str, x + delta, y);
-        x += context.measureText(str).width + delta;
-//        x += gc.font.font.drawTo(str, gc.getContext(drawable), x + delta, y, 255, 255, 255);
-        req_offset = end + ((end % 4) ? (4 - (end % 4)) : 0);
-        if (req_offset + 4 >= req.data.length)
-          break;
-      }
-    }
+      , x = req.x;
+    req.textitems.forEach(function (item) {
+      context.fillText(item.str, x + item.delta, req.y);
+      x += context.measureText(item.str).width + delta;
+    });
     callback();
   }
 

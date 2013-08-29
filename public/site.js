@@ -47,35 +47,6 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
           EndianBuffer.ensure(event.data.request);
           server.processRequest(event.data);
         break;
-        case 'message':
-          if (event.data.data.constructor === String) {
-            var data = event.data.data.split(' ');
-            switch (data[0]) {
-              case 'SCR':
-                server = window.server = new XServer(data[1], function (data) {
-                  worker_comms.postMessage({ cmd: 'message', data: data }, [data]);
-                }, $('.screen'));
-                document.title = 'X Session :' + data[1];
-                $('h2').text('0 clients');
-              break;
-              case 'NEW':
-                server.newClient(data[1] ^ 0);
-                $('h2').text(Object.keys(server.clients).length + ' clients');
-              break;
-              case 'END':
-                server.disconnect(data[1] ^ 0);
-                $('h2').text(Object.keys(server.clients).length + ' clients');
-              break;
-              case 'PING':
-                worker_comms.postMessage({ cmd: 'message', data: 'PONG ' + data[1] });
-              break;
-              default:
-                console.log(data);
-            }
-          } else {
-            throw new Error('DEPRECATED');
-          }
-        break;
         case 'screen':
           server = window.server = new XServer(event.data.id, function (data, client, new_reply) {
             if (new_reply)

@@ -29,41 +29,6 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     return this.server.write(this, data);
   }
 
-  XServerClient.prototype.processData = function (data) {
-    throw new Error('DEPRECATED')
-    data.endian = this.endian;
-    if (this.buffer) {
-      var data_new = new EndianBuffer(data.length + this.buffer.length);
-      data_new.endian = this.endian;
-      this.buffer.copy(data_new, 0);
-      data.copy(data_new, this.buffer.length);
-      delete this.buffer;
-      data = data_new;
-    }
-    switch (this.state) {
-      case 0:
-        return this.setup(data);
-      case 1:
-        var req = { length: 0 };
-        while (data.length > 0) {
-          req = new x_types.Request(data, this.sequence)
-          if (req.length > data.length) {
-            this.buffer = data;
-            break;
-          }
-          this.sequence = this.sequence + 1;
-          this.reqs.push(req);
-          if (data.length > 0) {
-            data = data.slice(req.length);
-            data.endian = this.endian;
-          }
-        }
-        this.reqs.push(null); // Force a processReps after this batch!
-        if ((!this.server.grab) || this === this.server.grab )
-          this.processReqs();
-    }
-  }
-
   XServerClient.prototype.processRequest = function (message) {
     var req = message.request;
     if (message.type === 'SetupRequest') {
@@ -113,97 +78,6 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     this.write(rep);
   }
   
-  XServerClient.prototype.processReqs = function () {
-    throw new Error('DEPRECATED');
-    var self = this;
-    if (self.server.grab && self.server.grab !== self)
-      return self.reqs_processing = false;
-    if (self.reqs_processing)
-      return;
-    clearTimeout(self.reqs_timeout);
-    if (self.reqs.length) {
-      self.reqs_processing = true;
-      self.reqs_timeout = setTimeout(function () {
-        var req = self.reqs.shift();
-        if (req) {
-          var func = self[XServerClient.opcodes[req.opcode]];
-          if (func) {
-            console.group(req.sequence, self.sequence, self.sequence_sent, self.id, req.opcode, XServerClient.opcodes[req.opcode]);
-            try {
-              func && func.call(self, req, function (err, rep) {
-                if (rep) {
-                  if (Array.isArray(rep))
-                    self.reps = self.reps.concat(rep)
-                  else
-                    self.reps.push(rep);
-                }
-                self.reqs_processing = false;
-                self.processReqs()
-              });
-            } catch (e) {
-              if (e instanceof x_types.Error) {
-                e.opcode = req.opcode;
-                e.sequence = req.sequence & 0xffff;
-                console.error(self.id, e, e.stack);
-                self.reps.push(e);
-                self.reqs_processing = false;
-                self.processReqs();
-              } else {
-                console.error('Implementation Error');
-                self.reps.push(new x_types.Error(req, 17, 0));
-                throw e;
-              }
-            }
-            console.groupEnd();
-          } else {
-            console.error('################### UNKNOWN OPCODE', req.opcode);
-            // Send Implementation error
-            self.reps.push(new x_types.Error(req, 17, 0));
-            self.reqs_processing = false;
-            self.processReqs()
-          }
-        } else {
-          self.processReps();
-          self.reqs_processing = false;
-          self.processReqs()
-        }
-      }, 0);
-    } else
-      self.processReps();
-  }
-
-  XServerClient.prototype.processReps = function () {
-    throw new Error('DEPRECATED');
-    var self = this;
-    if (self.reps_processing)
-      return;
-    clearTimeout(self.reps_timeout);
-    if (self.reps.length || self.events.length) {
-      self.reps_processing = true;
-      self.reps_timeout = setTimeout(function () {
-        var reps = self.reps.splice(0, self.reps.length).filter(function (rep) { return rep })
-        if (reps.length === 0 && self.events.length)
-          reps = self.events.splice(0, self.events.length);
-        if (reps.length) {
-          var res = new EndianBuffer(
-                reps.reduce(function (o, rep) { return o + rep.length }, 0)
-              );
-          res.endian = self.endian;
-          reps.reduce(function (o, rep) {
-            if (rep instanceof x_types.events.Event)
-              rep.sequence = self.sequence_sent;
-            if(self.sequence_sent < rep.sequence)
-              self.sequence_sent = rep.sequence;
-            return rep.writeBuffer(res, o);
-          }, 0);
-          self.write(res);
-        }
-        self.reps_processing = false;
-      });
-    } else
-      self.reps_processing = false;
-  }
-
   XServerClient.prototype.sendEvent = function (event) {
     console.log('XServerClient.sendEvent', event);
     var self = this;

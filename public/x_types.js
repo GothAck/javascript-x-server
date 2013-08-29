@@ -581,8 +581,6 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   Window.prototype.__defineSetter__('event_mask', Window_event_mask_setter = function (event_mask) {
     var self = this
       , set_client = Window_event_mask_setter.caller.arguments[0];
-      console.log('Window event_mask setter', set_client)
-      console.log(Window_event_mask_setter.caller.arguments, Window_event_mask_setter.caller.caller.caller);
     this.event_clients[set_client.id] = this.processEventMask(event_mask);
     this.event_clients[set_client.id].mask = event_mask;
     
@@ -723,7 +721,6 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   }
 
   Window.prototype.triggerEvent = function (event, data) {
-    console.log('Window.triggerEvent', event, data);
     var self = this;
     if (! (event instanceof events.Event))
       event = new events.map[event](this, data || {});
@@ -734,24 +731,18 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     //console.log(self.element.parentsUntil('#eventfilter').andSelf().filter('.' + des.join(',.')).length)
     if (event.dom_events)
       return event.dom_events.forEach(function (dom_event) {
-        console.log('triggering de', dom_event, self.element.hasClass(dom_event));
         self.element.trigger(dom_event, [event]);
       });
-    console.log('triggering', event.constructor.name, self.element.hasClass(event.constructor.name));
     return this.element.trigger(event.constructor.name, [event]);
   }
 
   Window.prototype.onEvent = function (event, data) {
-    console.log('Window.onEvent', event, data);
     var self = this;
 //    if (~this.events.indexOf(event)) {
     if (event instanceof events.Event) {
-      console.log('Event ready', event.testReady(), self.event_clients);
       if (event.testReady())
         Object.keys(self.event_clients).forEach(function (k) {
-          console.log('Event client', k, ~ self.event_clients[k].indexOf(event.event_type), event.event_type);
           if (~ self.event_clients[k].indexOf(event.event_type)) {
-            console.log('Test client', ! self.owner.server.clients[k]);
             if (! self.owner.server.clients[k])
               return delete self.event_clients[k];
             self.owner.server.clients[k].sendEvent(event);

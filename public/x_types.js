@@ -84,7 +84,10 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   }
 
   function DataBuffer (buffer) {
-    this.buffer = buffer;
+    if (buffer instanceof ArrayBuffer)
+      this.buffer = new EndianBuffer(buffer)
+    else
+      this.buffer = buffer;
   }
   module.exports.DataBuffer = DataBuffer;
   DataBuffer.prototype.__defineGetter__('length', function () { return this.buffer.length });

@@ -344,6 +344,14 @@ define(
         , 119: 'GetModifierMapping'
         , 127: 'NoOperation'
       }
+      Request.opcodes_name = Object.keys(Request.opcodes)
+        .reduce(
+            function (o, key) {
+              o[Request.opcodes[key]] = key;
+              return o;
+            }
+          , {}
+        );
       Request.CreateWindow = function () {
         this.depth = this.data_byte;
         this.id = this.data.readUInt32(0);

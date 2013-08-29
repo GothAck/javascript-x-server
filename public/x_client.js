@@ -61,7 +61,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
         } else {
           console.error('Implementation Error', e.stack);
           self.processReply(new x_types.Error(req, 17, 0));
-          throw e.stack;
+          throw e;
         }
       }
       

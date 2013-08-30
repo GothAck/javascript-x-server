@@ -244,7 +244,6 @@ define(
       }
 
       Reply.prototype.toBuffer = function () {
-        console.error(this.length)
         var buffer = new EndianBuffer(this.length);
         buffer.endian = this.data.endian;
         this.writeBuffer(buffer, 0);
@@ -578,7 +577,6 @@ define(
           this.data.writeUInt32(rep.type || 0, 0);
           this.data.writeUInt32(rep.length || 0, 4);
           this.data.writeUInt32(rep.length / (rep.format / 8), 8);
-          console.error(rep.value);
           this.data_extra.push(new x_types.DataBuffer(rep.value));
         }
       }
@@ -705,7 +703,6 @@ define(
         this.constructor.super_.apply(this, arguments);
         this.data.writeUInt16(rep.fonts.length, 0);
         this.data_extra = rep.fonts.map(function (font) {
-          console.error('ListFonts, Font: ', font);
           return new x_types.XString(font);
         })
       }

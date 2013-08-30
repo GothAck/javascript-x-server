@@ -224,6 +224,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   XServerClient.prototype.imageFromZPixmap = function (dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
       , scanline = width + (width % (format.scanline_pad / format.bpp));
+    data.endian = true; // ZPixmaps always have the same endianess?!
     width = scanline; // Overscan the image for now! FIXME: Need to crop instead of overscan!
     switch (depth) {
       case 1:
@@ -256,6 +257,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
         var byte_pp = format.bpp / 8
           , func_pp = 'writeUInt' + format.bpp
           , data = new EndianBuffer(scanline * height * byte_pp);
+        data.endian = true; // ZPixmaps always have the same endianess?!
         row: for (var y = 0; y < height; y ++)
           col: for (var x = 0; x < scanline; x ++) {
             if (x < width) {

@@ -1079,7 +1079,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       , x = req.x;
     req.textitems.forEach(function (item) {
       context.fillText(item.str, x + item.delta, req.y);
-      x += context.measureText(item.str).width + delta;
+      x += context.measureText(item.str).width + item.delta;
     });
     callback();
   }
@@ -1091,7 +1091,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       , x = req.x;
     req.textitems.forEach(function (item) {
       context.fillText(item.str, x + item.delta, req.y);
-      x += context.measureText(item.str).width + delta;
+      x += context.measureText(item.str).width + item.delta;
     });
     callback();
   }

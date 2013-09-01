@@ -9,7 +9,6 @@ define([], function () {
       , test_text = 'qwertyuiopasdfghjklzxcvbnm,,.QWERTYUIOPASDFGHJKLZXCVBNM'
       , test = $('<span></span>')
           .text(test_text)
-          .addClass(_class_important)
           .css({
               'font-family': test_font
             , 'visibility': 'hidden'
@@ -17,7 +16,7 @@ define([], function () {
       , canvas = $('<canvas></canvas>')
       , ctx = canvas[0].getContext('2d');
     body.append(test).append(canvas);
-    ctx.font = '20px "' + family + '"';
+    ctx.font = '20px "' + test_font + '"';
     var testcm = ctx.measureText(test_text).width;
     var testm = test.width()
       , i = 0
@@ -32,6 +31,8 @@ define([], function () {
             callback('Timeout');
           }
         }, interval);
+    ctx.font = '20px "' + family + '"';
+    test.css({ 'font-family': "\"" + family + "\"" });
     body.append(
       "<style id=\"" + style_id + "\">\n"+
       "  @font-face { font-family: \"" + family + "\"; src: url('" + filename + '.' + type + "') format('" + type + "'); }\n"+

@@ -835,6 +835,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.ListFontsWithInfo = function (req, callback) {
+    var self = this;
     var fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     console.log('ListFontsWithInfo', req.pattern);
     if (!fonts.length) {
@@ -858,7 +859,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
           var reps = fonts.map(function (font) {
             var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
             rep.data = new EndianBuffer(32);
-            rep.data.endian = req.data.endian;
+            rep.data.endian = self.endian;
             rep.data_byte = font.name.length;
             font.getChar(-1).toCharInfo().writeBuffer(rep.data, 0);
             font.getChar(-2).toCharInfo().writeBuffer(rep.data, 16);

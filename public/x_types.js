@@ -70,17 +70,37 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     buffer.writeUInt8(this.string.length, offset)
     buffer.write(this.string, offset + 1, this.string.length, 'ascii');
     return offset + this.string.length + 1;
-  }
+  };
 
-  function String (string) {
-    this.string = string;
-  }
-  module.exports.String = String;
-  String.length = -1;
-  String.prototype.__defineGetter__('length', function () { return this.string.length });
-  String.prototype.writeBuffer = function (buffer, offset) {
-    buffer.write(this.string, offset, this.string.length, 'ascii');
-    return offset + this.string.length;
+  (function (OrigString) {
+    function String (string) {
+      this.string = string;
+    }
+    module.exports.String = String;
+    String.length = -1;
+    String.prototype.__defineGetter__('length', function () { return this.string.length });
+    String.prototype.writeBuffer = function (buffer, offset) {
+      buffer.write(this.string, offset, this.string.length, 'ascii');
+      return offset + this.string.length;
+    }
+  })(String);
+  module.exports.String.encodeString = function (str) {
+    var out_str = '';
+    if (typeof str !== 'string')
+      return str;
+    for (var i = 0; i < str.length; i ++) {
+      var v = str.charCodeAt(i);
+      if (v < 0x21) {
+        out_str += String.fromCharCode(0x2400 + v);
+        continue;
+      }
+      if (v > 0x7e && v < 0xa1) {
+        out_str += String.fromCharCode(0xf800 - 0x7e + v);
+        continue;
+      }
+      out_str += str.charAt(i);
+    }
+    return out_str;
   }
 
   function DataBuffer (buffer) {

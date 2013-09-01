@@ -1179,7 +1179,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       context.fillStyle = '#' + color;
       context.font = '30px "' + mask_font.file_name + '"';
       context.fillText(
-          this.server.encodeString(String.fromCharCode(req.mask_char))
+          x_types.String.encodeString(String.fromCharCode(req.mask_char))
         , x
         , y
       );
@@ -1195,7 +1195,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     if (source_font !== mask_font)
       context.font = '30px "' + source_font.file_name + '"';
     context.fillText(
-        this.server.encodeString(String.fromCharCode(req.source_char))
+        x_types.String.encodeString(String.fromCharCode(req.source_char))
       , x
       , y
     );

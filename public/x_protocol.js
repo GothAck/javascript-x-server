@@ -901,7 +901,6 @@ define(
       Request.PolyText8 = function () {
         this.drawable = this.data.readUInt32(0)
         this.gc = this.data.readUInt32(4)
-        this.context = gc.getContext(drawable)
         this.count = (this.length_quad / 4) - 1
         this.x = this.data.readInt16(8)
         this.y = this.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
@@ -918,9 +917,9 @@ define(
                 delta : this.data.readInt8(req_offset + 1)
               , start : req_offset + 2
               , end : req_offset + 2 + len
-              , str : this.data.toString('ascii', start, end)
             };
-            textitems.push(textitem);
+            textitem.str = x_types.String.encodeString(this.data.toString('ascii', textitem.start, textitem.end));
+            this.textitems.push(textitem);
             req_offset = textitem.end + ((textitem.end % 4) ? (4 - (textitem.end % 4)) : 0);
             if (req_offset + 4 >= this.data.length)
               break;
@@ -931,7 +930,6 @@ define(
       Request.PolyText16 = function () {
         this.drawable = this.data.readUInt32(0)
         this.gc = this.data.readUInt32(4)
-        this.context = gc.getContext(drawable)
         this.count = (this.length_quad - 1) / 4
         this.x = this.data.readInt16(8)
         this.y = this.data.readInt16(10)// - gc.font.font.getChar(-1).ascent
@@ -948,10 +946,10 @@ define(
                 delta : this.data.readInt8(req_offset + 1)
               , start : req_offset + 2
               , end : req_offset + 2 + (len * 2)
-              , str : this.server.encodeString(this.data.toString('2charb', start, end))
             }
+            textitem.str = x_types.String.encodeString(this.data.toString('2charb', textitem.start, textitem.end))
             req_offset = textitem.end + ((textitem.end % 4) ? (4 - (textitem.end % 4)) : 0);
-            textitems.push(textitem);
+            this.textitems.push(textitem);
             if (req_offset + 4 >= this.data.length)
               break;
           }

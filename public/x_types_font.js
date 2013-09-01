@@ -450,7 +450,7 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     var height = this.getChar(-1);
     height = height.ascent + height.descent - 1;
     if (! $('style#' + this.css_name).length)
-      loadCSSFont('fonts/' + this.file_name, this.type, height, 'font_' + this.name, this.css_name, function () { callback() });
+      loadCSSFont('fonts/' + this.file_name, this.type, height, 'font_' + this.name, this.css_name, callback);
   }
 
   VectorFont.prototype.close = function () {

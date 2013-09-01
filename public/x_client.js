@@ -967,7 +967,8 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     req.lines.forEach(function (line) {
       context.beginPath();
       context.moveTo(line[0][0], line[0][1])
-      context.moveTo(line[1][0], line[1][1])
+      context.lineTo(line[1][0], line[1][1])
+      context.stroke();
     })
     callback();
   }

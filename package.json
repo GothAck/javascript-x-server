@@ -4,11 +4,11 @@
   "description": "Javascript X11 Server",
   "main": "proxy.js",
   "dependencies": {
-    "async": "~0.1.22",
-    "connect": "~2.7.2",
-    "websocket": "~1.0.8",
-    "canvas": "~0.13.1",
-    "supervisor": "~0.5.0",
+    "async": "*",
+    "connect": "*",
+    "websocket": "*",
+    "canvas": "*",
+    "supervisor": "*",
     "requirejs": "*",
     "wolfy-eventemitter": "*"
   },
@@ -16,8 +16,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "debug": "./node_modules/.bin/supervisor proxy.js",
-    "start": "node proxy",
-    "postinstall": "ln -s ../../node_modules/requirejs/require.js public/lib/; ln -s ../../node_modules/wolfy-eventemitter/src/EventEmitter.js public/lib/"
+    "start": "node node_modules/.bin/supervisor -w proxy.js proxy",
+    "postinstall": "ln -sf ../../node_modules/requirejs/require.js public/lib/; ln -sf ../../node_modules/wolfy-eventemitter/src/EventEmitter.js public/lib/; ln -sf ../../node_modules/async/lib/async.js public/lib/"
   },
   "repository": {
     "type": "git",

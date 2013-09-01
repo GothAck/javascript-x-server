@@ -541,8 +541,8 @@ define(
 
       Request.GetAtomName.Rep = function (rep) {
         this.constructor.super_.apply(this, arguments);
-        rep.data.writeUInt16(rep.name.length);
-        rep.data_extra.push(new x_types.String(rep.name));
+        this.data.writeUInt16(rep.name.length);
+        this.data_extra.push(new x_types.String(rep.name));
       }
     
       Request.ChangeProperty = function () {
@@ -588,7 +588,7 @@ define(
       Request.ListProperties.Rep = function (rep) {
         var self = this;
         this.constructor.super_.apply(this, arguments);
-        rep.data.writeUInt32(rep.atoms.length);
+        this.data.writeUInt32(rep.atoms.length);
         rep.atoms.forEach(function (atom){
           self.data_extra.push(new x_types.UInt32(atom));
         });

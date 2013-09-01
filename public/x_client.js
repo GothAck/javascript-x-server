@@ -29,7 +29,9 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.processRequest = function (message) {
-    var req = message.request;
+    var req = message.request
+      , req_str = '> Request (' + this.id + ') ' + message.type;
+    console.log(req_str, req);
     if (message.type === 'SetupRequest') {
       if (this.state !== 0)
         throw new Error('SetupRequest received at the wrong time?!');
@@ -40,9 +42,9 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
         return self.requests.push(message);
       var func = self[message.type];
       try {
-        console.time('Request ' + message.type)
+        console.time(req_str);
         func && func.call(self, req, function (err, rep) {
-          console.timeEnd('Request ' + message.type)
+          console.timeEnd(req_str);
           if (rep) {
             if (Array.isArray(rep))
               rep.forEach(self.processReply.bind(self));
@@ -51,7 +53,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
           }
         });
       } catch (e) {
-        console.timeEnd('Request ' + message.type)
+        console.timeEnd(req_str);
         if (e instanceof x_types.Error) {
           e.endian = req.endian;
           e.opcode = req.opcode;

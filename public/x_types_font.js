@@ -81,6 +81,8 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
 
   Font.prototype.close = function () {}
 
+  Font.prototype.destroy = function () {}
+
   function PCFCharacter (left, right, width, ascent, descent, attrs) {
     this.left       = left;
     this.right      = right;

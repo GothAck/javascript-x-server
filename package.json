@@ -17,7 +17,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "debug": "./node_modules/.bin/supervisor proxy.js",
     "start": "node node_modules/.bin/supervisor -w proxy.js proxy",
-    "postinstall": "ln -sf ../../node_modules/requirejs/require.js public/lib/; ln -sf ../../node_modules/wolfy-eventemitter/src/EventEmitter.js public/lib/; ln -sf ../../node_modules/async/lib/async.js public/lib/"
+    "postinstall": "ln -sf ../../node_modules/requirejs/require.js public/lib/; ln -sf ../../node_modules/wolfy-eventemitter/src/EventEmitter.js public/lib/; ln -sf ../../node_modules/async/lib/async.js public/lib/",
+    "cloc": "cloc --exclude-dir=node_modules,public/lib,fonts,public/fonts,public/xcb ."
   },
   "repository": {
     "type": "git",

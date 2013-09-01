@@ -2,6 +2,7 @@ define([], function () {
   return function loadCSSFont (filename, type, height, _class, style_id, callback, timeout, interval) {
     interval = interval || 1;
     timeout = (timeout || 5000) / interval;
+    console.time('font_load: ' + filename);
     var family = filename.split('/').reverse()[0]
       , _class_important = _class + '_important'
       , body = $('body')
@@ -23,11 +24,18 @@ define([], function () {
       , testi = setInterval(function () { 
           i++;
           if (test.width() !== testm && ctx.measureText(test_text).width !== testcm) {
+            test.remove();
+            canvas.remove();
             clearInterval(testi);
+            console.timeEnd('font_load: ' + filename);
             return callback(null, i);
           }
           if (i > timeout) {
+            test.remove();
+            canvas.remove();
             clearInterval(testi);
+            console.timeEnd('font_load: ' + filename);
+            console.error('font_load_failed');
             callback('Timeout');
           }
         }, interval);

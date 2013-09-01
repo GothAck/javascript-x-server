@@ -176,7 +176,7 @@ define(
           break;
           case 1:
             var req = { length: 0 };
-            var gooj = 200;
+            var gooj = 2000;
             while (data.length > 0) {
               gooj -= 1;
               if (gooj < 1) throw new Error('You are out of jail, have a nice day!');

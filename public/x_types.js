@@ -451,6 +451,9 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   
   Drawable.error_code = 9;
 
+  Drawable.prototype.getRoot = function () {
+    return (this.owner.server || this.owner).root;
+  }
   Drawable.prototype.destroy = function () {
   }
 

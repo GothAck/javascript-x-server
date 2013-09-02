@@ -67,7 +67,9 @@ function X11Proxy (screen, connection, window_manager) {
 util.inherits(X11Proxy, EventEmitter);
 X11Proxy.prototype.newClient = function (socket) {
   var self = this
-    , id = socket.remotePort;
+    , id = 'Internet[' + socket.remoteAddress + ']:' + socket.remotePort;
+  if (id.length > 255)
+    throw new Error('id cannot be longer than 255 chars');
   this.client_sockets[id] = socket;
   this.connection.sendUTF('NEW ' + id);
   socket.on('close', function () {
@@ -75,9 +77,10 @@ X11Proxy.prototype.newClient = function (socket) {
     delete self.client_sockets[id];
   });
   socket.on('data', function (data) {
-    var buffer = new Buffer(data.length + 2);
-    data.copy(buffer, 2);
-    buffer.writeUInt16BE(id, 0);
+    var buffer = new Buffer(data.length + id.length + 1);
+    buffer.writeUInt8(id.length, 0);
+    buffer.write(id, 1, null, 'ascii');
+    data.copy(buffer, id.length + 1);
     self.connection.sendBytes(buffer);
   });
 }
@@ -99,10 +102,12 @@ X11Proxy.prototype.data = function (message) {
     }
   } else {
     var data = message.binaryData
-      , id = data.readUInt16LE(0);
+      , length = data.readUInt8(0)
+      , id = data.toString('ascii', 1, length + 1);
     if (this.client_sockets[id] && this.client_sockets[id].writable) {
-      this.client_sockets[data.readUInt16LE(0)].write(data.slice(2));
+      this.client_sockets[id].write(data.slice(length + 1));
     } else {
+      console.error('Socket closed already', length, id);
       this.connection.sendUTF('END ' + id);
     }
   }

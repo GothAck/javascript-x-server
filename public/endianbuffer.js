@@ -83,6 +83,8 @@ define('endianbuffer', function () {
 
   EndianBuffer.prototype.write = function (string, offset, length, encoding) {
     offset = offset || 0;
+    if (length === null)
+      length = Infinity;
     length = Math.min(string.length, (this.buffer.byteLength - offset), length);
     encoding = encoding || 'ascii';
     if (encoding !== 'ascii')

@@ -74,10 +74,10 @@ define(
           postMessage({ cmd: 'error', message: 'not connected?' });
         client.state = message.state;
         var data = new EndianBuffer(message.data)
-          , buffer = new EndianBuffer(data.length + 2);
-        buffer.endian = true; // Client id is always Little Endian
-        data.copy(buffer, 2);
-        buffer.writeUInt16(client.id, 0);
+          , buffer = new EndianBuffer(data.length + client.id.length + 1);
+        buffer.writeUInt8(client.id.length, 0);
+        buffer.write(client.id, 1, null, 'ascii');
+        data.copy(buffer, client.id.length + 1);
         this.socket.send(buffer.buffer);
       }
       XProtocolServer.prototype.serverReply = function (message) {
@@ -87,10 +87,10 @@ define(
             , Rep = ReqObj.Rep;
           var rep = new Rep(message.data, client)
             , data = rep.toBuffer()
-            , buffer = new EndianBuffer(data.length + 2);
-          buffer.endian = true;
-          data.copy(buffer, 2);
-          buffer.writeUInt16(client.id);
+            , buffer = new EndianBuffer(data.length + client.id.length + 1);
+          buffer.writeUInt8(client.id.length, 0);
+          buffer.write(client.id, 1, null, 'ascii');
+          data.copy(buffer, client.id.length + 1);
           this.socket.send(buffer.buffer);
         } catch (e) {
           console.error(e.toString(), e.stack);
@@ -101,16 +101,13 @@ define(
           var data = event.data.split(' ');
           switch (data[0]) {
             case 'SCR':
-              data[1] = data[1] ^ 0;
               postMessage({ cmd: 'screen', id: data[1] });
             break
             case 'NEW':
-              data[1] = data[1] ^ 0;
               postMessage({ cmd: 'new', id: data[1] });
               this.clients[data[1]] = new XProtocolClient(data[1]);
             break;
             case 'END':
-              data[1] = data[1] ^ 0;
               this.clients[data[1]].end();
               delete this.clients[data[1]]
             break;
@@ -122,10 +119,11 @@ define(
           }
         } else {
           var data = new EndianBuffer(event.data)
-            , id = data.readUInt16(0)
+            , length = data.readUInt8(0)
+            , id = data.toString('ascii', 1, length + 1);
           if (! this.clients[id])
             throw new Error('Invalid client! Disconnected?');
-          this.clients[id].processData(data.slice(2));
+          this.clients[id].processData(data.slice(length + 1));
         }
       }
       XProtocolServer.prototype.socketClose = function (event) {
@@ -139,7 +137,7 @@ define(
       module.exports.XProtocolServer = XProtocolServer;
       
       function XProtocolClient (id, sendData) {
-        this.id = id ^ 0;
+        this.id = id;
         this.sendData = sendData;
         this.endian = false;
         this.state = 0;

@@ -602,8 +602,7 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   }
   var Window_event_mask_setter;
   Window.prototype.__defineSetter__('event_mask', Window_event_mask_setter = function (event_mask) {
-    var self = this
-      , set_client = Window_event_mask_setter.caller.arguments[0];
+    var set_client = Window_event_mask_setter.caller.arguments[0];
     this.event_clients[set_client.id] = this.processEventMask(event_mask);
     this.event_clients[set_client.id].mask = event_mask;
     
@@ -615,9 +614,13 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
       , this.event_clients[set_client.id].mask.toString(2)
     ) 
 
-    event_mask = Object.keys(this.event_clients).reduce(function (o, k) {
-      return o | self.event_clients[k].mask;
-    }, 0);
+    event_mask = Object.keys(this.event_clients)
+      .map(function (client_id) {
+        return this.event_clients[client_id].mask;
+      }, this)
+      .reduce(function (val, mask) {
+        return val | mask;
+      }, 0);
     this.events = this.processEventMask(event_mask);
     this.events.mask = event_mask;
 
@@ -744,7 +747,6 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   }
 
   Window.prototype.triggerEvent = function (event, data) {
-    var self = this;
     if (! (event instanceof events.Event))
       event = new events.map[event](this, data || {});
     //var des = (event.dom_events || []).slice(0);
@@ -754,23 +756,22 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     //console.log(self.element.parentsUntil('#eventfilter').andSelf().filter('.' + des.join(',.')).length)
     if (event.dom_events)
       return event.dom_events.forEach(function (dom_event) {
-        self.element.trigger(dom_event, [event]);
-      });
+        this.element.trigger(dom_event, [event]);
+      }, this);
     return this.element.trigger(event.constructor.name, [event]);
   }
 
   Window.prototype.onEvent = function (event, data) {
-    var self = this;
 //    if (~this.events.indexOf(event)) {
     if (event instanceof events.Event) {
       if (event.testReady())
-        Object.keys(self.event_clients).forEach(function (k) {
-          if (~ self.event_clients[k].indexOf(event.event_type)) {
-            if (! self.owner.server.clients[k])
-              return delete self.event_clients[k];
-            self.owner.server.clients[k].sendEvent(event);
+        Object.keys(this.event_clients).forEach(function (k) {
+          if (~ this.event_clients[k].indexOf(event.event_type)) {
+            if (! this.owner.server.clients[k])
+              return delete this.event_clients[k];
+            this.owner.server.clients[k].sendEvent(event);
           }
-        });
+        }, this);
       return;
     }
     if (data instanceof events.Event) {

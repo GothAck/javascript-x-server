@@ -78,12 +78,11 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
   
   XServerClient.prototype.sendEvent = function (event) {
-    var self = this;
     //console.error((new Event).stack);
     // Endian hacks until we process events within x_protocol worker!
     event.endian = this.endian;
     if (Array.isArray(event))
-      event.forEach(function (event) { event.endian = self.endian; this.processReply(event) });
+      event.forEach(function (event) { event.endian = this.endian; this.processReply(event) }, this);
     else
       this.processReply(event);
     return;
@@ -91,17 +90,16 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.disconnect = function () {
     console.log('Disconnect', this.id);
-    var self = this;
     delete this.server.clients[this.id];
     if (this.closedown === 'destroy')
       Object.keys(this.server.resources)
         .forEach(function (resource) {
-          resource = self.server.resources[resource];
+          resource = this.server.resources[resource];
           if (! resource)
             return;
-          if (resource.owner === self)
+          if (resource.owner === this)
             resource.destroy();
-        });
+        }, this);
   }
 
   XServerClient.prototype.setup = function (data) {
@@ -400,8 +398,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }; // 34 or 127
 
   XServerClient.prototype.CreateWindow = function (req, callback) {
-    var self = this
-      , parent = this.server.getResource(req.parent)
+    var parent = this.server.getResource(req.parent)
     console.log(
         'CreateWindow', req.id, req.depth, req.parent
       , req.x, req.y, req.width, req.height, req.fields
@@ -485,13 +482,14 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.MapWindow = function (req, callback) {
-    var self = this
-      , window = this.server.getResource(req.window, x_types.Window);
+    var window = this.server.getResource(req.window, x_types.Window);
     console.log('MapWindow', window.id);
     reps = [];
     if (
       (~ window.parent.events.indexOf('SubstructureRedirect')) &&
-      Object.keys(window.parent.event_clients).filter(function (id) { return ~ window.parent.event_clients[id].indexOf('SubstructureRedirect') && id != self.id }).length &&
+      Object.keys(window.parent.event_clients).filter(function (id) {
+        return ~ window.parent.event_clients[id].indexOf('SubstructureRedirect') && id != this.id
+      }, this).length &&
       ! window.override_redirect
     ) {
       xt = x_types;
@@ -632,10 +630,9 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.ListProperties = function (req, callback) {
-    var self = this
-      , window = this.server.getResource(req.window, x_types.Window)
+    var window = this.server.getResource(req.window, x_types.Window)
       , rep = new x_types.WorkReply(req);
-    rep.atoms = Object.keys(window.properties).map(function (name) { return self.atoms.indexOf(name) + 1 });
+    rep.atoms = Object.keys(window.properties).map(function (name) { return this.atoms.indexOf(name) + 1 }, this);
     callback(null, rep);
   }
 
@@ -835,7 +832,6 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.ListFontsWithInfo = function (req, callback) {
-    var self = this;
     var fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     console.log('ListFontsWithInfo', req.pattern);
     if (!fonts.length) {
@@ -1300,12 +1296,17 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
   XServerClient.prototype.GetModifierMapping = function (req, callback) {
-    var self = this
-      , rep = new x_types.Reply(req) // FIXME: Migrate to x_types.WorkReply
-      , datas = (['Shift', 'Lock', 'Control', 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5']).map(function (name) { return self.server.keymap.find(name) });
+    var rep = new x_types.Reply(req) // FIXME: Migrate to x_types.WorkReply
+      , datas = (['Shift', 'Lock', 'Control', 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5'])
+          .map(function (name) { return this.server.keymap.find(name) }, this);
 
     rep.data_byte = datas.reduce(function (o, v) { return Math.max(o, v.length) }, 0);
-    rep.data_extra = datas.reduce(function (array, values) { for (var i = 0; i < rep.data_byte; i++) { array.push(new x_types.UInt8(values [i] || 0)) }; return array }, []);
+    rep.data_extra = datas.reduce(function (array, values) { 
+      for (var i = 0; i < rep.data_byte; i++) {
+        array.push(new x_types.UInt8(values [i] || 0))
+      };
+      return array
+    }, []);
     callback(null, rep);
   }
 

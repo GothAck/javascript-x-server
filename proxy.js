@@ -108,7 +108,6 @@ X11Proxy.prototype.data = function (message) {
   }
 }
 X11Proxy.prototype.close = function () {
-  var self = this;
   console.log('closed');
   clearTimeout(this.ping.timeout);
   clearInterval(this.ping.interval);
@@ -116,8 +115,8 @@ X11Proxy.prototype.close = function () {
     process.kill();
   });
   Object.keys(this.client_sockets).forEach(function (id) {
-    self.client_sockets[id].end();
-  })
+    this.client_sockets[id].end();
+  }, this);
   try {
     this.server_socket.close();
   } catch (e) {}

@@ -586,12 +586,11 @@ define(
       }
 
       Request.ListProperties.Rep = function (rep) {
-        var self = this;
         this.constructor.super_.apply(this, arguments);
         this.data.writeUInt32(rep.atoms.length);
         rep.atoms.forEach(function (atom){
-          self.data_extra.push(new x_types.UInt32(atom));
-        });
+          this.data_extra.push(new x_types.UInt32(atom));
+        }, this);
       }
     
       Request.GetSelectionOwner = function () {

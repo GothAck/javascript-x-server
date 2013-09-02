@@ -418,10 +418,9 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
   }
 
   function VectorCharacter (data) {
-    var self = this;
     Object.keys(data).forEach(function (key) {
-      self[key] = data[key];
-    });
+      this[key] = data[key];
+    }, this);
   }
 
   VectorCharacter.prototype.toCharInfo = function () {
@@ -429,20 +428,19 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
   }
 
   function VectorFont () {
-    var self = this;
-    Object.keys(self.meta).forEach(function (key) {
-      self[key] = self.meta[key];
-    });
+    Object.keys(this.meta).forEach(function (key) {
+      this[key] = this.meta[key];
+    }, this);
     this.characters = this.characters.map(function (data) {
       return new VectorCharacter(data);
     });
     ['bdf_accelerators', 'accelerators'].forEach(function (key_a) {
-      var obj = self[key_a];
+      var obj = this[key_a];
       if (obj)
         ['minbounds', 'maxbounds'].forEach(function (key) {
           obj[key] = new VectorCharacter(obj[key]);
         });
-    });
+    }, this);
   }
   util.inherits(VectorFont, Font);
   module.exports.VectorFont = VectorFont;

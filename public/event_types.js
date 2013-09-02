@@ -50,10 +50,9 @@ define('event_types', ['util', 'endianbuffer'], function (util, EndianBuffer) {
     this.sequence = (owner_obj.sequence_sent || owner_obj.sequence || 0) & 0xffff;
     if (window_client_req.owner)
       this.window = window_client_req;
-    var self = this;
     Object.keys(data).forEach(function (key) {
-      self[key] = data[key];
-    });
+      this[key] = data[key];
+    }, this);
     this.data = new EndianBuffer(28);
     this.data.endian = owner_obj.endian;
     this.endian = owner_obj.endian;
@@ -126,11 +125,10 @@ define('event_types', ['util', 'endianbuffer'], function (util, EndianBuffer) {
   function Expose (child_window, data) {
     this.constructor.super_.call(this, child_window, data);
     this.child_window = child_window;
-    var self = this;
     _Expose_inherits.forEach(function (key) {
-      if (typeof self[key] === 'undefined')
-        self[key] = child_window[key];
-    });
+      if (typeof this[key] === 'undefined')
+        this[key] = child_window[key];
+    }, this);
     this.x = 0;
     this.y = 0;
   }

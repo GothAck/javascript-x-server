@@ -1,9 +1,10 @@
 define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'], function (console, async, x_types, EndianBuffer, rgb_colors) {
   var window = null;
   
-  function XServerClient (server, id, resource_id_base, resource_id_mask) {
+  function XServerClient (server, id, resource_id_base, resource_id_mask, host) {
     this.server = server;
     this.id = id;
+    this.host = host;
     this.state = 0;
     this.endian = null;
     this.release = 11300000;

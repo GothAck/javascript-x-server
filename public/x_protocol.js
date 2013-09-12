@@ -101,11 +101,20 @@ define(
           var data = event.data.split(' ');
           switch (data[0]) {
             case 'SCR':
-              postMessage({ cmd: 'screen', id: data[1] });
+              postMessage({
+                  cmd: 'screen'
+                , id: data[1]
+              });
             break
             case 'NEW':
-              postMessage({ cmd: 'new', id: data[1] });
-              this.clients[data[1]] = new XProtocolClient(data[1]);
+              var client = this.clients[data[1]] = new XProtocolClient(data[1]);
+              postMessage({
+                  cmd: 'new'
+                , id: data[1]
+                , host: client.host
+                , port: client.port
+                , host_type: client.host_type
+              });
             break;
             case 'END':
               this.clients[data[1]].end();
@@ -138,6 +147,12 @@ define(
       
       function XProtocolClient (id, sendData) {
         this.id = id;
+        id = id.match(/^([^\]]+)\[([^\]]+)\]:(\d+)$/);
+        if (!id)
+          throw new Error('Invalid id host');
+        this.host_type = id[1];
+        this.host = id[2];
+        this.port = id[3];
         this.sendData = sendData;
         this.endian = false;
         this.state = 0;

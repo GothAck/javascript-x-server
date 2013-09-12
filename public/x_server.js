@@ -78,6 +78,11 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       , value: this
     });
     this.id = id;
+    this.allowed_hosts = [
+        new x_types.InternetHost('127.0.0.1')
+    ];
+    this.updateAllowedHostsLookup();
+
     this.sendBuffer = sendBuffer;
     this.screen = screen;
     this.protocol_major = 11;
@@ -238,8 +243,12 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     })[0];
   }
 
-  XServer.prototype.newClient = function (id) {
-    return this.clients[id] = new XServerClient(this, id, this.resource_id_bases.shift(), this.resource_id_mask);
+  XServer.prototype.newClient = function (id, host, port, host_type) {
+    host = new x_types.Host(host, host_type);
+    host.port = port;
+    if (! (~ this.allowed_hosts.lookup.indexOf(host.toString())))
+      throw new Error('FIXME: Host not allowed');
+    return this.clients[id] = new XServerClient(this, id, this.resource_id_bases.shift(), this.resource_id_mask, host);
   }
 
   XServer.prototype.disconnect = function (id) {
@@ -455,6 +464,29 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       out_str += str.charAt(i);
     }
     return out_str;
+  }
+
+  XServer.prototype.updateAllowedHostsLookup = function () {
+    this.allowed_hosts.lookup = this.allowed_hosts.map(function (host) {
+      return host.toString();
+    });
+  }
+
+  XServer.prototype.insertAllowedHost = function (host) {
+    if (~ this.allowed_hosts.lookup.indexOf(host.toString()))
+      return null;
+    var index = this.allowed_hosts.push(host);
+    this.updateAllowedHostsLookup();
+    return index;
+  }
+
+  XServer.prototype.deleteAllowedHost = function (host) {
+    var index = this.allowed_hosts.lookup.indexOf(host.toString());
+    if (!~ index)
+      return null;
+    this.allowed_hosts.splice(index, 1);
+    this.updateAllowedHostsLookup();
+    return index;
   }
 
   return XServer;

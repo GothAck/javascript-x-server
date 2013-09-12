@@ -904,6 +904,114 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   Atom.error_code = 5;
 
   module.exports.Atom = Atom;
-  
+
+  function Host (host, type) {
+    this.host = host;
+    if (this.constructor === Host) {
+      if (~Object.keys(Host.types).indexOf(type)) {
+        this.constructor = Host.types[type];
+        this.constructor.apply(this, arguments);
+      } else
+        throw new Error('Unknown host type');
+    }
+    if (this.constructor.test && ! this.constructor.test.test(host))
+      throw new Error('Invalid host for type ' + this.type);
+  }
+  module.exports.Host = Host;
+  Host.prototype.toString = function (port) {
+    if (this.constructor === Host)
+      throw new Error('Host prototype not convertable');
+    var string = this.type + '[' + this.host + ']' ;
+    if ('number' === typeof port)
+      string += ':' + port;
+    else if (port === true) {
+      string += ':';
+      if (this.port)
+        string += this.port;
+    }
+    return string;
+  }
+  Host.prototype.writeBuffer = function (buffer, offset) {
+    buffer.writeUInt8(this.family, 0);
+    buffer.writeUInt16(this.address_length, 2);
+    this.address_buffer.copy(buffer, 4);
+  }
+  Host.prototype.toBuffer = function () {
+    var buffer = new EndianBuffer(this.length);
+    this.writeBuffer(buffer, 0);
+    return buffer;
+  }
+  Host.prototype.__defineGetter__('address_length', function () {
+    return this.constructor.length;
+  })
+  Host.prototype.__defineGetter__('length', function () {
+    return Math.ceil((4 + this.address_length) / 4) * 4;
+  })
+  Host.prototype.__defineGetter__('family', function () {
+    return this.constructor.family;
+  })
+  Host.prototype.__defineGetter__('type', function () {
+    if (this.constructor === Host)
+      throw new Error('Host prototype not convertable');
+    return this.constructor.name.slice(0, -4);
+  })
+  Host.types = {}
+
+  function InternetHost (host) {
+    this.constructor.super_.apply(this, arguments);
+  }
+  module.exports.InternetHost = InternetHost;
+  util.inherits(InternetHost, Host);
+  InternetHost.family = 0;
+  InternetHost.length = 4;
+  InternetHost.test = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  InternetHost.prototype.address_buffer = function () {
+    var buffer = new EndianBuffer(InternetHost.length);
+    this.host.split('.').forEach(function(num, i) {
+      buffer.writeUInt8(Number(num), i);
+    });
+    return buffer;
+  }
+  Host.types.Internet = InternetHost;
+
+  function InternetV6Host (host) {
+    this.constructor.super_.apply(this, arguments);
+  }
+  module.exports.InternetV6Host = InternetV6Host;
+  util.inherits(InternetV6Host, Host);
+  InternetV6Host.family = 6;
+  InternetV6Host.length = 16;
+  InternetV6Host.test = /^((?=.*::)(?!.*::.+::)(::)?([\dA-F]{1,4}:(:|\b)|){5}|([\dA-F]{1,4}:){6})((([\dA-F]{1,4}((?!\3)::|:\b|$))|(?!\2\3)){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})$/i;
+  Host.types.InternetV6 = InternetV6Host;
+
+  function ServerInterpretedHost (host) {
+    this.constructor.super_.apply(this, arguments);
+  }
+  module.exports.ServerInterpretedHost = ServerInterpretedHost;
+  util.inherits(ServerInterpretedHost, Host);
+  ServerInterpretedHost.family = 5;
+  ServerInterpretedHost.prototype.__defineGetter__('address_length', function () {
+    return this.host.length;
+  });
+  Host.types.ServerInterpreted = ServerInterpretedHost;
+
+  function DECnetHost (host) {
+    this.constructor.super_.apply(this, arguments);
+  }
+  module.exports.DECnetHost = DECnetHost;
+  util.inherits(DECnetHost, Host);
+  DECnetHost.family = 1;
+  DECnetHost.length = 2;
+  Host.types.DECnet = DECnetHost;
+
+  function ChaosHost (host) {
+    this.constructor.super_.apply(this, arguments);
+  }
+  module.exports.ChaosHost = ChaosHost;
+  util.inherits(ChaosHost, Host);
+  ChaosHost.family = 2;
+  ChaosHost.length = 2;
+  Host.types.Chaos = ChaosHost;
+
   return module.exports;
 });

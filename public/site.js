@@ -38,7 +38,7 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
           connected = false;
         break;
         case 'new':
-          server.newClient(event.data.id);
+          server.newClient(event.data.id, event.data.host, event.data.port, event.data.host_type);
         break;
         case 'end':
           server.disconnect(event.data.id);

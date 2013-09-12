@@ -1280,6 +1280,11 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
+  XServerClient.prototype.SetAccessControl = function (req, callback) {
+    this.server.access_control = !! req.mode;
+    callback();
+  }
+
   var _closedown_mode = ['destroy', 'permanent', 'temporary'];
   XServerClient.prototype.SetCloseDownMode = function (req, callback) {
     this.closedown = _closedown_mode[req.data_byte];

@@ -1036,6 +1036,10 @@ define(
       Request.Bell = function () {
         this.percent = this.data_byte;
       }
+
+      Request.SetAccessControl = function () {
+        this.mode = this.data_byte;
+      }
     
       var _closedown_mode = ['destroy', 'permanent', 'temporary'];
       Request.SetCloseDownMode = function () {

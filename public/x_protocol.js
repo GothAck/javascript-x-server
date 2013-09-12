@@ -193,11 +193,16 @@ define(
             while (data.length > 0) {
               gooj -= 1;
               if (gooj < 1) throw new Error('You are out of jail, have a nice day!');
+              var req_str = '> Request decode (' + this.id + ') ' + this.sequence;
+              console.time(req_str);
               req = new Request(data, this.sequence);
+              console.timeEnd(req_str);
               if (req.length > data.length) {
                 this.buffer = data;
                 break;
               }
+              console.time(req_str);
+              console.log('>> Post request', req.opcode, req.opname);
               this.sequence = this.sequence + 1;
               this.postRequest(req);
               if (data.length > 0)

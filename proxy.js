@@ -36,6 +36,10 @@ function X11Proxy (screen, connection, window_manager) {
   var self = this;
   this.screen = screen;
   this.connection = connection;
+
+  this.id = ['family', 'address', 'port']
+    .map(function (k) { return connection.socket._peername[k] })
+    .join(':');
   this.client_sockets = {};
   this.ping = {
       counter: 0
@@ -119,15 +123,23 @@ X11Proxy.prototype.close = function () {
   screens.push(this.screen);
 }
 X11Proxy.prototype.spawnProcess = function (command, arguments) {
-  var env = {};
+  var env = {}
+    , prefix
+    , child;
   Object.keys(process.env)
     .forEach(function (k) {
       env[k] = process.env[k];
     });
   env.DISPLAY = 'localhost:' + this.screen;
   this.processes.push(
-    child_process.spawn(command, arguments || [], { stdio: 'inherit', env: env})
+    child = child_process.spawn(command, arguments || [], { env: env })
   );
+  prefix = [this.id, child.pid, command, ': \t'].join(' ');
+  function handleOutput (data) {
+    console.log(prefix, data.toString().replace('\n', '\n' + prefix + ' '));
+  }
+  child.stdout.on('data', handleOutput);
+  child.stderr.on('data', handleOutput);
 }
 
 wss.on('request', function (req) {

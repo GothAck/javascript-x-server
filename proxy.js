@@ -1,4 +1,4 @@
-var connect = require('connect')
+var express = require('express')
   , http = require('http')
   , url = require('url')
   , fs = require('fs')
@@ -9,10 +9,11 @@ var connect = require('connect')
   , util = require('util')
   , EventEmitter = require('events').EventEmitter;
 
-var app = connect()
-  .use(connect.static('public'))
-  .use(connect.query())
-  .use(function (req, res, next) {
+var app = exports.app = express()
+  .use(express.logger())
+  .use(express.static('public'));
+
+app.get('/fonts', function (req, res, next) {
     var _url = url.parse(req.url)
     console.log(_url);
     if (/^\/(fonts|pixmaps)\/{0,1}$/.test(_url.pathname))
@@ -32,7 +33,10 @@ var app = connect()
       next()
   })
 
-var server = http.createServer(app).listen(3000);
+var server = exports.server = http.createServer(app)
+
+if (require.main === module)
+  server.listen(3000);
 
 var screens = [41];
 

@@ -5,12 +5,12 @@
   "main": "proxy.js",
   "dependencies": {
     "async": "*",
-    "connect": "*",
     "websocket": "*",
     "canvas": "*",
     "supervisor": "*",
     "requirejs": "*",
-    "wolfy-eventemitter": "*"
+    "wolfy-eventemitter": "*",
+    "express": "*"
   },
   "devDependencies": {},
   "scripts": {

@@ -1,36 +1,23 @@
 var express = require('express')
   , http = require('http')
-  , url = require('url')
-  , fs = require('fs')
-  , path = require('path')
   , net = require('net')
   , WSS = require('websocket').server
   , child_process = require('child_process')
   , util = require('util')
-  , EventEmitter = require('events').EventEmitter;
+  , EventEmitter = require('events').EventEmitter
+  , lib_fonts = require('./lib/fonts');
 
 var app = exports.app = express()
   .use(express.logger())
   .use(express.static('public'));
 
-app.get('/fonts', function (req, res, next) {
-    var _url = url.parse(req.url)
-    console.log(_url);
-    if (/^\/(fonts|pixmaps)\/{0,1}$/.test(_url.pathname))
-      fs.readdir(path.join(__dirname, 'public', _url.pathname), function (err, dir) {
+app.get('/fonts', function (req, res) {
+    lib_fonts.list_fonts(req.query.filter)
+      .when(function (err, fonts) {
         if (err)
-          return next(err);
-        if (req.query.filter)
-          try {
-            var re = new RegExp('^'+req.query.filter.replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1").replace(/\\([*?])/g, '.$1')+'\..*$');
-            dir = dir.filter(re.test.bind(re));
-          } catch (e) {
-            return next(e);
-          }
-        res.end(JSON.stringify(dir));
+          return res.send(500, err);
+        res.send(fonts);
       });
-    else
-      next()
   })
 
 var server = exports.server = http.createServer(app)

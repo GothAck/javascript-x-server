@@ -10,7 +10,8 @@
     "supervisor": "*",
     "requirejs": "*",
     "wolfy-eventemitter": "*",
-    "express": "*"
+    "express": "*",
+    "future": "~2.3.1"
   },
   "devDependencies": {},
   "scripts": {

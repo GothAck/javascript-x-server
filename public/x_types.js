@@ -882,6 +882,11 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     this.triggerEvent('PropertyNotify', { atom: atom, deleted: false });
   }
 
+  Window.prototype.setProperty = function (property, value) {
+    this.properties[property] = value;
+    this.triggerEvent('PropertyNotify', { atom: this.owner.server.getAtom(property), deleted: false });
+  }
+
   Window.prototype.getProperty = function (property) {
     return this.properties[property];
   }

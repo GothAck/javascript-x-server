@@ -630,6 +630,23 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
+  XServerClient.prototype.RotateProperties = function (req, callback) {
+    var window = this.server.getResource(req.window, x_types.Window)
+      , delta = req.delta;
+      , property_names = req.atoms.map(function (atom) { return this.server.getAtom(atom) }, this)
+      , property_vals = property_keys.map(function (key) { return this.getProperty(key) }, window);
+
+    if (property_vals.some(function (val) { return 'undefined' === typeof val }))
+      throw new Error('FIXME: This should throw a Match error'); //FIXME: Should also throw if dup keys
+    if (!delta)
+      return callback();
+    property_vals.slice(-delta)
+      .concat(property_vals.slice(0, -delta))
+      .forEach(function (val, i) {
+        window.setProperty(property_keys, val);
+      });
+  }
+
   XServerClient.prototype.ListProperties = function (req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , rep = new x_types.WorkReply(req);

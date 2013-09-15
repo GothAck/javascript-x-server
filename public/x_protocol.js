@@ -599,6 +599,15 @@ define(
         }
       }
     
+      Request.RotateProperties = function () {
+        this.window = this.data.readUInt32(0);
+        this.atoms = Array.apply(Array, Array(this.data.readUInt16(4)))
+          .map(function (v, i) {
+            return this.data.readUInt32(i + 8);
+          });
+        this.delta = this.data.readUInt16(6) % this.atoms.length;
+      }
+
       Request.ListProperties = function () {
         this.window = this.data.readUInt32(0)
       }

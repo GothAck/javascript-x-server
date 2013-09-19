@@ -474,6 +474,8 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
   }
 
   XServer.prototype.insertAllowedHost = function (host) {
+    if (!(host instanceof x_types.Host))
+      throw new Error('Requires x_types.Host subprototype')
     if (~ this.allowed_hosts.lookup.indexOf(host.toString()))
       return null;
     var index = this.allowed_hosts.push(host);
@@ -482,6 +484,8 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
   }
 
   XServer.prototype.deleteAllowedHost = function (host) {
+    if (!(host instanceof x_types.Host))
+      throw new Error('Requires x_types.Host subprototype')
     var index = this.allowed_hosts.lookup.indexOf(host.toString());
     if (!~ index)
       return null;

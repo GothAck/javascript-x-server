@@ -1063,6 +1063,40 @@ define(
         this.percent = this.data_byte;
       }
 
+      Request.ChangeHosts = function () {
+        this.mode = this.data_byte;
+        this.family = ['Internet', 'DECnet', 'Chaos'][this.data.readUInt8(0)];
+        this.address = this.data.slice(4, this.data.readUInt16(2) + 4);
+        switch (this.family) {
+          case 'Internet':
+            switch (this.address.length) {
+              case x_types.InternetHost.length:
+                this.host = x_types.InternetHost.from_buffer(this.address).toString();
+              break;
+              case x_types.InternetV6Host.length:
+                this.host = x_types.InternetV6Host.from_buffer(this.address).toString();
+              break;
+              default:
+                throw new Error('Invalid Internet host length');
+            }
+          break;
+          default:
+            throw new Error('FIXME: Host family');
+        }
+      }
+
+      Request.ListHosts = function () {
+      }
+
+      Request.ListHosts.Rep = function (rep) {
+        this.constructor.super_.apply(this, arguments);
+        this.data_byte = rep.mode;
+        this.data.writeUInt16(rep.hosts.length);
+        this.data_extra = rep.hosts.map(function (host_str) {
+          return x_types.Host.fromString(host_str).toBuffer()
+        });
+      }
+
       Request.SetAccessControl = function () {
         this.mode = this.data_byte;
       }

@@ -1298,6 +1298,22 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
+  XServerClient.prototype.ChangeHosts = function (req, callback) {
+    var host = x_types.Host.fromString(req.host);
+    if (req.mode)
+      this.server.deleteAllowedHost(host);
+    else
+      this.server.insertAllowedHost(host);
+    callback();
+  }
+
+  XServerClient.prototype.ListHosts = function (req, callback) {
+    var rep = new x_types.Reply(req);
+    rep.mode = this.server.access_control;
+    rep.hosts = this.server.allowed_hosts.lookup;
+    callback();
+  }
+
   XServerClient.prototype.SetAccessControl = function (req, callback) {
     this.server.access_control = !! req.mode;
     callback();

@@ -1,4 +1,4 @@
-define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font', 'event_types'], function (console, util, fs, EndianBuffer, types_font, events) {
+define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font', 'event_types', 'lib/ipv6'], function (console, util, fs, EndianBuffer, types_font, events) {
   var module = { exports: {} }
 
   module.exports.events = events;
@@ -936,10 +936,19 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
     }
     return string;
   }
+  Host.fromString = function (string) {
+    var match = string.toString().match(/^(\w+)\[([^\]]+)\](?::(\d+)){0,1}$/);
+    if (! match)
+      throw new Error('Invalid Host string');
+    var host = new Host(match[2], match[1]);
+    if ('undefined' !== typeof match[3])
+      host.port = match[3];
+    return host;
+  }
   Host.prototype.writeBuffer = function (buffer, offset) {
     buffer.writeUInt8(this.family, 0);
     buffer.writeUInt16(this.address_length, 2);
-    this.address_buffer.copy(buffer, 4);
+    this.addressBuffer().copy(buffer, 4);
   }
   Host.prototype.toBuffer = function () {
     var buffer = new EndianBuffer(this.length);
@@ -970,12 +979,23 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   InternetHost.family = 0;
   InternetHost.length = 4;
   InternetHost.test = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  InternetHost.prototype.address_buffer = function () {
+  InternetHost.prototype.addressBuffer = function () {
     var buffer = new EndianBuffer(InternetHost.length);
     this.host.split('.').forEach(function(num, i) {
       buffer.writeUInt8(Number(num), i);
     });
     return buffer;
+  }
+  InternetHost.fromBuffer = function (buffer) {
+    if (buffer.length !== InternetHost.length)
+      throw new Error('Invalid InternetHost buffer length');
+    return new InternetHost(
+      Array.apply(Array, Array(4))
+        .map(function (v, i) {
+          return buffer.readUInt8(i);
+        })
+        .join('.')
+    );
   }
   Host.types.Internet = InternetHost;
 
@@ -987,6 +1007,23 @@ define('x_types', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types_font
   InternetV6Host.family = 6;
   InternetV6Host.length = 16;
   InternetV6Host.test = /^((?=.*::)(?!.*::.+::)(::)?([\dA-F]{1,4}:(:|\b)|){5}|([\dA-F]{1,4}:){6})((([\dA-F]{1,4}((?!\3)::|:\b|$))|(?!\2\3)){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})$/i;
+  InternetV6Host.addressBuffer = function () {
+    var buffer = new EndianBuffer(InternetV6Host.length);
+    throw new Error('TODO: Implement me!');
+    return buffer;
+  }
+  InternetV6Host.fromBuffer = function (buffer) {
+    buffer.endian = true;
+    if (buffer.length !== InternetV6Host.length)
+      throw new Error('Invalid InternetHost buffer length');
+    return new InternetV6Host(
+      Array.apply(Array, Array(4))
+        .map(function (v, i) {
+          return buffer.readUInt32(i * 4).toString();
+        })
+        .join(':')
+    );
+  }
   Host.types.InternetV6 = InternetV6Host;
 
   function ServerInterpretedHost (host) {

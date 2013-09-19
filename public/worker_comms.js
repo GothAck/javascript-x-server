@@ -1,20 +1,6 @@
 if (typeof define === 'undefined' && typeof importScripts !== 'undefined')
   importScripts('lib/require.js');
-
-requirejs.config({
-    shim: {
-        'lib/jsbn-combined': {
-            exports: 'BigInteger'
-        }
-      , 'lib/sprintf': {
-          exports: 'sprintf'
-        }
-      , 'lib/ipv6': {
-            deps: ['lib/jsbn-combined', 'lib/sprintf']
-          , exports: 'v6'
-        }
-    }
-})
+  importScripts('require.config.js');
 
 var string_split = /(\w+)(\s\w+){0,1}$/
 

@@ -633,7 +633,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.RotateProperties = function (req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
-      , delta = req.delta;
+      , delta = req.delta
       , property_names = req.atoms.map(function (atom) { return this.server.getAtom(atom) }, this)
       , property_vals = property_keys.map(function (key) { return this.getProperty(key) }, window);
 

@@ -78,6 +78,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       , value: this
     });
     this.id = id;
+    this.access_control = true;
     this.allowed_hosts = [
         new x_types.InternetHost('127.0.0.1')
     ];

@@ -11,7 +11,8 @@
     "requirejs": "*",
     "wolfy-eventemitter": "*",
     "express": "*",
-    "future": "~2.3.1"
+    "future": "~2.3.1",
+    "ipv6": "~3.0.0"
   },
   "devDependencies": {},
   "scripts": {

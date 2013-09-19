@@ -5,6 +5,7 @@ var express = require('express')
   , child_process = require('child_process')
   , util = require('util')
   , EventEmitter = require('events').EventEmitter
+  , ipv6 = require('ipv6')
   , lib_fonts = require('./lib/fonts');
 
 var app = exports.app = express()
@@ -62,20 +63,43 @@ function X11Proxy (screen, connection, window_manager) {
 util.inherits(X11Proxy, EventEmitter);
 X11Proxy.prototype.newClient = function (socket) {
   var self = this
-    , id = 'Internet[' + socket.remoteAddress + ']:' + socket.remotePort;
-  if (id.length > 255)
-    throw new Error('id cannot be longer than 255 chars');
-  this.client_sockets[id] = socket;
-  this.connection.sendUTF('NEW ' + id);
+    , idBuf = new Buffer(19)
+    , idStr;
+  idBuf.fill(0);
+  idBuf.writeUInt16BE(socket.remotePort, 16);
+  if (net.isIPv4(socket.remoteAddress)) {
+    idBuf.writeUInt8(4, 18);
+    idBuf = socket.remoteAddress.split('.')
+      .reduce(
+          function (o, v, i) {
+            o.writeUInt8(v, i);
+            return o;
+          }
+        , idBuf
+      );
+  } else {
+    idBuf.writeUInt8(6, 18);
+    idBuf = (new ipv6.v6.Address(socket.remoteAddress)).parsedAddress
+      .reduce(
+          function (o, v, i) {
+            o.writeUInt16BE(b, i * 2);
+            return o;
+          }
+        , idBuf
+      );
+  }
+  idStr = idBuf.toString('hex');
+
+  this.client_sockets[idStr] = socket;
+  this.connection.sendUTF('NEW ' + idStr);
   socket.on('close', function () {
-    self.connection.sendUTF('END ' + id);
-    delete self.client_sockets[id];
+    self.connection.sendUTF('END ' + idStr);
+    delete self.client_sockets[idStr];
   });
   socket.on('data', function (data) {
-    var buffer = new Buffer(data.length + id.length + 1);
-    buffer.writeUInt8(id.length, 0);
-    buffer.write(id, 1, null, 'ascii');
-    data.copy(buffer, id.length + 1);
+    var buffer = new Buffer(data.length + 19);
+    idBuf.copy(buffer, 0)
+    data.copy(buffer, 19);
     self.connection.sendBytes(buffer);
   });
 }

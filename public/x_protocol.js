@@ -1,6 +1,6 @@
 define(
     'x_protocol'
-  , ['worker_console', 'util', 'lib/async', 'x_types', 'endianbuffer']
+  , ['worker_console', 'util', 'lib/async', 'x_types', 'endianbuffer', 'lib/ipv6']
   , function (console, util, async, x_types, EndianBuffer) {
       var module = { exports: {} }
 
@@ -128,11 +128,12 @@ define(
           }
         } else {
           var data = new EndianBuffer(event.data)
-            , length = data.readUInt8(0)
-            , id = data.toString('ascii', 1, length + 1);
-          if (! this.clients[id])
+            , idBuf = data.slice(0,19)
+            , idStr = idBuf.toString('hex');
+            console.log(idStr);
+          if (! this.clients[idStr])
             throw new Error('Invalid client! Disconnected?');
-          this.clients[id].processData(data.slice(length + 1));
+          this.clients[idStr].processData(data.slice(19));
         }
       }
       XProtocolServer.prototype.socketClose = function (event) {
@@ -145,14 +146,30 @@ define(
       }
       module.exports.XProtocolServer = XProtocolServer;
       
-      function XProtocolClient (id, sendData) {
-        this.id = id;
-        id = id.match(/^([^\]]+)\[([^\]]+)\]:(\d+)$/);
-        if (!id)
-          throw new Error('Invalid id host');
-        this.host_type = id[1];
-        this.host = id[2];
-        this.port = id[3];
+      function XProtocolClient (idStr, sendData) {
+        this.id = idStr;
+        this.idBuf = new EndianBuffer(idStr);
+        var host_type = this.idBuf.readUInt8(18);
+        if (host_type === 4) {
+          this.host_type = 'Internet';
+          this.host = Array.apply(null, new Array(4))
+            .map(function (v, i) {
+              console.log(i)
+              return this.idBuf.readUInt8(i);
+            }, this)
+            .join('.');
+        } else {
+          this.host_type = 'Internet6';
+          this.host = (new v6.Address(
+              Array.apply(null, new Array(8))
+                .map(function (v, i) {
+                  return this.idBuf.readUInt16(i * 2)
+                }, this)
+                .join(':')
+          )).correctForm()
+        }
+        this.port = this.idBuf.readUInt16(16);
+        this.idLog = this.host_type + '[' + this.host + ']' + this.port
         this.sendData = sendData;
         this.endian = false;
         this.state = 0;
@@ -193,7 +210,7 @@ define(
             while (data.length > 0) {
               gooj -= 1;
               if (gooj < 1) throw new Error('You are out of jail, have a nice day!');
-              var req_str = '> Request decode (' + this.id + ') ' + this.sequence;
+              var req_str = '> Request decode (' + this.idLog + ') ' + this.sequence;
               console.time(req_str);
               req = new Request(data, this.sequence);
               console.timeEnd(req_str);

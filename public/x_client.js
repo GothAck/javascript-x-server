@@ -5,6 +5,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     this.server = server;
     this.id = id;
     this.host = host;
+    this.idLog = host.toString(true);
     this.state = 0;
     this.endian = null;
     this.release = 11300000;
@@ -31,7 +32,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
 
   XServerClient.prototype.processRequest = function (message) {
     var req = message.request
-      , req_str = '> Request (' + this.id + ') ' + message.type;
+      , req_str = '> Request (' + this.idLog + ') ' + message.type;
     console.log(req_str, req);
     if (message.type === 'SetupRequest') {
       if (this.state !== 0)

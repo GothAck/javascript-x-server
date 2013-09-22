@@ -8,19 +8,10 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     this.idLog = host.toString(true);
     this.state = 0;
     this.endian = null;
-    this.release = 11300000;
     this.resource_id_mask = resource_id_mask;
     this.resource_id_base = resource_id_base;
-    this.vendor = 'JavaScript X';
-    this.motion_buffer_size = 0xff;
-    this.maximum_request_length = 0xffff;
-    this.sequence = 1;
     this.sequence_sent = 0;
     this.save_set = [];
-    this.reqs = [];
-    this.requests = [];
-    this.reps = [];
-    this.events = [];
     this.closedown = 'destroy';
   }
 
@@ -40,8 +31,6 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       this.setup(req)
     } else {
       var self = this;
-      if (self.server.grab && self.server.grab !== self)
-        return self.requests.push(message);
       var func = self[message.type];
       try {
         console.time(req_str);
@@ -137,9 +126,9 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     res.writeUInt32(this.server.release, 8);
     res.writeUInt32(this.resource_id_base, 12);
     res.writeUInt32(this.resource_id_mask, 16);
-    res.writeUInt32(this.motion_buffer_size, 20);
+    res.writeUInt32(this.server.motion_buffer_size, 20);
     res.writeUInt16(this.server.vendor.length, 24);
-    res.writeUInt16(this.maximum_request_length, 26);
+    res.writeUInt16(this.server.maximum_request_length, 26);
     res.writeUInt8(this.server.screens.length, 28); // Number screens
     res.writeUInt8(this.server.formats.length, 29); // Number formats
     res.writeUInt8(0, 30); // image lsb first

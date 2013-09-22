@@ -90,11 +90,14 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     this.protocol_minor = 0;
     this.release = 11300000;
     this.vendor = 'JavaScript X';
+    this.maximum_request_length = 0xffff;
     this.event_cache = [];
     this.grab = null;
     this.grab_buffer = [];
     this.grab_pointer = null;
     this.grab_keyboard = null;
+    this.motion_buffer = [];
+    this.motion_buffer_size = 255;
     this.buttons = 0;
     this.input_focus = null;
     this.input_focus_revert = 0;

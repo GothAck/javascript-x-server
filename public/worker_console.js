@@ -40,10 +40,9 @@ define('worker_console', function () {
           return true;
         worker._console_port = event.ports[0];
         worker._console_port.onmessage = function (event) {
-          console.error(event, event.data)
           var data = event.data
             , args = data.arguments;
-          args.push('\tFrom worker ' + data.stack.split('\n')[2].trimLeft());
+          args.push('From worker ' + data.stack.split('\n')[2].trimLeft());
           console[data.func].apply(console, args);
         }
         worker.removeEventListener('message', messageHandler);

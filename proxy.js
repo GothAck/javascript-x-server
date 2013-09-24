@@ -174,7 +174,7 @@ wss.on('request', function (req) {
     return req.reject();
   }
   console.log('New client');
-  var proxy = new X11Proxy(screen, req.accept('x11-proxy', req.origin), 'blackbox');
+  var proxy = new X11Proxy(screen, req.accept('x11-proxy', req.origin)); //, 'blackbox' Don't load blackbox by default
 /*
   ping_interval = setInterval(function () {
     var counter = ping_counter ++;

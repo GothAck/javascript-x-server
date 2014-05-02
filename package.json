@@ -12,7 +12,8 @@
     "wolfy-eventemitter": "*",
     "express": "*",
     "future": "~2.3.1",
-    "ipv6": "~3.0.0"
+    "ipv6": "~3.0.0",
+    "morgan": "~1.0.0"
   },
   "devDependencies": {},
   "scripts": {

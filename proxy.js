@@ -6,10 +6,12 @@ var express = require('express')
   , util = require('util')
   , EventEmitter = require('events').EventEmitter
   , ipv6 = require('ipv6')
-  , lib_fonts = require('./lib/fonts');
+  , lib_fonts = require('./lib/fonts')
+  , morgan = require('morgan')
+  ;
 
 var app = exports.app = express()
-  .use(express.logger())
+  .use(morgan())
   .use(express.static('public'));
 
 app.get('/fonts', function (req, res) {

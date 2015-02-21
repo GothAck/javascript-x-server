@@ -4,3 +4,5 @@ public/require.js
 .project
 .settings
 *.sublime-workspace
+ignored
+npm-debug.log

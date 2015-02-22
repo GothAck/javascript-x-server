@@ -5,13 +5,17 @@
   "main": "proxy.js",
   "dependencies": {
     "async": "*",
-    "websocket": "*",
-    "supervisor": "*",
-    "requirejs": "*",
-    "wolfy-eventemitter": "*",
     "express": "*",
     "future": "~2.3.1",
-    "ipv6": "~3.0.0"
+    "ipv6": "*",
+    "morgan": "*",
+    "react": "^0.12.2",
+    "react-tools": "^0.12.2",
+    "requirejs": "*",
+    "serve-static": "*",
+    "supervisor": "*",
+    "websocket": "*",
+    "wolfy-eventemitter": "*"
   },
   "devDependencies": {},
   "scripts": {

@@ -1,4 +1,6 @@
 var express = require('express')
+  , morgan = require('morgan')
+  , serve_static = require('serve-static')
   , http = require('http')
   , net = require('net')
   , WSS = require('websocket').server
@@ -9,8 +11,8 @@ var express = require('express')
   , lib_fonts = require('./lib/fonts');
 
 var app = exports.app = express()
-  .use(express.logger())
-  .use(express.static('public'));
+  .use(morgan('combined'))
+  .use(serve_static('public'));
 
 app.get('/fonts', function (req, res) {
     lib_fonts.list_fonts(req.query.filter)
@@ -82,7 +84,7 @@ X11Proxy.prototype.newClient = function (socket) {
     idBuf = (new ipv6.v6.Address(socket.remoteAddress)).parsedAddress
       .reduce(
           function (o, v, i) {
-            o.writeUInt16BE(b, i * 2);
+            o.writeUInt16BE(v, i * 2);
             return o;
           }
         , idBuf

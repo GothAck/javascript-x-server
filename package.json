@@ -6,7 +6,6 @@
   "dependencies": {
     "async": "*",
     "websocket": "*",
-    "canvas": "*",
     "supervisor": "*",
     "requirejs": "*",
     "wolfy-eventemitter": "*",
@@ -18,7 +17,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "supervisor -i lib,fonts,public proxy",
-    "postinstall": "ln -sf ../../node_modules/requirejs/require.js public/lib/; ln -sf ../../node_modules/wolfy-eventemitter/src/EventEmitter.js public/lib/; ln -sf ../../node_modules/async/lib/async.js public/lib/",
+    "postinstall": "ln -sf ../../node_modules/requirejs/require.js public/lib/; ln -sf ../../node_modules/wolfy-eventemitter/src/EventEmitter.js public/lib/; ln -sf ../../node_modules/async/lib/async.js public/lib/; ln -sf ../../node_modules/ipv6/lib/browser/sprintf.js public/lib/; ln -sf ../../node_modules/ipv6/lib/browser/jsbn-combined.js public/lib/; ln -sf ../../node_modules/ipv6/ipv6.js public/lib/",
     "cloc": "cloc --exclude-dir=node_modules,public/lib,fonts,public/fonts,public/xcb ."
   },
   "repository": {

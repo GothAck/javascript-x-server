@@ -80,7 +80,8 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     this.id = id;
     this.access_control = true;
     this.allowed_hosts = [
-        new x_types.InternetHost('127.0.0.1')
+        new x_types.InternetHost('127.0.0.1'),
+        new x_types.InternetV6Host('::1'),
     ];
     this.updateAllowedHostsLookup();
 

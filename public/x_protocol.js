@@ -159,7 +159,7 @@ define(
             }, this)
             .join('.');
         } else {
-          this.host_type = 'Internet6';
+          this.host_type = 'InternetV6';
           this.host = (new v6.Address(
               Array.apply(null, new Array(8))
                 .map(function (v, i) {

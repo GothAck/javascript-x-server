@@ -7,8 +7,8 @@ var string_split = /(\w+)(\s\w+){0,1}$/
 window = self;
 
 require(
-    ['worker_console', 'x_protocol', 'endianbuffer']
-  , function (console, x_protocol, EndianBuffer) {
+    ['x_protocol', 'endianbuffer']
+  , function (x_protocol, EndianBuffer) {
       self.console = console;
       var buffer = null
         , clients = {}

@@ -1,4 +1,4 @@
-require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], function (console, util, EndianBuffer, XServer, x_types) {
+require(['endianbuffer', 'x_server', 'x_types'], function (EndianBuffer, XServer, x_types) {
   /*
   var debug = /debug=on/.test(window.location);
   if (!debug)
@@ -21,7 +21,6 @@ require(['worker_console', 'util', 'endianbuffer', 'x_server', 'x_types'], funct
   */
   
   worker_comms = new Worker('worker_comms.js');
-  console.wrapWorker(worker_comms);
   function connect () {
     var server
       , connected = false;

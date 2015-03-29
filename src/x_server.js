@@ -1,5 +1,9 @@
-define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', 'x_client', 'keymap'], function (console, util, fs, EndianBuffer, x_types, XServerClient, keymap) {
-  var module = { exports: {} };
+import * as fs from 'fs';
+import * as EndianBuffer from 'endianbuffer';
+import * as x_types from 'x_types';
+import * as XServerClient from 'x_client';
+import * as keymap from 'keymap';
+
 
   var default_atoms = [
       'PRIMARY'
@@ -72,7 +76,8 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     , 'WM_TRANSIENT_FOR'
   ]
 
-  function XServer (id, sendBuffer, screen) {
+export default class XServer {
+  constructor(id, sendBuffer, screen) {
     Object.defineProperty(this, 'server', {
         enumerable: false
       , value: this
@@ -111,7 +116,8 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       this.resource_id_bases.push(res_id += res_base);
     }
     
-    this.formats = [
+    this.formats = new x_types.ExtrasArray();
+    this.formats.push(
         new x_types.Format(0x01, 0x01, 0x20)
       , new x_types.Format(0x04, 0x08, 0x20)
       , new x_types.Format(0x08, 0x08, 0x20)
@@ -119,8 +125,9 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       , new x_types.Format(0x10, 0x10, 0x20)
       , new x_types.Format(0x18, 0x20, 0x20)
       , new x_types.Format(0x20, 0x20, 0x20)
-    ];
-    this.screens = [
+    );
+    this.screens = new x_types.ExtrasArray();
+    this.screens.push(
         new x_types.Screen(
             0x00000026 // root
           , 0x00000022 // def colormap
@@ -166,7 +173,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
                 )
             ]
         )
-    ];
+    );
     this.atoms = default_atoms.slice();
     this.atom_owners = [];
     this.resources = {}
@@ -234,21 +241,19 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     });
   }
 
-  XServer.prototype.__defineGetter__('clients_array', function () {
-    return Object.keys(this.clients).map(function (id) { return this.clients[id] }, this);
-  });
-
-  XServer.prototype.__defineGetter__('resources_array', function () {
-    return Object.keys(this.resources).map(function (id) { return this.resources[id] }, this);
-  });
-
-  XServer.prototype.getFormatByDepth = function (depth) {
-    return this.formats.filter(function (format) {
-      return format.depth === depth;
-    })[0];
+  get clients_array() {
+    return Object.keys(this.clients).map((id) => this.clients[id]);
   }
 
-  XServer.prototype.newClient = function (id, host, port, host_type) {
+  get resources_array() {
+    return Object.keys(this.resources).map((id) => this.resources[id]);
+  }
+
+  getFormatByDepth(depth) {
+    return this.formats.filter((format) => format.depth === depth).get(0);
+  }
+
+  newClient(id, host, port, host_type) {
     host = new x_types.Host(host, host_type);
     host.port = port;
     if (! (~ this.allowed_hosts.lookup.indexOf(host.toString())))
@@ -256,7 +261,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     return this.clients[id] = new XServerClient(this, id, this.resource_id_bases.shift(), this.resource_id_mask, host);
   }
 
-  XServer.prototype.disconnect = function (id) {
+  disconnect(id) {
     if (!id) {
       this.screen.off('');
       return Object.keys(this.clients).forEach(function (cid) {
@@ -274,9 +279,9 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     this.clients[id].disconnect();
   }
   
-  XServer.prototype.sendEvent = function () {}
+  sendEvent() {}
 
-  XServer.prototype.write = function (client, data) {
+  write(client, data) {
     if (! this.clients[client.id])
       throw new Error('Invalid client! Disconnected?');
     if (! data)
@@ -288,7 +293,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     this.sendBuffer(data.buffer, client);
   }
 
-  XServer.prototype.processRequest = function (message) {
+  processRequest(message) {
     var client = this.clients[message.id];
     if (this.grab && this.grab !== client)
       return this.grab_buffer.push([this, 'processRequest', message]);
@@ -296,7 +301,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     client.processRequest(message);
   }
 
-  XServer.prototype.getResource = function (id, Type, allowed_values) {
+  getResource(id, Type, allowed_values) {
     var resource = this.resources[id];
     allowed_values = Array.isArray(allowed_values) ? 
       allowed_values : Array.prototype.slice.call(arguments, 2);
@@ -307,7 +312,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     return resource;
   }
   
-  XServer.prototype.putResource = function (resource) {
+  putResource(resource) {
     var owner = resource.owner;
     console.warn('server.putResource', resource.id, resource);
     if (((~ owner.resource_id_mask) & owner.resource_id_base) !== owner.resource_id_base)
@@ -317,7 +322,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     return this.resources[resource.id] = resource;
   }
   
-  XServer.prototype.freeResource = function (id, Type) {
+  freeResource(id, Type) {
     var resource = this.resources[id];
     console.warn('server.freeResource', id, resource);
     if (Type && !(resource instanceof Type))
@@ -325,7 +330,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     delete this.resources[id];
   }
   
-  XServer.prototype.resolveAtom = function (id) {
+  resolveAtom(id) {
     switch (typeof id) {
       case 'number':
       break;
@@ -341,7 +346,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     }
   }
   
-  XServer.prototype.getAtom = function (id, dont_throw) {
+  getAtom(id, dont_throw) {
     if ('string' === typeof id) {
       if (~ this.atoms.indexOf(id))
         return this.atoms.indexOf(id) + 1;
@@ -357,20 +362,20 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     }
   }
 
-  XServer.prototype.putAtom = function (id, atom, only_if_exists) {
+  putAtom(id, atom, only_if_exists) {
     if (this.atoms[id])
       throw new x_types.Error({}, 14 /* IDChoice */, atom.id);
     return this.atoms[atom.id] = atom;
   }
   
-  XServer.prototype.freeAtom = function (id) {
+  freeAtom(id) {
     var atom = this.atoms[id];
     if (!(resource instanceof x_types.Atom))
       throw new x_types.Error({}, 14 /* IDChoice */);
     delete this.atoms[id];
   }
 
-  XServer.prototype.flushGrabBuffer = function() {
+  flushGrabBuffer() {
     this.grab_buffer.splice(0)
       .forEach(function (item) {
         var self = item[0]
@@ -380,12 +385,12 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       });
   }
 
-  XServer.prototype.listFonts = function (pattern) {
+  listFonts(pattern) {
     var re = new RegExp('^' + pattern.replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1").replace(/\\([*?])/g, '.$1') + '$', 'i');
     return Object.keys(this.fonts_dir).filter(function(name) { return re.test(name) });
   }
 
-  XServer.prototype.resolveFont = function (name) {
+  resolveFont(name) {
     var resolved_name;
     if (! (name in this.fonts_dir)) {
       if (/[*?]/.test(name)) {
@@ -397,7 +402,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     return resolved_name || [name, this.fonts_dir[name]];
   }
 
-  XServer.prototype.loadFont = function (resolved_name, server_name, callback) {
+  loadFont(resolved_name, server_name, callback) {
     var self = this;
     console.log('XServer.loadFont', [].slice.call(arguments));
     console.log('Font cached?', resolved_name in this.fonts_cache);
@@ -413,6 +418,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
       } catch (e) {
         return callback(e);
       }
+      console.log(meta);
       var font = new x_types.Font(meta.type, resolved_name, server_name);
       font.meta = meta;
       font.loadData(function (err) {
@@ -428,7 +434,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     });
   }
 
-  XServer.prototype.openFont = function (client, fid, name) {
+  openFont(client, fid, name) {
     var self = this
       , resolved_name = this.resolveFont(name);
     if (resolved_name[1]) {
@@ -452,7 +458,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
 
   }
 
-  XServer.prototype.encodeString = function (str) {
+  encodeString(str) {
     var out_str = '';
     if (typeof str !== 'string')
       return str;
@@ -471,13 +477,13 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     return out_str;
   }
 
-  XServer.prototype.updateAllowedHostsLookup = function () {
+  updateAllowedHostsLookup() {
     this.allowed_hosts.lookup = this.allowed_hosts.map(function (host) {
       return host.toString();
     });
   }
 
-  XServer.prototype.insertAllowedHost = function (host) {
+  insertAllowedHost(host) {
     if (!(host instanceof x_types.Host))
       throw new Error('Requires x_types.Host subprototype')
     if (~ this.allowed_hosts.lookup.indexOf(host.toString()))
@@ -487,7 +493,7 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     return index;
   }
 
-  XServer.prototype.deleteAllowedHost = function (host) {
+  deleteAllowedHost(host) {
     if (!(host instanceof x_types.Host))
       throw new Error('Requires x_types.Host subprototype')
     var index = this.allowed_hosts.lookup.indexOf(host.toString());
@@ -497,6 +503,4 @@ define('x_server', ['worker_console', 'util', 'fs', 'endianbuffer', 'x_types', '
     this.updateAllowedHostsLookup();
     return index;
   }
-
-  return XServer;
-});
+}

@@ -1,4 +1,9 @@
 requirejs.config({
+    baseUrl: 'modules',
+    paths: {
+        site: '../site',
+        lib: '../lib'
+    },
     shim: {
         'lib/jsbn-combined': {
             exports: 'BigInteger'

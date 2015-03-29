@@ -1,6 +1,4 @@
-define('fs', function () {
-  var exports = {};
-  exports.readFile = function (filename, encoding, callback) {
+  export function readFile(filename, encoding, callback) {
     if (typeof encoding === 'function') {
       callback = encoding;
       encoding = null;
@@ -20,5 +18,3 @@ define('fs', function () {
     }
     req.send();
   }
-  return exports;
-});

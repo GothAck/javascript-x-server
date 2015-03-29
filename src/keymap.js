@@ -1,6 +1,3 @@
-define('keymap', function () {
-  var module = { exports: {} };
-
   var keysyms = {
       'Backspace' : 0xff08
     , 'Tab'       : 0xff09
@@ -26,7 +23,13 @@ define('keymap', function () {
     return char.charCodeAt(0) + 0x01000100;
   }
 
-  module.exports.getKeysym = function (string, shift) {
+class KeyMap {
+  constructor(map) {
+    this.maxModifiers = 3;
+    this._map = map;
+  }
+  get map() { return [null].concat(this._map) }
+  getKeysym(string, shift) {
     switch (string.length) {
       case 1:
         return charKeySym(shift ? string.toUpperCase() : string.toLowerCase());
@@ -39,23 +42,20 @@ define('keymap', function () {
         return 0;
     }
   }
-
-  function KeyMap (map) {
-    this._map = map;
-  }
-  KeyMap.prototype.__defineGetter__('map', function () { return [null].concat(this._map) });
-  KeyMap.prototype.maxModifiers = 3;
-  KeyMap.prototype.getKeysym = module.exports.getKeysym;
-  KeyMap.prototype.find = function (name) {
+  find(name) {
     return this._map.reduce(function (array, value, index) { if (name.test ? name.test(value) : value === name) return array.concat([index + 1]); return array; }, []);
   }
-  KeyMap.prototype.get = function (id) {
+  get(id) {
     return this._map[id - 1];
   }
-  KeyMap.prototype.clone = function () {
+  clone() {
     return new KeyMap(this.map.slice());
   }
-  module.exports.maps = {
+}
+
+export var getKeysym = KeyMap.prototype.getKeysym;
+
+export var maps = {
       gb: new KeyMap(
 [
   null,
@@ -473,5 +473,3 @@ define('keymap', function () {
 ]
       )
   }
-  return module.exports;
-})

@@ -1,12 +1,13 @@
-define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcssfont'], function (console, util, fs, EndianBuffer, loadCSSFont) {
-  var module = { exports: {} }
+import * as fs from 'fs';
+import * as EndianBuffer from 'endianbuffer';
+import * as loadCSSFont from 'loadcssfont';
 
-  function CharInfo (char) {
+export class CharInfo {
+  constructor(char) {
     this.char = char;
   }
-  module.exports.CharInfo = CharInfo;
-  CharInfo.length = CharInfo.prototype.length = 12;
-  CharInfo.prototype.writeBuffer = function (buffer, offset) {
+  length = 12;
+  writeBuffer(buffer, offset) {
     buffer.writeInt16(this.char.left,            offset      );
     buffer.writeInt16(this.char.right,           offset  +  2);
     buffer.writeInt16(this.char.width,           offset  +  4);
@@ -15,13 +16,14 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     buffer.writeUInt16(this.char.attribues || 0, offset  + 10);
     return offset + this.length;
   }
+}
 
-  function FontInfo (font) {
+export class FontInfo {
+  constructor(font) {
     this.font = font;
   }
-  module.exports.FontInfo = FontInfo;
-  FontInfo.length = FontInfo.prototype.length = 16;
-  FontInfo.prototype.writeBuffer = function (buffer, offset) {
+  length = 16;
+  writeBuffer(buffer, offset) {
     buffer.writeUInt16(this.font.min_char_or_byte2   , offset     );
     buffer.writeUInt16(this.font.max_char_or_byte2   , offset + 2 );
     buffer.writeUInt16(this.font.default_char        , offset + 4 );
@@ -36,32 +38,32 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     buffer.writeInt16 (accelerators.fontDecent      , offset + 14 );
     return offset + this.length;
   }
+}
 
-  function FontProp (atom, data) {
+export class FontProp {
+  constructor(atom, data) {
     this.atom = atom;
     this.data = data;
   }
-  module.exports.FontProp = FontProp;
-  FontProp.length = FontProp.prototype.length = 8;
-  FontProp.prototype.writeBuffer = function (buffer, offset) {
+  length = 8;
+  writeBuffer(buffer, offset) {
     buffer.writeUInt32(this.atom, offset    );
     buffer.writeInt32 (this.data, offset + 4);
     return offset + this.length;
   }
+}
 
-  function Font (type, file_name, name) {
+export class Font {
+  constructor(type, file_name, name) {
     this.type = type;
     this.file_name = file_name;
     this.css_name = file_name.replace(/\./g, '_');
     this.name = name;
     this.original_type = file_name.match(/\.([^.]+)$/)[1];
   }
-  
-  Font.error_code = 7;
+  static error_code = 7;
 
-  module.exports.Font = Font;
-
-  Font.prototype.loadData = function (callback) {
+  loadData(callback) {
     switch (this.type) {
     case 'ttf':
     case 'woff':
@@ -79,11 +81,13 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     this.loadData.apply(this, arguments);
   }
 
-  Font.prototype.close = function () {}
+  close() {}
 
-  Font.prototype.destroy = function () {}
+  destroy() {}
+}
 
-  function PCFCharacter (left, right, width, ascent, descent, attrs) {
+export class PCFCharacter {
+  constructor(left, right, width, ascent, descent, attrs) {
     this.left       = left;
     this.right      = right;
     this.width      = width;
@@ -92,16 +96,16 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     this.attributes = attrs;
   }
 
-  PCFCharacter.prototype.__defineGetter__('height', function () {
+  get height() {
     // height = bytes.length / ((width_bits + remainder_of padding_in_bits) / 8);
     return this.data.length / ((this.width + ((((this.pad * 2) || 1) * 8) % this.width)) / 8);
-  });
+  }
 
-  PCFCharacter.prototype.toCharInfo = function () {
+  toCharInfo() {
     return new CharInfo(this);
   }
 
-  PCFCharacter.prototype.toPixels = function () {
+  toPixels() {
     var row_pad_byte    = (this.pad  * 2) || 1
       , row_data_byte   = (this.bits * 2) || 1
       , row_data_func   = 'readUInt' + (row_data_byte * 8)
@@ -126,7 +130,7 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     return pixels;
   }
 
-  PCFCharacter.prototype.drawTo = function (context, x, y, red, green, blue) {
+  drawTo(context, x, y, red, green, blue) {
     var image = context.getImageData(x + this.left, y - this.ascent, this.width, this.height)
       , pixels = this.toPixels();
     pixels.forEach(function (value, i) {
@@ -140,8 +144,10 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     });
     context.putImageData(image, x + this.left, y - this.ascent);
   }
+}
 
-  function PCFTable (parent, type, format, data) {
+export class PCFTable {
+  constructor(parent, type, format, data) {
     var self = this;
     this.parent = parent;
     this.type = type;
@@ -342,13 +348,15 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     }
     delete this.data;
   }
+}
 
   var _pcf_tables = [
       'properties', 'accelerators', 'metrics'
     , 'bitmaps', 'ink_metrics', 'bdf_encodings'
     , 'swidths', 'glyph_names', 'bdf_accelerators'
   ];
-  function PCFFont (data) {
+export class PCFFont extends Font {
+  constructor(data) {
     this.data = data;
     this.data.endian = true; // Little endian
     if (! (this.data.readUInt8(0) === 1 && this.data.toString('ascii', 1, 4) === 'fcp'))
@@ -372,9 +380,8 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     }
     delete this.data;
   }
-  util.inherits(PCFFont, Font);
 
-  PCFFont.prototype.loadData = function (callback) {
+  loadData(callback) {
     var self = this
       , path = 'fonts/' + this.file_name;
     fs.readFile(path, function (err, data) {
@@ -385,15 +392,13 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     });
   }
 
-  PCFFont.prototype.getOrNewCharacter = function (index) {
+  getOrNewCharacter(index) {
     if (this.characters[index])
       return this.characters[index];
     return this.characters[index] = new PCFCharacter;
   }
 
-  module.exports.PCFFont = PCFFont;
-
-  PCFFont.prototype.getChar = function (index) {
+  getChar(index) {
     // index == index || -1 for min -2 for max
     if (index === -1)
       return (this.bdf_accelerators || this.accelerators).maxbounds
@@ -402,11 +407,11 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     return this.characters[index]
   }
   
-  PCFFont.prototype.toFontInfo = function () {
+  toFontInfo() {
     return new FontInfo(this);
   }
 
-  PCFFont.prototype.drawTo = function (string, context, x, y, red, green, blue) {
+  drawTo(string, context, x, y, red, green, blue) {
     for (var i = 0; i < string.length; i ++) {
       var char = this.characters[string.charCodeAt(i)];
       if (char) {
@@ -416,18 +421,22 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     }
     return x;
   }
+}
 
-  function VectorCharacter (data) {
+export class VectorCharacter {
+  constructor(data) {
     Object.keys(data).forEach(function (key) {
       this[key] = data[key];
     }, this);
   }
 
-  VectorCharacter.prototype.toCharInfo = function () {
+  toCharInfo() {
     return new CharInfo(this);
   }
+}
 
-  function VectorFont () {
+export class VectorFont extends Font {
+  constructor() {
     Object.keys(this.meta).forEach(function (key) {
       this[key] = this.meta[key];
     }, this);
@@ -442,10 +451,8 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
         });
     }, this);
   }
-  util.inherits(VectorFont, Font);
-  module.exports.VectorFont = VectorFont;
   
-  VectorFont.prototype.loadData = function (callback) {
+  loadData(callback) {
     this.constructor.call(this);
     var height = this.getChar(-1);
     height = height.ascent + height.descent - 1;
@@ -453,21 +460,21 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
       loadCSSFont('fonts/' + this.file_name, this.type, height, 'font_' + this.name, this.css_name, callback);
   }
 
-  VectorFont.prototype.close = function () {
+  close() {
     $('style#' + this.css_name).remove();
   }
 
-  VectorFont.prototype.__defineGetter__('height', function () {
+  get height() {
     var _ = this.getChar(-2);
     return _.ascent + _.descent - 1;
-  });
+  }
 
-  VectorFont.prototype.__defineGetter__('width', function () {
+  get width() {
     var _ = this.getChar(-1);
     return _.width;
-  });
+  }
 
-  VectorFont.prototype.getChar = function (index) {
+  getChar(index) {
     var char;
     // index == index || -1 for min -2 for max
     if (index === -2)
@@ -479,9 +486,7 @@ define('x_types_font', ['worker_console', 'util', 'fs', 'endianbuffer', 'loadcss
     return char;
   }
 
-  VectorFont.prototype.toFontInfo = function () {
+  toFontInfo() {
     return new FontInfo(this);
   }
-  
-  return module.exports;
-});
+}

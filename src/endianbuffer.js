@@ -1,5 +1,5 @@
-define('endianbuffer', function () {
-  function EndianBuffer (buf) {
+export default class EndianBuffer {
+  constructor(buf) {
     this.endian = false;
     if (typeof buf === 'number') {
       this.buffer = new ArrayBuffer(buf);
@@ -17,11 +17,11 @@ define('endianbuffer', function () {
         this.writeUInt8(parseInt(buf.slice(i, i + 2), 16), i / 2);
   }
 
-  EndianBuffer.prototype.__defineGetter__('length', function () {
+  get length() {
     return this.buffer.byteLength;
-  });
+  }
 
-  EndianBuffer.prototype.copy = function (buffer, t_start, s_start, s_end) {
+  copy(buffer, t_start, s_start, s_end) {
     t_start = t_start || 0;
     s_start = s_start || 0;
     s_end = s_end || Math.min(this.length, buffer.length);
@@ -32,7 +32,7 @@ define('endianbuffer', function () {
     return length;
   }
 
-  EndianBuffer.prototype.slice = function (start, end) {
+  slice(start, end) {
     start = start || 0;
     end = end || this.length;
     var newb = new EndianBuffer(this.buffer.slice(start, end));
@@ -40,7 +40,7 @@ define('endianbuffer', function () {
     return newb;
   }
 
-  EndianBuffer.prototype.toString = function (type, from, to) {
+  toString(type, from, to) {
     switch (type) {
       case 'ascii':
         if ((!from) || (!to) || (to - from > 2000))
@@ -67,21 +67,9 @@ define('endianbuffer', function () {
       default:
         return null;
     }
-  };
+  }
 
-  (function (EndianBuffer) {
-    var keys = ['Int8', 'Uint8', 'Int16', 'Uint16', 'Int32', 'Uint32', 'Float32', 'Float64'];
-    keys.forEach(function (key) {
-      EndianBuffer.prototype['read' + key.replace('int', 'Int')] = function (offset) {
-        return this.dataview['get' + key](offset, this.endian)
-      }
-      EndianBuffer.prototype['write' + key.replace('int', 'Int')] = function (value, offset) {
-        return this.dataview['set' + key](offset, value, this.endian)
-      }
-    });
-  })(EndianBuffer);
-
-  EndianBuffer.prototype.write = function (string, offset, length, encoding) {
+  write(string, offset, length, encoding) {
     offset = offset || 0;
     if (length === null)
       length = Infinity;
@@ -95,7 +83,7 @@ define('endianbuffer', function () {
     return length;
   }
 
-  EndianBuffer.prototype.fill = function (value, start, end) {
+  fill(value, start, end) {
     value = value || 0;
     start = start || 0;
     end = end || 0;
@@ -104,7 +92,7 @@ define('endianbuffer', function () {
       arr[i] = value;
   }
   
-  EndianBuffer.ensure = function (obj_arr) {
+  static ensure(obj_arr) {
     if (Array.isArray(obj_arr)) {
       obj_arr.forEach(function (v, i, a) {
         if (v instanceof ArrayBuffer)
@@ -119,6 +107,16 @@ define('endianbuffer', function () {
       });
     }
   }
-  
-  return EndianBuffer;
-});
+}
+
+;(function (EndianBuffer) {
+  var keys = ['Int8', 'Uint8', 'Int16', 'Uint16', 'Int32', 'Uint32', 'Float32', 'Float64'];
+  keys.forEach(function (key) {
+    EndianBuffer.prototype['read' + key.replace('int', 'Int')] = function (offset) {
+      return this.dataview['get' + key](offset, this.endian)
+    }
+    EndianBuffer.prototype['write' + key.replace('int', 'Int')] = function (value, offset) {
+      return this.dataview['set' + key](offset, value, this.endian)
+    }
+  });
+})(EndianBuffer);

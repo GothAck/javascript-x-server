@@ -1,5 +1,6 @@
-define('worker_console', function () {
-  var window = this;
+if (typeof window === 'undefined') {
+  window = this;
+}
   var counter = 0;
   if (window.document === undefined) {
     if (window.console === undefined) {
@@ -56,5 +57,3 @@ define('worker_console', function () {
       return worker;
     }
   }
-  return console;
-});

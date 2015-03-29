@@ -1,7 +1,15 @@
-define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'rgb_colors'], function (console, async, x_types, EndianBuffer, rgb_colors) {
-  var window = null;
-  
-  function XServerClient (server, id, resource_id_base, resource_id_mask, host) {
+import * as async from 'lib/async';
+import * as EndianBuffer from 'endianbuffer';
+import * as rgb_colors from 'rgb_colors';
+
+import * as x_types from 'x_types';
+
+var _image_formats = ['Bitmap', 'XYPixmap', 'ZPixmap'];
+var _closedown_mode = ['destroy', 'permanent', 'temporary'];
+
+
+export default class XServerClient {
+  constructor(server, id, resource_id_base, resource_id_mask, host) {
     this.server = server;
     this.id = id;
     this.host = host;
@@ -15,13 +23,13 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     this.closedown = 'destroy';
   }
 
-  XServerClient.prototype.write = function (data) {
-    if ((data instanceof x_types.Reply) || (data instanceof x_types.Error) || (data instanceof x_types.events.Event)) // FIXME: Migrate to x_types.WorkReply
+  write(data) {
+    if ((data instanceof x_types.Reply) || (data instanceof x_types.XError) || (data instanceof x_types.events.XEvent)) // FIXME: Migrate to x_types.WorkReply
       return this.server.write(this, data.toBuffer());
     return this.server.write(this, data);
   }
 
-  XServerClient.prototype.processRequest = function (message) {
+  processRequest(message) {
     var req = message.request
       , req_str = '> Request (' + this.idLog + ') ' + message.type;
     console.log(req_str, req);
@@ -30,17 +38,17 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
         throw new Error('SetupRequest received at the wrong time?!');
       this.setup(req)
     } else {
-      var self = this;
-      var func = self[message.type];
+      var func = this[message.type];
       try {
         console.time(req_str);
-        func && func.call(self, req, function (err, rep) {
+        func && func.call(this, req, (err, rep) => {
           console.timeEnd(req_str);
           if (rep) {
-            if (Array.isArray(rep))
-              rep.forEach(self.processReply.bind(self));
-            else
-              self.processReply(rep);
+            if (Array.isArray(rep)) {
+              rep.forEach((r) => this.processReply(r));
+            } else {
+              this.processReply(rep);
+            }
           }
         });
       } catch (e) {
@@ -49,26 +57,27 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
           e.endian = req.endian;
           e.opcode = req.opcode;
           e.sequence = req.sequence & 0xffff;
-          console.error(self.id, e, e.stack);
-          self.processReply(e);
+          console.error(this.id, e, e.stack);
+          this.processReply(e);
         } else {
           console.error('Implementation Error', e.stack);
-          self.processReply(new x_types.Error(req, 17, 0));
+          this.processReply(new x_types.Error(req, 17, 0));
           throw e;
         }
       }
     }
   }
   
-  XServerClient.prototype.processReply = function (rep) {
-    if (rep instanceof x_types.events.Event)
+  processReply(rep) {
+    console.log(rep);
+    if (rep instanceof x_types.events.XEvent)
       rep.sequence = this.sequence_sent;
     if (this.sequence_sent < rep.sequence)
       this.sequence_sent = rep.sequence;
     this.write(rep);
   }
   
-  XServerClient.prototype.sendEvent = function (event) {
+  sendEvent(event) {
     //console.error((new Event).stack);
     // Endian hacks until we process events within x_protocol worker!
     event.endian = this.endian;
@@ -79,7 +88,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     return;
   }
 
-  XServerClient.prototype.disconnect = function () {
+  disconnect() {
     console.log('Disconnect', this.id);
     delete this.server.clients[this.id];
     if (this.closedown === 'destroy')
@@ -93,7 +102,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
         }, this);
   }
 
-  XServerClient.prototype.setup = function (data) {
+  setup(data) {
     this.endian = data.endian;
     this.protocol_major = data.protocol_major;
     this.protocol_minor = data.protocol_minor;
@@ -122,7 +131,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     res.writeUInt8(1, 0);
     res.writeUInt16(this.server.protocol_major, 2);
     res.writeUInt16(this.server.protocol_minor, 4);
-    res.writeUInt16((32 + (this.server.formats.byteLength()) + stringPad(this.server.vendor) + this.server.screens.byteLength()) / 4, 6);
+    res.writeUInt16((32 + (this.server.formats.byte_length) + stringPad(this.server.vendor) + this.server.screens.byte_length) / 4, 6);
     res.writeUInt32(this.server.release, 8);
     res.writeUInt32(this.resource_id_base, 12);
     res.writeUInt32(this.resource_id_mask, 16);
@@ -130,6 +139,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     res.writeUInt16(this.server.vendor.length, 24);
     res.writeUInt16(this.server.maximum_request_length, 26);
     res.writeUInt8(this.server.screens.length, 28); // Number screens
+    console.log('a', this.server.screens.length);
     res.writeUInt8(this.server.formats.length, 29); // Number formats
     res.writeUInt8(0, 30); // image lsb first
     res.writeUInt8(0, 31); // pixmap lsb first
@@ -149,7 +159,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     this.write(rep);
   }
 
-  XServerClient.prototype.imageFromBitmap = function (dest, data, depth, width, height, pad) {
+  imageFromBitmap(dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
       , scanline_pad_unit = format.scanline_pad / format.bpp
       , scanline = width + (scanline_pad_unit - (width % scanline_pad_unit || format.scanline));
@@ -177,11 +187,11 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     return dest;
   }
 
-  XServerClient.prototype.imageToBitmap = function (data, depth, width, height) {
+  imageToBitmap(data, depth, width, height) {
     throw new Error('STUB: Implement imageToBitmap')
   }
 
-  XServerClient.prototype.imageFromXYPixmap = function (dest, data, depth, width, height, pad) {
+  imageFromXYPixmap(dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
       , scanline = width + ((format.scanline_pad / format.bpp) - width % (format.scanline_pad / format.bpp));
     switch (depth) {
@@ -208,11 +218,11 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     return dest;
   }
 
-  XServerClient.prototype.imageToXYPixmap = function (data, depth, width, height) {
+  imageToXYPixmap(data, depth, width, height) {
     throw new Error('STUB: Implement imageToXYPixmap')
   }
 
-  XServerClient.prototype.imageFromZPixmap = function (dest, data, depth, width, height, pad) {
+  imageFromZPixmap(dest, data, depth, width, height, pad) {
     var format = this.server.getFormatByDepth(depth)
       , scanline = width + (width % (format.scanline_pad / format.bpp));
     data.endian = true; // ZPixmaps always have the same endianess?!
@@ -237,7 +247,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     return dest;
   }
 
-  XServerClient.prototype.imageToZPixmap = function (from, depth, width, height) {
+  imageToZPixmap(from, depth, width, height) {
     var data
       , format = this.server.getFormatByDepth(depth)
       , scanline = width + ((format.scanline_pad / format.bpp) - width % (format.scanline_pad / format.bpp));
@@ -265,130 +275,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     return data;
   }
 
-  XServerClient.opcodes = {
-      1: 'CreateWindow'
-    , 2: 'ChangeWindowAttributes'
-    , 3: 'GetWindowAttributes'
-    , 4: 'DestroyWindow'
-    , 5: 'DestroySubWindows'
-    , 6: 'ChangeSaveSet'
-    , 7: 'ReparentWindow'
-    , 8: 'MapWindow'
-    , 9: 'MapSubwindows'
-    , 10: 'UnmapWindow'
-    , 11: 'UnmapSubwindows'
-    , 12: 'ConfigureWindow'
-    , 13: 'CirculateWindow'
-    , 14: 'GetGeometry'
-    , 15: 'QueryTree'
-    , 16: 'InternAtom'
-    , 17: 'GetAtomName'
-    , 18: 'ChangeProperty'
-    , 19: 'DeleteProperty'
-    , 20: 'GetProperty'
-    , 21: 'ListProperties'
-    , 22: 'SetSelectionOwner'
-    , 23: 'GetSelectionOwner'
-    , 24: 'SetSelectionOwner'
-    , 25: 'SendEvent'
-    , 26: 'GrabPointer'
-    , 27: 'UngrabPointer'
-    , 28: 'GrabButton'
-    , 29: 'UngrabButton'
-    , 30: 'ChangeActivePointerGrab'
-    , 31: 'GrabKeyboard'
-    , 32: 'UngrabKeyboard'
-    , 33: 'GrabKey'
-    , 34: 'UngrabKey'
-    , 35: 'AllowEvents'
-    , 36: 'GrabServer'
-    , 37: 'UngrabServer'
-    , 38: 'QueryPointer'
-    , 39: 'GetMotionEvents'
-    , 40: 'TranslateCoordinates'
-    , 41: 'WarpPointer'
-    , 42: 'SetInputFocus'
-    , 43: 'GetInputFocus'
-    , 44: 'QueryKeymap'
-    , 45: 'OpenFont'
-    , 46: 'CloseFont'
-    , 47: 'QueryFont'
-    , 48: 'QueryTextExtents'
-    , 49: 'ListFonts'
-    , 50: 'ListFontsWithInfo'
-    , 51: 'SetFontPath'
-    , 52: 'GetFontPath'
-    , 53: 'CreatePixmap'
-    , 54: 'FreePixmap'
-    , 55: 'CreateGC'
-    , 56: 'ChangeGC'
-    , 57: 'CopyGC'
-    , 58: 'SetDashes'
-    , 59: 'SetClipRectangles'
-    , 60: 'FreeGC'
-    , 61: 'ClearArea'
-    , 62: 'CopyArea'
-    , 63: 'CopyPlane'
-    , 64: 'PolyPoint'
-    , 65: 'PolyLine'
-    , 66: 'PolySegment'
-    , 67: 'PolyRectangle'
-    , 68: 'PolyArc'
-    , 69: 'FillPoly'
-    , 70: 'PolyFillRectangle'
-    , 71: 'PolyFillArc'
-    , 72: 'PutImage'
-    , 73: 'GetImage'
-    , 74: 'PolyText8'
-    , 75: 'PolyText16'
-    , 76: 'ImageText8'
-    , 77: 'ImageText16'
-    , 78: 'CreateColormap'
-    , 79: 'FreeColormap'
-    , 80: 'CopyColormapAndFree'
-    , 81: 'InstallColormap'
-    , 82: 'UninstallColormap'
-    , 83: 'ListInstalledColormaps'
-    , 84: 'AllocColor'
-    , 85: 'AllocNamedColor'
-    , 86: 'AllocColorCells'
-    , 87: 'AllocColorPlanes'
-    , 88: 'FreeColors'
-    , 89: 'StoreColors'
-    , 90: 'StoreNamedColor'
-    , 91: 'QueryColors'
-    , 92: 'LookupColor'
-    , 93: 'CreateCursor'
-    , 94: 'CreateGlyphCursor'
-    , 95: 'FreeCursor'
-    , 96: 'RecolorCursor'
-    , 97: 'QueryBestSize'
-    , 98: 'QueryExtension'
-    , 99: 'ListExtensions'
-    , 100: 'ChangeKeyboardMapping'
-    , 101: 'GetKeyboardMapping'
-    , 102: 'ChangeKeyboardControl'
-    , 103: 'GetKeyboardControl'
-    , 104: 'Bell'
-    , 105: 'ChangePointerControl'
-    , 106: 'GetPointerControl'
-    , 107: 'SetScreenSaver'
-    , 108: 'GetScreenSaver'
-    , 109: 'ChangeHosts'
-    , 110: 'ListHosts'
-    , 111: 'SetAccessControl'
-    , 112: 'SetCloseDownMode'
-    , 113: 'KillClient'
-    , 114: 'RotateProperties'
-    , 115: 'ForceScreenSaver'
-    , 116: 'SetPointerMapping'
-    , 117: 'GetPointerMapping'
-    , 118: 'SetModifierMapping'
-    , 119: 'GetModifierMapping'
-    , 127: 'NoOperation'
-  }; // 34 or 127
-
-  XServerClient.prototype.CreateWindow = function (req, callback) {
+  CreateWindow(req, callback) {
     var parent = this.server.getResource(req.parent)
     console.log(
         'CreateWindow', req.id, req.depth, req.parent
@@ -402,14 +289,14 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.ChangeWindowAttributes = function (req, callback) {
+  ChangeWindowAttributes(req, callback) {
     console.log('ChangeWindowAttributes', req);
     this.server.getResource(req.window, x_types.Window)
       .changeFields(this, req.fields);
     callback();
   }
 
-  XServerClient.prototype.GetWindowAttributes = function (req, callback) {
+  GetWindowAttributes(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , rep = new x_types.WorkReply(req);
     rep.backing_store = 2; // Backing store (0 NotUseful, 1 WhenMapper, 2 Always)
@@ -430,14 +317,14 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
   
-  XServerClient.prototype.DestroyWindow = function (req, callback) {
+  DestroyWindow(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     if (window !== window.owner.server.root)
       window.destroy();
     callback();
   }
 
-  XServerClient.prototype.DestroySubWindows = function (req, callback) {
+  DestroySubWindows(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     window.children.forEach(function (child) {
       child.destroy();
@@ -445,7 +332,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.ChangeSaveSet = function (req, callback) {
+  ChangeSaveSet(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     if (req.data_byte) {
       delete this.save_set[this.save_set.indexOf(window)];
@@ -455,7 +342,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.ReparentWindow = function (req, callback) {
+  ReparentWindow(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , parent = this.server.getResource(req.parent)
       , was_mapped = window.isMapped();
@@ -472,10 +359,10 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.MapWindow = function (req, callback) {
+  MapWindow(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     console.log('MapWindow', window.id);
-    reps = [];
+    var reps = [];
     if (
       (~ window.parent.events.indexOf('SubstructureRedirect')) &&
       Object.keys(window.parent.event_clients).filter(function (id) {
@@ -493,7 +380,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, reps);
   }
 
-  XServerClient.prototype.MapSubwindows = function (req, callback) {
+  MapSubwindows(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     console.log('MapSubwindows', window.id);
     var reps = [];
@@ -513,14 +400,14 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, reps);
   }
 
-  XServerClient.prototype.UnmapWindow = function (req, callback) {
+  UnmapWindow(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     console.log('UnmapWindow');
     window.unmap()
     callback();
   }
   
-  XServerClient.prototype.UnmapSubwindows = function (req, callback) {
+  UnmapSubwindows(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     console.log('UnmapSubwindows');
     window.children.forEach(function (child) {
@@ -529,7 +416,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.ConfigureWindow = function (req, callback) {
+  ConfigureWindow(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
     console.log('ConfigureWindow', window, req.fields);
     window.sibling = null;
@@ -540,7 +427,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.GetGeometry = function (req, callback) {
+  GetGeometry(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , rep = new x_types.WorkReply(req);
     rep.depth = drawable.depth;
@@ -554,7 +441,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.QueryTree = function (req, callback) {
+  QueryTree(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , rep = new x_types.WorkReply(req)
       , root = window.getRoot();
@@ -567,7 +454,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.InternAtom = function (req, callback) {
+  InternAtom(req, callback) {
     var index = this.server.getAtom(req.name, true)
       , rep = new x_types.WorkReply(req);
     if ((!index) && ! req.only_if_exists)
@@ -576,14 +463,14 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.GetAtomName = function (req, callback) {
+  GetAtomName(req, callback) {
     var atom = this.server.getAtom(req.atom)
       , rep = new x_types.WorkReply(req);
     rep.name = atom;
     callback(null, rep);
   }
 
-  XServerClient.prototype.ChangeProperty = function (req, callback) {
+  ChangeProperty(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
     console.log('ChangeProperty', window, window.id, this.server.getAtom(req.atom));
     window.changeProperty(req.atom, this.server.getAtom(req.atom), req.format, req.type, req.value, req.mode);
@@ -591,7 +478,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.DeleteProperty = function (req, callback) {
+  DeleteProperty(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     window.deleteProperty(this.server.getAtom(req.atom));
     window.triggerEvent('PropertyNotify', { atom: req.atom, deleted: true });
@@ -599,7 +486,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
 
-  XServerClient.prototype.GetProperty = function (req, callback) {
+  GetProperty(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , property = this.server.getAtom(req.atom)
       , type = req.type
@@ -620,7 +507,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.RotateProperties = function (req, callback) {
+  RotateProperties(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , delta = req.delta
       , property_names = req.atoms.map(function (atom) { return this.server.getAtom(atom) }, this)
@@ -637,14 +524,14 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
       });
   }
 
-  XServerClient.prototype.ListProperties = function (req, callback) {
+  ListProperties(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , rep = new x_types.WorkReply(req);
     rep.atoms = Object.keys(window.properties).map(function (name) { return this.atoms.indexOf(name) + 1 }, this);
     callback(null, rep);
   }
 
-  XServerClient.prototype.GetSelectionOwner = function (req, callback) {
+  GetSelectionOwner(req, callback) {
     var atom_id = req.atom
       , atom = this.server.atoms[atom_id]
       , owner = this.server.atom_owners[atom_id]
@@ -653,7 +540,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.SendEvent = function (req, callback) {
+  SendEvent(req, callback) {
     // Hack to make event endian match until it's shifter to worker:
     req.event_data.endian = this.endian;
     var propagate = req.propagate
@@ -665,7 +552,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.GrabPointer = function (req, callback) {
+  GrabPointer(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , confine = this.server.getResource(req.confine)
       , cursor = req.cursor
@@ -696,7 +583,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.UngrabPointer = function (req, callback) {
+  UngrabPointer(req, callback) {
     var time = req.time;
     if (this.server.grab_pointer) {
       this.server.grab_pointer = null;
@@ -708,7 +595,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
   
-  XServerClient.prototype.GrabKeyboard = function (req, callback) {
+  GrabKeyboard(req, callback) {
     var window = this.server.getResource(req.window)
       , owner_events = req.owner_events
       , timestamp = req.timestamp
@@ -730,7 +617,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
   
-  XServerClient.prototype.UngrabKeyboard = function (req, callback) {
+  UngrabKeyboard(req, callback) {
     var time = req.time;
     if (this.server.grab_keyboard) {
       this.server.grab_keyboard = null;
@@ -739,19 +626,19 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.GrabServer = function (req, callback) {
+  GrabServer(req, callback) {
     this.server.grab = this;
     this.server.grab_reason = 'GrabServer';
     callback();
   }
 
-  XServerClient.prototype.UngrabServer = function (req, callback) {
+  UngrabServer(req, callback) {
     this.server.grab = null;
     this.server.flushGrabBuffer();
     callback();
   }
 
-  XServerClient.prototype.QueryPointer = function (req, callback) {
+  QueryPointer(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , rep = new x_types.WorkReply(req);
     rep.serverX = this.server.mouseX;
@@ -761,7 +648,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.SetInputFocus = function (req, callback) {
+  SetInputFocus(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window, 0, 1)
     if (req.time < this.server.input_focus_time)
       return;
@@ -780,7 +667,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.GetInputFocus = function (req, callback) {
+  GetInputFocus(req, callback) {
     var rep = new x_types.WorkReply(req);
     rep.revert_to = this.server.input_focus_revert;
     if (this.server.input_focus === this.server.root)
@@ -792,7 +679,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.OpenFont = function (req, callback) {
+  OpenFont(req, callback) {
     var fid = req.fid
       , length = req.name_length
       , name = req.name;
@@ -802,13 +689,13 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.CloseFont = function (req, callback) {
+  CloseFont(req, callback) {
     var font = this.server.getResource(req.font, x_types.Font);
     font.close();
     callback();
   }
 
-  XServerClient.prototype.QueryFont = function (req, callback) {
+  QueryFont(req, callback) {
     var font = this.server.getResource(req.font, x_types.Font);
     var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     rep.data = new EndianBuffer(32);
@@ -833,13 +720,13 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.ListFonts = function (req, callback) {
+  ListFonts(req, callback) {
     var rep = new x_types.WorkReply(req);
     rep.fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     callback(null, rep);
   }
 
-  XServerClient.prototype.ListFontsWithInfo = function (req, callback) {
+  ListFontsWithInfo(req, callback) {
     var fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     console.log('ListFontsWithInfo', req.pattern);
     if (!fonts.length) {
@@ -886,7 +773,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     );
   }
 
-  XServerClient.prototype.CreatePixmap = function (req, callback) {
+  CreatePixmap(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable);
     console.log('CreatePixmap', req.depth, req.pid, drawable, req.width, req.height);
     if (drawable.depth !== req.depth && req.depth !== 1) {
@@ -896,25 +783,25 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.FreePixmap = function (req, callback) {
+  FreePixmap(req, callback) {
     this.server.freeResource(req.pid, x_types.Pixmap);
     callback();
   }
 
-  XServerClient.prototype.CreateGC = function (req, callback) {
+  CreateGC(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
     console.log('CreateGC', drawable, req.cid, req.fields)
     this.server.putResource(new x_types.GraphicsContext(this, req.cid, drawable, req.fields));
     callback();
   }
 
-  XServerClient.prototype.ChangeGC = function (req, callback) {
+  ChangeGC(req, callback) {
     this.server.getResource(req.gc, x_types.GraphicsContext)
       .changeFields(this, req.fields);
     callback();
   }
 
-  XServerClient.prototype.CopyGC = function (req, callback) {
+  CopyGC(req, callback) {
     this.server.getResource(req.src_gc, x_types.GraphicsContext)
       .copyTo(
           this.server.getResource(req.dst_gc, x_types.GraphicsContext)
@@ -923,7 +810,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.ClearArea = function (req, callback) {
+  ClearArea(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window)
       , w = req.w || (window.width - req.y)
       , h = req.h || (window.height - req.x);
@@ -934,7 +821,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.CopyArea = function (req, callback) {
+  CopyArea(req, callback) {
     var src    = this.server.getResource(req.src, x_types.Drawable)
       , dst    = this.server.getResource(req.dst, x_types.Drawable)
       , gc     = this.server.getResource(req.gc, x_types.GraphicsContext)
@@ -946,12 +833,12 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.FreeGC = function (req, callback) {
+  FreeGC(req, callback) {
     this.server.freeResource(req.gc, x_types.GraphicsContext);
     callback();
   }
 
-  XServerClient.prototype.PolyLine = function (req, callback) {
+  PolyLine(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , coord_mode = req.data_byte
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
@@ -966,7 +853,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.PolySegment = function (req, callback) {
+  PolySegment(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
@@ -980,7 +867,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.PolyRectangle = function (req, callback) {
+  PolyRectangle(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable);
@@ -992,7 +879,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.FillPoly = function (req, callback) {
+  FillPoly(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
@@ -1015,7 +902,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.PolyFillRectangle = function (req, callback) {
+  PolyFillRectangle(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable);
@@ -1032,7 +919,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.PolyFillArc = function (req, callback) {
+  PolyFillArc(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , d_w = drawable.canvas[0].width
       , d_h = drawable.canvas[0].height
@@ -1056,8 +943,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  var _image_formats = ['Bitmap', 'XYPixmap', 'ZPixmap'];
-  XServerClient.prototype.PutImage = function (req, callback) {
+  PutImage(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , context = this.server.getResource(req.context, x_types.GraphicsContext)
     context.putImage(drawable, req.format, req.image, req.width, req.height, req.x, req.y, req.pad, req.depth);
@@ -1065,7 +951,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.GetImage = function (req, callback) {
+  GetImage(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     console.log('GetImage', drawable.id);
@@ -1079,7 +965,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     console.log('FIXME GetImage:', req.format, drawable, req.x, req.y, req.w, req.h, req.plane_mask);
   }
 
-  XServerClient.prototype.PolyText8 = function (req, callback) {
+  PolyText8(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
@@ -1091,7 +977,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.PolyText16 = function (req, callback) {
+  PolyText16(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
@@ -1103,7 +989,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.AllocColor = function (req, callback) {
+  AllocColor(req, callback) {
     var cmap = this.server.getResource(req.cmap, x_types.ColorMap)
       , rep = new x_types.WorkReply(req);
     rep.r = req.r;
@@ -1113,7 +999,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.QueryColors = function (req, callback) {
+  QueryColors(req, callback) {
     console.log('QueryColors');
     var count = req.length_quad - 2
       , length = count * 4
@@ -1131,7 +1017,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
   }
 
 
-  XServerClient.prototype.LookupColor = function (req, callback) {
+  LookupColor(req, callback) {
     var cmap = this.server.getResource(req.cmap, x_types.ColorMap)
       , length = req.name_length
       , name = req.name
@@ -1148,7 +1034,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.CreateGlyphCursor = function (req, callback) {
+  CreateGlyphCursor(req, callback) {
     var source_font = this.server.getResource(req.source_font, x_types.Font)
       , mask_font = this.server.getResource(req.mask_font, x_types.Font)
       , source_char_meta = req.source_char && source_font.characters[req.source_char]
@@ -1225,7 +1111,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     }, 20);
   }
 
-  XServerClient.prototype.QueryBestSize = function (req, callback) {
+  QueryBestSize(req, callback) {
     console.log('QueryBestSize');
     var _class = req.data_byte
       , drawable = this.server.getResource(req.drawable, x_types.Drawable)
@@ -1243,7 +1129,7 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.QueryExtension = function (req, callback) {
+  QueryExtension(req, callback) {
     console.log('QueryExtension - Incomplete');
     var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     rep.data.writeUInt8(0, 0);
@@ -1253,13 +1139,13 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.ListExtensions = function (req, callback) {
+  ListExtensions(req, callback) {
     console.log('ListExtensions');
     var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
     callback(null, rep);
   }
 
-  XServerClient.prototype.GetKeyboardMapping = function (req, callback) {
+  GetKeyboardMapping(req, callback) {
     var self = this
       , first = req.first
       , count = req.count
@@ -1281,13 +1167,13 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback(null, rep);
   }
 
-  XServerClient.prototype.Bell = function (req, callback) {
+  Bell(req, callback) {
     var percent = req.data_byte;
     $('audio#bell')[0].play();
     callback();
   }
 
-  XServerClient.prototype.ChangeHosts = function (req, callback) {
+  ChangeHosts(req, callback) {
     var host = x_types.Host.fromString(req.host);
     if (req.mode)
       this.server.deleteAllowedHost(host);
@@ -1296,25 +1182,24 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.ListHosts = function (req, callback) {
+  ListHosts(req, callback) {
     var rep = new x_types.Reply(req);
     rep.mode = this.server.access_control;
     rep.hosts = this.server.allowed_hosts.lookup;
     callback();
   }
 
-  XServerClient.prototype.SetAccessControl = function (req, callback) {
+  SetAccessControl(req, callback) {
     this.server.access_control = !! req.mode;
     callback();
   }
 
-  var _closedown_mode = ['destroy', 'permanent', 'temporary'];
-  XServerClient.prototype.SetCloseDownMode = function (req, callback) {
+  SetCloseDownMode(req, callback) {
     this.closedown = _closedown_mode[req.data_byte];
     callback();
   }
   
-  XServerClient.prototype.KillClient = function (req, callback) {
+  KillClient(req, callback) {
     var rid = req.rid
       , resource = this.server.resources[rid];
     console.log('KillClient', rid, resource);
@@ -1324,24 +1209,147 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     callback();
   }
 
-  XServerClient.prototype.GetModifierMapping = function (req, callback) {
+  GetModifierMapping(req, callback) {
     var rep = new x_types.Reply(req) // FIXME: Migrate to x_types.WorkReply
       , datas = (['Shift', 'Lock', 'Control', 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5'])
           .map(function (name) { return this.server.keymap.find(name) }, this);
 
     rep.data_byte = datas.reduce(function (o, v) { return Math.max(o, v.length) }, 0);
-    rep.data_extra = datas.reduce(function (array, values) { 
+    rep.data_extra.push(...datas.reduce(function (array, values) { 
       for (var i = 0; i < rep.data_byte; i++) {
         array.push(new x_types.UInt8(values [i] || 0))
       };
       return array
-    }, []);
+    }, []));
     callback(null, rep);
   }
 
-  XServerClient.prototype.NoOperation = function (req, callback) {
+  NoOperation(req, callback) {
     callback();
   }
+}
+XServerClient.opcodes = {
+    1: 'CreateWindow'
+  , 2: 'ChangeWindowAttributes'
+  , 3: 'GetWindowAttributes'
+  , 4: 'DestroyWindow'
+  , 5: 'DestroySubWindows'
+  , 6: 'ChangeSaveSet'
+  , 7: 'ReparentWindow'
+  , 8: 'MapWindow'
+  , 9: 'MapSubwindows'
+  , 10: 'UnmapWindow'
+  , 11: 'UnmapSubwindows'
+  , 12: 'ConfigureWindow'
+  , 13: 'CirculateWindow'
+  , 14: 'GetGeometry'
+  , 15: 'QueryTree'
+  , 16: 'InternAtom'
+  , 17: 'GetAtomName'
+  , 18: 'ChangeProperty'
+  , 19: 'DeleteProperty'
+  , 20: 'GetProperty'
+  , 21: 'ListProperties'
+  , 22: 'SetSelectionOwner'
+  , 23: 'GetSelectionOwner'
+  , 24: 'SetSelectionOwner'
+  , 25: 'SendEvent'
+  , 26: 'GrabPointer'
+  , 27: 'UngrabPointer'
+  , 28: 'GrabButton'
+  , 29: 'UngrabButton'
+  , 30: 'ChangeActivePointerGrab'
+  , 31: 'GrabKeyboard'
+  , 32: 'UngrabKeyboard'
+  , 33: 'GrabKey'
+  , 34: 'UngrabKey'
+  , 35: 'AllowEvents'
+  , 36: 'GrabServer'
+  , 37: 'UngrabServer'
+  , 38: 'QueryPointer'
+  , 39: 'GetMotionEvents'
+  , 40: 'TranslateCoordinates'
+  , 41: 'WarpPointer'
+  , 42: 'SetInputFocus'
+  , 43: 'GetInputFocus'
+  , 44: 'QueryKeymap'
+  , 45: 'OpenFont'
+  , 46: 'CloseFont'
+  , 47: 'QueryFont'
+  , 48: 'QueryTextExtents'
+  , 49: 'ListFonts'
+  , 50: 'ListFontsWithInfo'
+  , 51: 'SetFontPath'
+  , 52: 'GetFontPath'
+  , 53: 'CreatePixmap'
+  , 54: 'FreePixmap'
+  , 55: 'CreateGC'
+  , 56: 'ChangeGC'
+  , 57: 'CopyGC'
+  , 58: 'SetDashes'
+  , 59: 'SetClipRectangles'
+  , 60: 'FreeGC'
+  , 61: 'ClearArea'
+  , 62: 'CopyArea'
+  , 63: 'CopyPlane'
+  , 64: 'PolyPoint'
+  , 65: 'PolyLine'
+  , 66: 'PolySegment'
+  , 67: 'PolyRectangle'
+  , 68: 'PolyArc'
+  , 69: 'FillPoly'
+  , 70: 'PolyFillRectangle'
+  , 71: 'PolyFillArc'
+  , 72: 'PutImage'
+  , 73: 'GetImage'
+  , 74: 'PolyText8'
+  , 75: 'PolyText16'
+  , 76: 'ImageText8'
+  , 77: 'ImageText16'
+  , 78: 'CreateColormap'
+  , 79: 'FreeColormap'
+  , 80: 'CopyColormapAndFree'
+  , 81: 'InstallColormap'
+  , 82: 'UninstallColormap'
+  , 83: 'ListInstalledColormaps'
+  , 84: 'AllocColor'
+  , 85: 'AllocNamedColor'
+  , 86: 'AllocColorCells'
+  , 87: 'AllocColorPlanes'
+  , 88: 'FreeColors'
+  , 89: 'StoreColors'
+  , 90: 'StoreNamedColor'
+  , 91: 'QueryColors'
+  , 92: 'LookupColor'
+  , 93: 'CreateCursor'
+  , 94: 'CreateGlyphCursor'
+  , 95: 'FreeCursor'
+  , 96: 'RecolorCursor'
+  , 97: 'QueryBestSize'
+  , 98: 'QueryExtension'
+  , 99: 'ListExtensions'
+  , 100: 'ChangeKeyboardMapping'
+  , 101: 'GetKeyboardMapping'
+  , 102: 'ChangeKeyboardControl'
+  , 103: 'GetKeyboardControl'
+  , 104: 'Bell'
+  , 105: 'ChangePointerControl'
+  , 106: 'GetPointerControl'
+  , 107: 'SetScreenSaver'
+  , 108: 'GetScreenSaver'
+  , 109: 'ChangeHosts'
+  , 110: 'ListHosts'
+  , 111: 'SetAccessControl'
+  , 112: 'SetCloseDownMode'
+  , 113: 'KillClient'
+  , 114: 'RotateProperties'
+  , 115: 'ForceScreenSaver'
+  , 116: 'SetPointerMapping'
+  , 117: 'GetPointerMapping'
+  , 118: 'SetModifierMapping'
+  , 119: 'GetModifierMapping'
+  , 127: 'NoOperation'
+}; // 34 or 127
 
   function stringPad (string) {
     return string.length + (4 - ((string.length % 4) || 4));
@@ -1357,6 +1365,3 @@ define('x_client', ['worker_console', 'lib/async', 'x_types', 'endianbuffer', 'r
     console.log(Object.keys(XServerClient.opcodes).length);
     console.log('Implemented', opcodes, 'opcodes of 127, that\'s', opcodes / 127 * 100, '%');
   })();
-
-  return XServerClient;
-});

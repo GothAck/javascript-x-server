@@ -6,3 +6,5 @@ public/require.js
 *.sublime-workspace
 ignored
 npm-debug.log
+public/modules/**/*.js
+public/modules/**/*.js.map

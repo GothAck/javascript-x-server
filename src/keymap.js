@@ -1,27 +1,27 @@
-  var keysyms = {
-      'Backspace' : 0xff08
-    , 'Tab'       : 0xff09
-    , 'Linefeed'  : 0xff0a
-    , 'Clear'     : 0xff0b
-    , 'Return'    : 0xff0d
-    , 'Pause'     : 0xff13
-    , 'ScrollLock': 0xff14
-    , 'SysReq'    : 0xff15
-    , 'Escape'    : 0xff1b
-    , 'Home'      : 0xff50
-    , 'Left'      : 0xff51
-    , 'Up'        : 0xff52
-    , 'Right'     : 0xff53
-    , 'Down'      : 0xff54
-    , 'PgUp'      : 0xff55
-    , 'PgDn'      : 0xff56
-  }
+var keysyms = {
+    'Backspace' : 0xff08
+  , 'Tab'       : 0xff09
+  , 'Linefeed'  : 0xff0a
+  , 'Clear'     : 0xff0b
+  , 'Return'    : 0xff0d
+  , 'Pause'     : 0xff13
+  , 'ScrollLock': 0xff14
+  , 'SysReq'    : 0xff15
+  , 'Escape'    : 0xff1b
+  , 'Home'      : 0xff50
+  , 'Left'      : 0xff51
+  , 'Up'        : 0xff52
+  , 'Right'     : 0xff53
+  , 'Down'      : 0xff54
+  , 'PgUp'      : 0xff55
+  , 'PgDn'      : 0xff56
+};
 
-  function charKeySym (char) {
-    if (char.charCodeAt(0) < 0x100)
-      return char.charCodeAt(0);
-    return char.charCodeAt(0) + 0x01000100;
-  }
+function charKeySym (char) {
+  if (char.charCodeAt(0) < 0x100)
+    return char.charCodeAt(0);
+  return char.charCodeAt(0) + 0x01000100;
+}
 
 class KeyMap {
   constructor(map) {

@@ -4,14 +4,10 @@
  */
 import * as fs from "fs";
 import * as EndianBuffer from "endianbuffer";
-import * as types_font from "x_types_font";
 import * as events from "event_types";
-
 import * as v6 from "lib/ipv6";
-
+export * from "x_types_font";
 export {events};
-
-Object.keys(types_font).forEach((key) => exports[key] = types_font[key]);
 
 export class ExtrasArray {
   constructor(...args: Array<mixed>) {

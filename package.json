@@ -6,11 +6,11 @@
   "dependencies": {
     "async": "*",
     "express": "*",
-    "future": "~2.3.1",
+    "future": "*",
     "ipv6": "*",
     "morgan": "*",
-    "react": "^0.12.2",
-    "react-tools": "^0.12.2",
+    "react": "*",
+    "react-tools": "*",
     "requirejs": "*",
     "serve-static": "*",
     "supervisor": "*",
@@ -18,10 +18,10 @@
     "wolfy-eventemitter": "*"
   },
   "devDependencies": {
-    "grunt": "^0.4.5",
-    "grunt-babel": "^4.0.0",
-    "grunt-contrib-watch": "^0.6.1",
-    "load-grunt-tasks": "^3.1.0"
+    "grunt": "*",
+    "grunt-babel": "*",
+    "grunt-contrib-watch": "*",
+    "load-grunt-tasks": "*"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

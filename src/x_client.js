@@ -292,7 +292,7 @@ export default class XServerClient {
   ChangeWindowAttributes(req, callback) {
     console.log('ChangeWindowAttributes', req);
     this.server.getResource(req.window, x_types.Window)
-      .changeFields(this, req.fields);
+      .changeFields(this, WinVField.fromObject(req.fields));
     callback();
   }
 
@@ -420,9 +420,9 @@ export default class XServerClient {
     var window = this.server.getResource(req.window, x_types.Window)
     console.log('ConfigureWindow', window, req.fields);
     window.sibling = null;
-    Object.keys(req.fields).forEach(function (key) {
-      window[key] = req.fields[key];
-    })
+    for (let [k, v] of WinConfigureField.fromObject(req.fields)) {
+      window[k] = v;
+    }
     console.log('ConfigureWindow FIXME: Incomplete');
     callback();
   }

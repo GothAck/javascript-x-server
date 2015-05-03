@@ -2,6 +2,7 @@
  * Copyright Greg Miell 2013-present
  * @flow weak
  */
+import { GCVField, WinVField, WinConfigureField } from "common";
 import * as fs from "fs";
 import * as EndianBuffer from "endianbuffer";
 import * as events from "event_types";
@@ -409,7 +410,7 @@ export class GraphicsContext {
     this.id = id;
     this.drawable = drawable;
     this.context = drawable.canvas[0].getContext('2d');
-    this.changeFields(owner, fields);
+    this.changeFields(owner, GCVField.fromObject(fields));
     this.x = 0;
     this.y = 0;
   }
@@ -443,9 +444,9 @@ export class GraphicsContext {
 
   changeFields(owner, fields) {
     this._currentClient = owner;
-    for (var key in fields) {
-      if (fields.hasOwnProperty(key)) {
-        this[key] = fields[key];
+    if (fields) {
+      for (let [key, val] of fields) {
+        this[key] = val;
       }
     }
     this._currentClient = null;
@@ -603,6 +604,7 @@ export class Window extends Drawable {
     this.event_clients = {};
     this.element.css('display', 'none');
     this.element.children().append(this.canvas.attr('id', this.id));
+    fields = WinVField.fromObject(fields);
     this.changeFields(owner, fields);
     this.properties = {}
 //    var ctx = this.canvas[0].getContext('2d');
@@ -718,9 +720,9 @@ export class Window extends Drawable {
 
   changeFields(owner, fields) {
     this._currentClient = owner;
-    for (var key in fields) {
-      if (fields.hasOwnProperty(key)) {
-        this[key] = fields[key];
+    if (fields) {
+      for (let [key, val] of fields) {
+        this[key] = val;
       }
     }
     this._currentClient = null;

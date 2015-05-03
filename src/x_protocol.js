@@ -1,68 +1,8 @@
 import from "lib/async";
+import { GCVField, WinVField, WinConfigureField } from "common";
 import * as x_types from "x_types";
 import * as EndianBuffer from 'endianbuffer';
 import from "lib/ipv6";
-
-var _gc_vfields = [
-    'function' , 'plane_mask' , 'foreground' , 'background'
-  , 'line_width' , 'line_style' , 'cap_style' , 'join_style' , 'fill_style' , 'fill_rule'
-  , 'tile' , 'stipple', 'tile_stipple_x_origin', 'tile_stipple_y_origin'
-  , 'font', 'subwindow_mode', 'graphics_exposures', 'clip_x_origin', 'clip_y_origin', 'clip_mask'
-  , 'dash_offset', 'gc_dashes', 'arc_mode'
-];
-export class GCVField  {
-  constructor(vmask, vdata) {
-    var offset = 0;
-    for (var i = 0; i < _gc_vfields.length; i++)
-      if (vmask & Math.pow(2, i))
-        this[_gc_vfields[i]] = vdata.readUInt32((offset ++) * 4);
-  }
-}
-function getGCVFieldNames (vmask) {
-  var names = []
-    , offset = 0;
-  for (var i = 0; i < _gc_vfields.length; i++)
-    if (vmask & Math.pow(2, i))
-      names.push(_gc_vfields[i]);
-  return names;
-}
-var _win_vfields = [
-    'background_pixmap', 'background_pixel', 'border_pixmap', 'border_pixel'
-  , 'bit_gravity', 'win_gravity'
-  , 'backing_store', 'backing_planes', 'backing_pixel'
-  , 'override_redirect', 'save_under', 'event_mask', 'do_not_propagate_mask'
-  , 'colormap', 'cursor'
-];
-var _win_vfield_types = [
-    'UInt32', 'UInt32', 'UInt32', 'UInt32'
-  , 'UInt8', 'UInt8'
-  , 'UInt8', 'UInt32', 'UInt32'
-  , 'UInt8', 'UInt8', 'UInt32', 'UInt32'
-  , 'UInt32', 'UInt32'
-];
-export class WinVField  {
-  constructor(vmask, vdata) {
-    var offset = 0;
-    for (var i = 0; i < _gc_vfields.length; i++)
-      if (vmask & Math.pow(2, i)) {
-        this[_win_vfields[i]] = vdata['read' + _win_vfield_types[i]](offset);
-        offset += 4;
-      }
-  }
-}
-var _win_configure_vfields = [
-  'x', 'y', 'width', 'height', 'border_width', 'sibling', 'stack_mode'
-]
-export class WinConfigureField  {
-  constructor(vmask, vdata) {
-    var offset = 0;
-    for (var i = 0; i < _win_configure_vfields.length; i++)
-      if (vmask & Math.pow(2, i))
-        this[_win_configure_vfields[i]] = vdata.readUInt32((offset ++) * 4);
-  }
-}
-
-
 
 export class XProtocolServer  {
   constructor(socket, onClose) {
@@ -335,20 +275,20 @@ Request.CreateWindow = class CreateWindow extends Request {
     this.border_width = this.data.readUInt16(16);
     this.class = this.data.readUInt16(18);
     this.visual = this.data.readUInt32(20);
-    this.fields = new WinVField(
+    this.fields = (new WinVField(
         this.data.readUInt32(24)
       , this.data.slice(28)
-    );
+    )).toObject();
   }
 }
 
 Request.ChangeWindowAttributes = class ChangeWindowAttributes extends Request {
   constructor() {
     this.window = this.data.readUInt32(0);
-    this.fields = new WinVField(
+    this.fields = (new WinVField(
         this.data.readUInt32(4)
       , this.data.slice(8)
-    );
+    )).toObject();
   }
 }
 
@@ -434,10 +374,10 @@ Request.UnmapSubwindows = class UnmapSubwindows extends Request {
 Request.ConfigureWindow = class ConfigureWindow extends Request {
   constructor() {
     this.window = this.data.readUInt32(0)
-    this.fields = new WinConfigureField(
+    this.fields = (new WinConfigureField(
         this.data.readUInt16(4)
       , this.data.slice(8)
-    )
+    )).toObject();
   }
 }
 
@@ -759,20 +699,20 @@ Request.CreateGC = class CreateGC extends Request {
   constructor() {
     this.cid = this.data.readUInt32(0)
     this.drawable = this.data.readUInt32(4)
-    this.fields = new GCVField(
+    this.fields = (new GCVField(
         this.data.readUInt32(8)
       , this.data.slice(12)
-    );
+    )).toObject();
   }
 }
 
 Request.ChangeGC = class ChangeGC extends Request {
   constructor() {
     this.gc = this.data.readUInt32(0)
-    this.fields = new GCVField(
+    this.fields = (new GCVField(
         this.data.readUInt32(4)
       , this.data.slice(8)
-    );
+    )).toObject();
   }
 }
 
@@ -780,7 +720,7 @@ Request.CopyGC = class CopyGC extends Request {
   constructor() {
     this.src_gc = this.data.readUInt32(0)
     this.dst_gc = this.data.readUInt32(4)
-    this.fields = getGCVFieldNames(this.data.readUInt32(8));
+    this.fields = GCVField.getFieldNames(this.data.readUInt32(8));
   }
 }
 

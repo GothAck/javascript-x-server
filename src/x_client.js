@@ -383,21 +383,8 @@ export default class XServerClient {
   MapSubwindows(req, callback) {
     var window = this.server.getResource(req.window, x_types.Window);
     console.log('MapSubwindows', window.id);
-    var reps = [];
-    function run (parent_children) {
-      var children_children = [];
-      parent_children.forEach(function (child_window, i) {
-        if (child_window.map()) {
-          child_window.triggerEvent('MapNotify')
-          child_window.triggerEvent('Expose', { count: 0 });
-        }
-        children_children.splice.apply(children_children, [0, 0].concat(child_window.children));
-      });
-      if (children_children.length)
-        run(children_children);
-    }
-    run(window.children);
-    callback(null, reps);
+    window.mapSubwindows();
+    callback(null, []);
   }
 
   UnmapWindow(req, callback) {

@@ -700,6 +700,15 @@ export class Window extends Drawable {
     return !!(this.element && this.element[0].parentNode && this.parent && (!this.parent.id || this.parent.isMapped()));
   }
 
+  mapSubwindows() {
+    this.children.forEach((child) => {
+      if (child.map()) {
+        child.triggerEvent('Expose', {count: 0});
+      }
+      child.mapSubwindows();
+    });
+  }
+
   getRoot() {
     var current = this;
     while (current.parent && current.parent.id)

@@ -205,7 +205,7 @@ export default class XServer {
     this.font_path = 'fonts';
     this.fonts_dir = {};
     this.fonts_scale = {};
-    this.fonts_cache = {};
+    this.fonts_cache = new Map();
 
     fs.readFile(this.font_path + '/fonts.dir', 'utf8', function (err, file) {
       if (err)
@@ -409,9 +409,9 @@ export default class XServer {
   loadFont(resolved_name, server_name, callback) {
     var self = this;
     console.log('XServer.loadFont', [].slice.call(arguments));
-    console.log('Font cached?', resolved_name in this.fonts_cache);
-    if (resolved_name in this.fonts_cache)
-      return callback(null, this.fonts_cache[resolved_name]);
+    console.log('Font cached?', this.fonts_cache.has(resolved_name));
+    if (this.fonts_cache.has(resolved_name))
+      return callback(null, this.fonts_cache.get(resolved_name));
     self.grab = 'loadFont';
     fs.readFile('fonts/' + resolved_name + '.meta.json', 'utf8', function (err, meta) {
       console.log('read meta');
@@ -430,7 +430,7 @@ export default class XServer {
         if (!err) {
           console.log('Font loaded', font);
         }
-        self.fonts_cache[resolved_name] = font;
+        self.fonts_cache.set(resolved_name, font);
         console.log('Font loaded2', font);
         callback(err, font);
       });

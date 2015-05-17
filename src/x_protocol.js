@@ -130,12 +130,13 @@ export class XProtocolClient  {
   postRequest(request) {
     var type = request.constructor.name || request.opname
       , transferrable = [];
-    Object.keys(request).forEach(function (name) {
-      if (request[name] instanceof EndianBuffer) {
-        transferrable.push(request[name] = request[name].buffer);
+    Object.keys(request).forEach((name) => {
+      var value = request[name];
+      if (value instanceof EndianBuffer) {
+        transferrable.push(request[name] = value.buffer);
       }
     });
-    postMessage({ cmd: 'request', id: this.id, type: type, request: request });
+    postMessage({ cmd: 'request', id: this.id, type: type, request: request }, transferrable);
   }
   processData(data) {
     data.endian = this.endian;

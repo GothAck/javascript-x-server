@@ -1,10 +1,9 @@
-if (typeof define === 'undefined' && typeof importScripts !== 'undefined')
+if (typeof define === 'undefined' && typeof importScripts !== 'undefined') {
   importScripts('lib/require.js');
   importScripts('require.config.js');
+}
 
 var string_split = /(\w+)(\s\w+){0,1}$/
-
-window = self;
 
 require(
     ['x_protocol', 'endianbuffer']

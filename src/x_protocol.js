@@ -1,8 +1,8 @@
-import from "lib/async";
 import { GCVField, WinVField, WinConfigureField } from "common";
+import * as async from "lib/async";
 import * as x_types from "x_types";
 import * as EndianBuffer from 'endianbuffer';
-import from "lib/ipv6";
+import * as ipv6 from "lib/ipv6";
 
 export class XProtocolServer  {
   constructor(socket, onClose) {
@@ -161,7 +161,7 @@ export class XProtocolClient  {
           if (gooj < 1) throw new Error('You are out of jail, have a nice day!');
           var req_str = '> Request decode (' + this.idLog + ') ' + this.sequence;
           console.time(req_str);
-          req = new Request(data, this.sequence);
+          req = Request.factory(data, this.sequence);
           console.timeEnd(req_str);
           if (req.length > data.length) {
             this.buffer = data;
@@ -239,32 +239,35 @@ export class Reply  {
   }
 }
 
-export class Request  {
-  constructor(data, sequence) {
-    this.sequence = sequence;
-    this.opcode = data.readUInt8(0);
-    this.opname = this.constructor.opcodes[this.opcode];
-    if (Request[this.opname]) {
-      Object.defineProperty(this, 'constructor', {
-          value: Request[this.opname]
-        , enumerable: false
-      });
-      this.__proto__ = this.constructor.prototype;
+export class Request {
+  static factory(data, sequence) {
+    var req;
+    var opcode = data.readUInt8(0);
+    var opname = Request.opcodes[opcode];
+    if (opname) {
+      req = new (Request[opname])(data, sequence, opcode, opname);
+    } else {
+      req = new Request(data, sequence, opcode, opname);
+      console.warn(`Unknown opcode ${opcode}`);
     }
+    delete req.data;
+    return req;
+  }
+  constructor(data, sequence, opcode, opname) {
+    this.sequence = sequence;
+    this.opcode = opcode;
+    this.opname = opname;
     this.data_byte = data.readUInt8(1);
     this.length_quad = data.readUInt16(2);
     this.length = this.length_quad * 4;
     this.data = data.slice(4, this.length + 4);
     this.data.endian = data.endian;
     this.endian = data.endian;
-    if (this.constructor !== Request) {
-      this.constructor.apply(this, arguments);
-      delete this.data;
-    }
   }
 }
 Request.CreateWindow = class CreateWindow extends Request {
   constructor() {
+    super(...arguments);
     this.depth = this.data_byte;
     this.id = this.data.readUInt32(0);
     this.parent = this.data.readUInt32(4);
@@ -284,6 +287,7 @@ Request.CreateWindow = class CreateWindow extends Request {
 
 Request.ChangeWindowAttributes = class ChangeWindowAttributes extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0);
     this.fields = (new WinVField(
         this.data.readUInt32(4)
@@ -294,6 +298,7 @@ Request.ChangeWindowAttributes = class ChangeWindowAttributes extends Request {
 
 Request.GetWindowAttributes = class GetWindowAttributes extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
@@ -322,24 +327,28 @@ Request.GetWindowAttributes.Rep = class GetWindowAttributesReply extends Reply {
   
 Request.DestroyWindow = class DestroyWindow extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
 
 Request.DestroySubWindows = class DestroySubWindows extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
 
 Request.ChangeSaveSet = class ChangeSaveSet extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
 
 Request.ReparentWindow = class ReparentWindow extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
     this.parent = this.data.readUInt32(4)
     this.x = this.data.readInt16(8)
@@ -349,30 +358,35 @@ Request.ReparentWindow = class ReparentWindow extends Request {
 
 Request.MapWindow = class MapWindow extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
 
 Request.MapSubwindows = class MapSubwindows extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
 
 Request.UnmapWindow = class UnmapWindow extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
   
 Request.UnmapSubwindows = class UnmapSubwindows extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
 
 Request.ConfigureWindow = class ConfigureWindow extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
     this.fields = (new WinConfigureField(
         this.data.readUInt16(4)
@@ -383,6 +397,7 @@ Request.ConfigureWindow = class ConfigureWindow extends Request {
 
 Request.GetGeometry = class GetGeometry extends Request {
   constructor() {
+    super(...arguments);
     this.drawable = this.data.readUInt32(0)
   }
 }
@@ -402,6 +417,7 @@ Request.GetGeometry.Rep = class GetGeometryReply extends Reply {
 
 Request.QueryTree = class QueryTree extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
@@ -420,6 +436,7 @@ Request.QueryTree.Rep = class QueryTreeReply extends Reply {
 
 Request.InternAtom = class InternAtom extends Request {
   constructor() {
+    super(...arguments);
     this.only_if_exists = this.data_byte
     this.name_length = this.data.readUInt16(0)
     this.name = this.data.toString('ascii', 4, 4 + this.name_length)
@@ -435,6 +452,7 @@ Request.InternAtom.Rep = class InternAtomReply extends Reply {
 
 Request.GetAtomName = class GetAtomName extends Request {
   constructor() {
+    super(...arguments);
     this.atom = this.data.readUInt32(0);
   }
 }
@@ -449,6 +467,7 @@ Request.GetAtomName.Rep = class GetAtomNameReply extends Reply {
 
 Request.ChangeProperty = class ChangeProperty extends Request {
   constructor() {
+    super(...arguments);
     this.mode = this.data_byte
     this.window = this.data.readUInt32(0)
     this.atom = this.data.readUInt32(4)
@@ -462,6 +481,7 @@ Request.ChangeProperty = class ChangeProperty extends Request {
 
 Request.DeleteProperty = class DeleteProperty extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
     this.atom = this.data.readUInt32(4)
   }
@@ -470,6 +490,7 @@ Request.DeleteProperty = class DeleteProperty extends Request {
 
 Request.GetProperty = class GetProperty extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
     this.atom = this.data.readUInt32(4)
     this.type = this.data.readUInt32(8)
@@ -480,6 +501,7 @@ Request.GetProperty = class GetProperty extends Request {
 
 Request.GetProperty.Rep = class GetPropertyReply extends Reply {
   constructor(rep, client) {
+    super(rep, client);
     this.data_byte = rep.format;
     if (rep.format) {
       this.data.writeUInt32(rep.type || 0, 0);
@@ -487,12 +509,12 @@ Request.GetProperty.Rep = class GetPropertyReply extends Reply {
       this.data.writeUInt32(rep.length / (rep.format / 8), 8);
       this.data_extra.push(new x_types.DataBuffer(rep.value));
     }
-    super(rep, client);
   }
 }
 
 Request.RotateProperties = class RotateProperties extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0);
     this.atoms = Array.apply(Array, Array(this.data.readUInt16(4)))
       .map(function (v, i) {
@@ -504,6 +526,7 @@ Request.RotateProperties = class RotateProperties extends Request {
 
 Request.ListProperties = class ListProperties extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
@@ -520,6 +543,7 @@ Request.ListProperties.Rep = class ListPropertiesReply extends Reply {
 
 Request.GetSelectionOwner = class GetSelectionOwner extends Request {
   constructor() {
+    super(...arguments);
     this.atom_id = this.data.readUInt32(0)
   }
 }
@@ -533,6 +557,7 @@ Request.GetSelectionOwner.Rep = class GetSelectionOwnerReply extends Reply {
 
 Request.SendEvent = class SendEvent extends Request {
   constructor() {
+    super(...arguments);
     this.propagate = this.data_byte
     this.wid = this.data.readUInt32(0)
     this.window = this.data.readUInt32(0)
@@ -543,6 +568,7 @@ Request.SendEvent = class SendEvent extends Request {
 
 Request.GrabPointer = class GrabPointer extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
     this.owner_events = this.data_byte
     this.events = this.data.readUInt16(4)
@@ -556,12 +582,14 @@ Request.GrabPointer = class GrabPointer extends Request {
 
 Request.UngrabPointer = class UngrabPointer extends Request {
   constructor() {
+    super(...arguments);
     this.time = this.data.readUInt32(0);
   }
 }
   
 Request.GrabKeyboard = class GrabKeyboard extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
     this.owner_events = this.data_byte
     this.timestamp = this.data.readUInt32(4)
@@ -572,22 +600,26 @@ Request.GrabKeyboard = class GrabKeyboard extends Request {
   
 Request.UngrabKeyboard = class UngrabKeyboard extends Request {
   constructor() {
+    super(...arguments);
     this.time = this.data.readUInt32(0);
   }
 }
 
 Request.GrabServer = class GrabServer extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 
 Request.UngrabServer = class UngrabServer extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 
 Request.QueryPointer = class QueryPointer extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
   }
 }
@@ -606,6 +638,7 @@ Request.QueryPointer.Rep = class QueryPointerReply extends Reply {
 
 Request.SetInputFocus = class SetInputFocus extends Request {
   constructor() {
+    super(...arguments);
     this.revert = this.data_byte
     this.window = this.data.readUInt32(0)
     this.time = this.data.readUInt32(4) || ~~(Date.now() / 1000);
@@ -614,6 +647,7 @@ Request.SetInputFocus = class SetInputFocus extends Request {
 
 Request.GetInputFocus = class GetInputFocus extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 
@@ -627,6 +661,7 @@ Request.GetInputFocus.Rep = class GetInputFocusReply extends Reply {
 
 Request.OpenFont = class OpenFont extends Request {
   constructor() {
+    super(...arguments);
     this.fid = this.data.readUInt32(0)
     this.name_length = this.data.readUInt16(4)
     this.name = this.data.toString('ascii', 8, this.name_length + 8);
@@ -635,12 +670,14 @@ Request.OpenFont = class OpenFont extends Request {
 
 Request.CloseFont = class CloseFont extends Request {
   constructor() {
+    super(...arguments);
     this.font = this.data.readUInt32(0)
   }
 }
 
 Request.QueryFont = class QueryFont extends Request {
   constructor() {
+    super(...arguments);
     this.font = this.data.readUInt32(0)
   }
 }
@@ -655,6 +692,7 @@ Request.QueryFont.Rep = class QueryFontReply extends Reply {
 
 Request.ListFonts = class ListFonts extends Request {
   constructor() {
+    super(...arguments);
     this.max_names = this.data.readUInt16(0)
     this.pattern_length = this.data.readUInt16(2)
     this.pattern = this.data.toString('ascii', 4, 4 + this.pattern_length)
@@ -673,6 +711,7 @@ Request.ListFonts.Rep = class ListFontsReply extends Reply {
 
 Request.ListFontsWithInfo = class ListFontsWithInfo extends Request {
   constructor() {
+    super(...arguments);
     this.max_names = this.data.readUInt16(0)
     this.pattern_length = this.data.readUInt16(2)
     this.pattern = this.data.toString('ascii', 4, 4 + this.pattern_length)
@@ -681,6 +720,7 @@ Request.ListFontsWithInfo = class ListFontsWithInfo extends Request {
 
 Request.CreatePixmap = class CreatePixmap extends Request {
   constructor() {
+    super(...arguments);
     this.pid = this.data.readUInt32(0)
     this.drawable = this.data.readUInt32(4)
     this.depth = this.data_byte
@@ -691,12 +731,14 @@ Request.CreatePixmap = class CreatePixmap extends Request {
 
 Request.FreePixmap = class FreePixmap extends Request {
   constructor() {
+    super(...arguments);
     this.pid = this.data.readUInt32(0);
   }
 }
 
 Request.CreateGC = class CreateGC extends Request {
   constructor() {
+    super(...arguments);
     this.cid = this.data.readUInt32(0)
     this.drawable = this.data.readUInt32(4)
     this.fields = (new GCVField(
@@ -708,6 +750,7 @@ Request.CreateGC = class CreateGC extends Request {
 
 Request.ChangeGC = class ChangeGC extends Request {
   constructor() {
+    super(...arguments);
     this.gc = this.data.readUInt32(0)
     this.fields = (new GCVField(
         this.data.readUInt32(4)
@@ -718,6 +761,7 @@ Request.ChangeGC = class ChangeGC extends Request {
 
 Request.CopyGC = class CopyGC extends Request {
   constructor() {
+    super(...arguments);
     this.src_gc = this.data.readUInt32(0)
     this.dst_gc = this.data.readUInt32(4)
     this.fields = GCVField.getFieldNames(this.data.readUInt32(8));
@@ -726,6 +770,7 @@ Request.CopyGC = class CopyGC extends Request {
 
 Request.ClearArea = class ClearArea extends Request {
   constructor() {
+    super(...arguments);
     this.window = this.data.readUInt32(0)
     this.exposures = this.data_byte
     this.x = this.data.readUInt16(4)
@@ -737,6 +782,7 @@ Request.ClearArea = class ClearArea extends Request {
 
 Request.CopyArea = class CopyArea extends Request {
   constructor() {
+    super(...arguments);
     this.src    = this.data.readUInt32( 0)
     this.dst    = this.data.readUInt32( 4)
     this.gc     = this.data.readUInt32( 8)
@@ -751,12 +797,14 @@ Request.CopyArea = class CopyArea extends Request {
 
 Request.FreeGC = class FreeGC extends Request {
   constructor() {
+    super(...arguments);
     this.gc = this.data.readUInt32(0)
   }
 }
 
 Request.PolyLine = class PolyLine extends Request {
   constructor() {
+    super(...arguments);
     this.drawable = this.data.readUInt32(0)
     this.coordinate_mode = this.data_byte
     this.gc = this.data.readUInt32(4)
@@ -781,6 +829,7 @@ Request.PolyLine = class PolyLine extends Request {
 
 Request.PolySegment = class PolySegment extends Request {
   constructor() {
+    super(...arguments);
     this.drawable = this.data.readUInt32(0)
     this.gc = this.data.readUInt32(4)
     this.count = (this.length_quad - 3) / 2;
@@ -796,6 +845,7 @@ Request.PolySegment = class PolySegment extends Request {
 
 Request.PolyRectangle = class PolyRectangle extends Request {
   constructor() {
+    super(...arguments);
     this.drawable = this.data.readUInt32(0)
     this.gc = this.data.readUInt32(4)
     this.count = (this.length_quad - 3) / 2;
@@ -839,6 +889,7 @@ Request.PolyFillRectangle = class PolyFillRectangle extends Request {
 
 Request.PolyFillArc = class PolyFillArc extends Request {
   constructor() {
+    super(...arguments);
     this.drawable = this.data.readUInt32(0)
     this.gc = this.data.readUInt32(4)
     this.count = (this.length_quad - 3) / 3
@@ -873,6 +924,7 @@ Request.PolyFillArc = class PolyFillArc extends Request {
   var _image_formats = ['Bitmap', 'XYPixmap', 'ZPixmap'];
 Request.PutImage = class PutImage extends Request {
   constructor() {
+    super(...arguments);
     this.format = _image_formats[this.data_byte]
     this.drawable = this.data.readUInt32(0)
     this.context = this.data.readUInt32(4)
@@ -888,6 +940,7 @@ Request.PutImage = class PutImage extends Request {
 
 Request.GetImage = class GetImage extends Request {
   constructor() {
+    super(...arguments);
     this.format = _image_formats[this.data_byte]
     this.drawable = this.data.readUInt32(0)
     this.x = this.data.readInt16(4)
@@ -900,6 +953,7 @@ Request.GetImage = class GetImage extends Request {
 
 Request.PolyText8 = class PolyText8 extends Request {
   constructor() {
+    super(...arguments);
     this.drawable = this.data.readUInt32(0)
     this.gc = this.data.readUInt32(4)
     this.count = (this.length_quad / 4) - 1
@@ -931,6 +985,7 @@ Request.PolyText8 = class PolyText8 extends Request {
 
 Request.PolyText16 = class PolyText16 extends Request {
   constructor() {
+    super(...arguments);
     this.drawable = this.data.readUInt32(0)
     this.gc = this.data.readUInt32(4)
     this.count = (this.length_quad - 1) / 4
@@ -962,6 +1017,7 @@ Request.PolyText16 = class PolyText16 extends Request {
 
 Request.AllocColor = class AllocColor extends Request {
   constructor() {
+    super(...arguments);
     this.cmap = this.data.readUInt32(0)
     this.r = this.data.readUInt16(4) >> 8
     this.g = this.data.readUInt16(6) >> 8
@@ -981,6 +1037,7 @@ Request.AllocColor.Rep = class AllocColorReply extends Reply {
 
 Request.QueryColors = class QueryColors extends Request {
   constructor() {
+    super(...arguments);
     this.count = this.length_quad - 2
     this.colormap_length = this.count * 4
     this.colormap = this.data.readUInt32(0)
@@ -990,6 +1047,7 @@ Request.QueryColors = class QueryColors extends Request {
 
 Request.LookupColor = class LookupColor extends Request {
   constructor() {
+    super(...arguments);
     this.cmap = this.data.readUInt32(0)
     this.name_length = this.data.readUInt16(4)
     this.name = this.data.toString('ascii', 8, this.name_length + 8)
@@ -998,6 +1056,7 @@ Request.LookupColor = class LookupColor extends Request {
 
 Request.CreateGlyphCursor = class CreateGlyphCursor extends Request {
   constructor() {
+    super(...arguments);
     this.cursor_id = this.data.readUInt32(0)
     this.source_font = this.data.readUInt32(4)
     this.mask_font = this.data.readUInt32(8)
@@ -1014,6 +1073,7 @@ Request.CreateGlyphCursor = class CreateGlyphCursor extends Request {
 
 Request.QueryBestSize = class QueryBestSize extends Request {
   constructor() {
+    super(...arguments);
     this._class = this.data_byte
     this.drawable = this.data.readUInt32(0)
     this.width = this.data.readUInt16(4)
@@ -1023,16 +1083,19 @@ Request.QueryBestSize = class QueryBestSize extends Request {
 
 Request.QueryExtension = class QueryExtension extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 
 Request.ListExtensions = class ListExtensions extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 
 Request.GetKeyboardMapping = class GetKeyboardMapping extends Request {
   constructor() {
+    super(...arguments);
     this.first = this.data.readUInt8(0)
     this.count = this.data.readUInt8(1)
   }
@@ -1040,12 +1103,14 @@ Request.GetKeyboardMapping = class GetKeyboardMapping extends Request {
 
 Request.Bell = class Bell extends Request {
   constructor() {
+    super(...arguments);
     this.percent = this.data_byte;
   }
 }
 
 Request.ChangeHosts = class ChangeHosts extends Request {
   constructor() {
+    super(...arguments);
     this.mode = this.data_byte;
     this.family = ['Internet', 'DECnet', 'Chaos'][this.data.readUInt8(0)];
     this.address = this.data.slice(4, this.data.readUInt16(2) + 4);
@@ -1070,6 +1135,7 @@ Request.ChangeHosts = class ChangeHosts extends Request {
 
 Request.ListHosts = class ListHosts extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 
@@ -1086,6 +1152,7 @@ Request.ListHosts.Rep = class ListHostsReply extends Reply {
 
 Request.SetAccessControl = class SetAccessControl extends Request {
   constructor() {
+    super(...arguments);
     this.mode = this.data_byte;
   }
 }
@@ -1093,23 +1160,27 @@ Request.SetAccessControl = class SetAccessControl extends Request {
   var _closedown_mode = ['destroy', 'permanent', 'temporary'];
 Request.SetCloseDownMode = class SetCloseDownMode extends Request {
   constructor() {
+    super(...arguments);
     this.closedown = _closedown_mode[this.data_byte];
   }
 }
   
 Request.KillClient = class KillClient extends Request {
   constructor() {
+    super(...arguments);
     this.rid = this.data.readUInt32(0)
   }
 }
 
 Request.GetModifierMapping = class GetModifierMapping extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 
 Request.NoOperation = class NoOperation extends Request {
   constructor() {
+    super(...arguments);
   }
 }
 Request.opcodes = {

@@ -505,10 +505,11 @@ export class GraphicsContext {
 GraphicsContext.error_code = 13;
 
 export class Drawable {
+  canvas = $('<canvas></canvas>');
+
   constructor(owner, depth, width, height) {
     this.owner = owner;
     this.depth = depth;
-    this.canvas = $('<canvas></canvas>');
     this.width = width;
     this.height = height;
   }
@@ -587,15 +588,18 @@ var _win_vfield_types = [
 ];
 
 export class Window extends Drawable {
+  element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>')
+    .attr('owner', this.owner.id)
+    .data('xob', this)
+    .css({
+      width: this.width,
+      height: this.height,
+    });
+
   constructor(owner, id, depth, x, y, width, height, border_width, _class, visual, fields) {
-    fields = fields || {}
-    this.id = id;
-    this.element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>')
-        .attr('id', 'e' + this.id)
-        .attr('owner', owner.id)
-        .data('xob', this);
-    console.log('Drawablesuper', this);
     super(owner, depth, width, height);
+    this.id = id;
+    this.element.attr('id', 'e' + id);
     this.border_width = border_width;
     this.class = _class;
     this.visual = visual;
@@ -823,11 +827,11 @@ export class Window extends Drawable {
   }
   set width(width) {
     super.width = width;
-    this.element.css('width', width);
+    this.element && this.element.css('width', width);
   }
   set height(height) {
     super.height = height;
-    this.element.css('height', height);
+    this.element && this.element.css('height', height);
   }
   set parent(parent) {
     this._parent = parent;
@@ -1005,8 +1009,8 @@ Window._window_win_gravity = ['U', 'NW', 'N', 'NE', 'W', 'C', 'E', 'SW', 'S', 'S
 
 export class Atom extends String {
   constructor(value, owner) {
-    this.owner = owner;
     super(value);
+    this.owner = owner;
   }
 }
 
@@ -1019,7 +1023,7 @@ export class Host {
       if (~Object.keys(Host.types).indexOf(type)) {
         this.constructor = Host.types[type];
         this.__proto__ = Host.types[type].prototype;
-        super(host, type);
+        this.constructor(host, type);
       } else
         throw new Error('Unknown host type');
     }

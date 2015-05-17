@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as EndianBuffer from 'endianbuffer';
 import * as loadCSSFont from 'loadcssfont';
+import { MustImplementError } from 'common';
 
 export class CharInfo {
   constructor(char) {
@@ -54,8 +55,20 @@ export class FontProp {
 }
 
 export class Font {
-  constructor(type, file_name, name) {
-    this.type = type;
+  static factory(meta: mixed, file_name: string, name: string): Font {
+    switch (meta.type) {
+      case 'ttf':
+      case 'woff':
+        return new VectorFont(meta, file_name, name);
+      case 'pcf':
+        return new PCFFont(meta, file_name, name);
+      default:
+        throw new Error(`Invalid font type ${meta.type}`);
+    }
+  }
+  constructor(meta, file_name, name) {
+    this.meta = meta;
+    this.type = meta.type;
     this.file_name = file_name;
     this.css_name = file_name.replace(/\./g, '_');
     this.name = name;
@@ -64,21 +77,7 @@ export class Font {
   static error_code = 7;
 
   loadData(callback) {
-    switch (this.type) {
-    case 'ttf':
-    case 'woff':
-      this.__proto__ = VectorFont.prototype;
-      this.constructor = VectorFont;
-    break;
-    case 'pcf':
-      this.__proto__ = PCFFont.prototype;
-      this.constructor = PCFFont;
-    break;
-    default:
-      throw new Error('Invalid font type ' + this.type);
-    }
-    this.constructor.call(this);
-    this.loadData.apply(this, arguments);
+    throw new MustImplementError('Font', 'loadData');
   }
 
   close() {}
@@ -356,38 +355,35 @@ export class PCFTable {
     , 'swidths', 'glyph_names', 'bdf_accelerators'
   ];
 export class PCFFont extends Font {
-  constructor(data) {
-    this.data = data;
-    this.data.endian = true; // Little endian
-    if (! (this.data.readUInt8(0) === 1 && this.data.toString('ascii', 1, 4) === 'fcp'))
-      throw new Error('Not pcf');
-    var tables = this.data.readUInt32(4) * 16;
-    this.tables = [];
-    this.characters = [];
-    for (var i = 0 + 8; i < tables + 8; i += 16) {
-      var type_id = this.data.readUInt32(i)
-        , type    = _pcf_tables.filter(function (type, index) { return type_id === 1 << index })[0]
-        , format = this.data.readUInt32(i +  4)
-        , size   = this.data.readUInt32(i +  8)
-        , offset = this.data.readUInt32(i + 12)
-        , end    = offset + size;
-      console.log(type_id, type, size, offset, end, this.data.length);
-      this.tables.push(new PCFTable(this, type, format, this.data.slice(offset, end)));
-    }
-    for (var i = 0; i < this.tables.length; i ++) {
-      delete this.tables[i].parent;
-      delete this.tables[i];
-    }
-    delete this.data;
-  }
-
   loadData(callback) {
     var self = this
       , path = 'fonts/' + this.file_name;
-    fs.readFile(path, function (err, data) {
+    fs.readFile(path, (err, data) => {
       if (err)
         return callback(err);
       self.data = new EndianBuffer(data);
+      this.data.endian = true; // Little endian
+      if (! (this.data.readUInt8(0) === 1 && this.data.toString('ascii', 1, 4) === 'fcp'))
+        throw new Error('Not pcf');
+      var tables = this.data.readUInt32(4) * 16;
+      this.tables = [];
+      this.characters = [];
+      for (var i = 0 + 8; i < tables + 8; i += 16) {
+        var type_id = this.data.readUInt32(i)
+          , type    = _pcf_tables.filter(function (type, index) { return type_id === 1 << index })[0]
+          , format = this.data.readUInt32(i +  4)
+          , size   = this.data.readUInt32(i +  8)
+          , offset = this.data.readUInt32(i + 12)
+          , end    = offset + size;
+        console.log(type_id, type, size, offset, end, this.data.length);
+        this.tables.push(new PCFTable(this, type, format, this.data.slice(offset, end)));
+      }
+      for (var i = 0; i < this.tables.length; i ++) {
+        delete this.tables[i].parent;
+        delete this.tables[i];
+      }
+      delete this.data;
+      
       callback();
     });
   }
@@ -436,9 +432,10 @@ export class VectorCharacter {
 }
 
 export class VectorFont extends Font {
-  constructor() {
-    Object.keys(this.meta).forEach(function (key) {
-      this[key] = this.meta[key];
+  constructor(meta, file_name, name) {
+    super(meta, file_name, name);  
+    Object.keys(meta).forEach(function (key) {
+      this[key] = meta[key];
     }, this);
     this.characters = this.characters.map(function (data) {
       return new VectorCharacter(data);

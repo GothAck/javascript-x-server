@@ -419,8 +419,7 @@ export default class XServer {
         return callback(e);
       }
       console.log(meta);
-      var font = new x_types.Font(meta.type, resolved_name, server_name);
-      font.meta = meta;
+      var font = x_types.Font.factory(meta, resolved_name, server_name)
       font.loadData(function (err) {
         self.grab = null;
         console.log('XServer.loadFont callback', [].slice.call(arguments));

@@ -9,9 +9,11 @@ module.exports = function(grunt) {
         sourceRoot: 'src',
         modules: 'amd',
         moduleIds: true,
-        playground: true,
-        experimental: true,
-        // optional: ['es7.objectSpread'],
+        optional: [
+          'es7.objectRestSpread',
+          'es7.classProperties',
+          'es7.exportExtensions',
+        ],
       },
       dist: {
         files: [{

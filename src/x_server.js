@@ -326,7 +326,11 @@ export default class XServer {
     var resource = this.resources[id];
     console.warn('server.freeResource', id, resource);
     if (Type && !(resource instanceof Type))
-      throw new x_types.Error({}, Type.error_code || 1, id);
+      throw new x_types.Error(
+          {},
+          Type.error_code || 1,
+          id,
+          `Resource at ${id} (${resource}) is not an instance of ${Type.name}`);
     delete this.resources[id];
   }
   

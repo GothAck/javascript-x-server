@@ -764,7 +764,12 @@ export default class XServerClient {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable);
     console.log('CreatePixmap', req.depth, req.pid, drawable, req.width, req.height);
     if (drawable.depth !== req.depth && req.depth !== 1) {
-      throw new x_types.Error(req, 4, req.depth);
+      throw new x_types.Error(
+        req,
+        4,
+        req.depth,
+        `Incorrect depth ${req.depth}, drawable ${drawable.depth}`
+      );
     }
     this.server.putResource(new x_types.Pixmap(this, req.pid, req.depth, drawable, req.width, req.height));
     callback();

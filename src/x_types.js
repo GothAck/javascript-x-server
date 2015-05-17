@@ -356,8 +356,8 @@ export class Reply {
 }
 
 export class XError extends Error {
-  constructor(req, code, value) {
-    super();
+  constructor(req, code, value, msg) {
+    super(msg);
     this.endian = req.endian;
     this.code = code || 1;
     this.opcode = req.opcode;

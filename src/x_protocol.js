@@ -862,32 +862,7 @@ Request.PolyRectangle = class PolyRectangle extends Request {
   }
 }
 
-Request.FillPoly = class FillPoly extends Request {
-  constructor() {
-    this.drawable = this.data.readUInt32(0)
-    this.gc = this.data.readUInt32(4)
-    this.shape = this.data.readUInt8(8)
-    this.coordinate_mode = this.data.readUInt8(9)
-    this.count = (this.length_quad - 4) * 4
-    this.coordinates = [];
-    // Unused 2
-    // 12
-    if (this.coordinate_mode != 0)
-      throw new Error('Previous coordinate mode not implemented');
-    for (var i = 12; i < this.count + 12; i += 4)
-      this.coordinates.push([this.data.readUInt16(i), this.data.readUInt16(i + 2)]);
-  }
-}
-
-Request.PolyFillRectangle = class PolyFillRectangle extends Request {
-  constructor() {
-    this.__proto__ = Request.PolyRectangle.prototype;
-    // this.constructor = Request.PolyRectangle;
-    Request.PolyRectangle.apply(this);
-  }
-}
-
-Request.PolyFillArc = class PolyFillArc extends Request {
+Request.PolyArc = class PolyArc extends Request {
   constructor() {
     super(...arguments);
     this.drawable = this.data.readUInt32(0)
@@ -920,6 +895,28 @@ Request.PolyFillArc = class PolyFillArc extends Request {
     }
   }
 }
+
+Request.FillPoly = class FillPoly extends Request {
+  constructor() {
+    super(...arguments);
+    this.drawable = this.data.readUInt32(0)
+    this.gc = this.data.readUInt32(4)
+    this.shape = this.data.readUInt8(8)
+    this.coordinate_mode = this.data.readUInt8(9)
+    this.count = (this.length_quad - 4) * 4
+    this.coordinates = [];
+    // Unused 2
+    // 12
+    if (this.coordinate_mode != 0)
+      throw new Error('Previous coordinate mode not implemented');
+    for (var i = 12; i < this.count + 12; i += 4)
+      this.coordinates.push([this.data.readUInt16(i), this.data.readUInt16(i + 2)]);
+  }
+}
+
+Request.PolyFillRectangle = class PolyFillRectangle extends Request.PolyRectangle {}
+
+Request.PolyFillArc = class PolyFillArc extends Request.PolyArc {}
 
   var _image_formats = ['Bitmap', 'XYPixmap', 'ZPixmap'];
 Request.PutImage = class PutImage extends Request {

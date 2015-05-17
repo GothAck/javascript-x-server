@@ -866,6 +866,29 @@ export default class XServerClient {
     callback();
   }
 
+  PolyArc(req, callback) {
+    var drawable = this.server.getResource(req.drawable, x_types.Drawable)
+      , d_w = drawable.canvas[0].width
+      , d_h = drawable.canvas[0].height
+      , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
+      , context = gc.getContext(drawable)
+      , count = (req.length_quad - 3) / 3
+      , end = (count * 12) + 8;
+    req.arcs.forEach(function (arc) {
+      context.save()
+      context.scale(arc.aspect, 1);
+      context.beginPath();
+      context.arc(
+          (arc.x + (arc.w / 2)) / arc.aspect
+        , arc.y + (arc.h / 2)
+        , arc.h / 2, arc.sr, arc.er
+      );
+
+      context.restore();
+    });
+    callback();
+  }
+
   FillPoly(req, callback) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)

@@ -419,7 +419,7 @@ export class GraphicsContext {
   }
   set font(fid) {
     if (fid) {
-      this._font = this.owner.server.resources[fid];
+      this._font = this.owner.server.resources.get(fid);
     }
   }
   get clip_mask() {
@@ -428,7 +428,7 @@ export class GraphicsContext {
   set clip_mask(did) {
     if (! did)
       return this._clip_mask = null;
-    this._clip_mask = this.owner.server.resources[did];
+    this._clip_mask = this.owner.server.resources.get(did);
     return;
     this._clip_mask_data = this._clip_mask.canvas[0].getContext('2d').getImageData(0, 0, this._clip_mask.width, this._clip_mask.height);
     for (var i = 3; i < this._clip_mask_data.data.length; i += 4) {
@@ -439,7 +439,7 @@ export class GraphicsContext {
   }
 
   destroy() {
-    delete this.owner.server.resources[this.id];
+    this.owner.server.resources.delete(this.id);
   }
 
   changeFields(owner, fields) {
@@ -617,7 +617,7 @@ export class Window extends Drawable {
   }
 
   destroy() {
-    delete this.owner.server.resources[this.id];
+    this.owner.server.resources.delete(this.id);
     this.triggerEvent('DestroyNotify');
   }
 
@@ -740,7 +740,7 @@ export class Window extends Drawable {
     }
     this._currentClient = null;
     // var server = this.owner.server || this.owner;
-    // this.element.css('background-color', server.resources[server.screens[0].colormap].lookup_func(this.background_pixel, 'hex'));
+    // this.element.css('background-color', server.resources.get(server.screens[0].colormap).lookup_func(this.background_pixel, 'hex'));
   }
 
   // FIXME: Unused due to differing reply format to send format!
@@ -909,7 +909,7 @@ export class Window extends Drawable {
   }
   set colormap(colormap) {
     this._colormap = (typeof colormap === 'number')
-      ? this.owner.server.resources[colormap]
+      ? this.owner.server.resources.get(colormap)
       : colormap;
   }
   get colormap() {
@@ -926,7 +926,7 @@ export class Window extends Drawable {
   }
   set sibling(sibling) {
     if (typeof sibling === 'number') {
-      this._sibling = this.owner.server.resources[id];
+      this._sibling = this.owner.server.resources.get(id);
     } else {
       this._sibling = sibling;
     }

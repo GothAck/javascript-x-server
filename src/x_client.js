@@ -90,16 +90,14 @@ export default class XServerClient {
 
   disconnect() {
     console.log('Disconnect', this.id);
-    delete this.server.clients[this.id];
-    if (this.closedown === 'destroy')
-      Object.keys(this.server.resources)
-        .forEach(function (resource) {
-          resource = this.server.resources[resource];
-          if (! resource)
-            return;
-          if (resource.owner === this)
-            resource.destroy();
-        }, this);
+    this.server.clients.delete(this.id);
+    if (this.closedown === 'destroy') {
+      for (let resource of this.server.resources.values()) {
+        if (resource.owner === this) {
+          resource.destroy();
+        }
+      }
+    }
   }
 
   setup(data) {
@@ -1216,7 +1214,7 @@ export default class XServerClient {
   
   KillClient(req, callback) {
     var rid = req.rid
-      , resource = this.server.resources[rid];
+      , resource = this.server.resources.get(rid);
     console.log('KillClient', rid, resource);
     if (rid && resource)
       resource.owner.disconnect();

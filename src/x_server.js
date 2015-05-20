@@ -176,10 +176,10 @@ export default class XServer {
     );
     this.atoms = default_atoms.slice();
     this.atom_owners = [];
-    this.resources = {}
-    this.resources[0x00000022] = new x_types.ColorMap(
+    this.resources = new Map();
+    this.resources.set(0x00000022, new x_types.ColorMap(
         0x00000022
-      , function (rgb, type) {
+      , (rgb, type) => {
           rgb = [
               (rgb & 0x000000ff)
             , (rgb & 0x0000ff00) >> 8
@@ -192,22 +192,22 @@ export default class XServer {
               return rgb;
           }
         }
-    );
-    this.resources[0x00000026] = this.root = new x_types.Window(
+    ));
+    this.resources.set(0x00000026, this.root = new x_types.Window(
         this
       , 0x00000026
       , 0x18 // depth 24
       , 0, 0
       , this.screen.width(), this.screen.height()
       , 0, 1, 0
-    );
+    ));
     this.root.parent = { element: $('.screen'), owner: this, children: [this.root] }
     this.font_path = 'fonts';
-    this.fonts_dir = {};
-    this.fonts_scale = {};
+    this.fonts_dir = new Map();
+    this.fonts_scale = new Map();
     this.fonts_cache = new Map();
 
-    fs.readFile(this.font_path + '/fonts.dir', 'utf8', function (err, file) {
+    fs.readFile(this.font_path + '/fonts.dir', 'utf8', (err, file) => {
       if (err)
         throw new Error('No fonts.dir');
       file = file.split('\n');
@@ -215,14 +215,14 @@ export default class XServer {
       var count = file.shift() ^ 0;
       if (count !== file.length)
         throw new Error('Invalid length of fonts.dir');
-      file.forEach(function (line) {
+      file.forEach((line) => {
         var match = line.match(/^(".*"|[^ ]*) (.*)$/);
-        this.fonts_dir[match[2]] = match [1];
-      }.bind(this));
-    }.bind(this));
+        this.fonts_dir.set(match[2], match[1]);
+      });
+    });
 
-    this.clients = {};
-    var c = this.resources[0x00000026].canvas[0].getContext('2d')
+    this.clients = new Map();
+    var c = this.resources.get(0x00000026).canvas[0].getContext('2d')
       , img = new Image;
     img.onload = function () {
       c.rect(0, 0, $('.screen').width(), $('.screen').height());
@@ -231,7 +231,7 @@ export default class XServer {
     }
     img.src = "/check.png";
 
-    this.resources[0x00000026].map();
+    this.resources.get(0x00000026).map();
 
     this.mouseX = this.mouseY = 0;
     var self = this;
@@ -242,11 +242,11 @@ export default class XServer {
   }
 
   get clients_array() {
-    return Object.keys(this.clients).map((id) => this.clients[id]);
+    return Array.from(this.clients.values());
   }
 
   get resources_array() {
-    return Object.keys(this.resources).map((id) => this.resources[id]);
+    return Array.from(this.resources.values());
   }
 
   getFormatByDepth(depth) {
@@ -258,43 +258,50 @@ export default class XServer {
     host.port = port;
     if (! (~ this.allowed_hosts.lookup.indexOf(host.toString())))
       throw new Error('FIXME: Host not allowed');
-    return this.clients[id] = new XServerClient(this, id, this.resource_id_bases.shift(), this.resource_id_mask, host);
+    var client = new XServerClient(this, id, this.resource_id_bases.shift(), this.resource_id_mask, host);
+    this.clients.set(id, client);
+    return client;
   }
 
   disconnect(id) {
     if (!id) {
       this.screen.off('');
-      return Object.keys(this.clients).forEach(function (cid) {
-        this.clients[cid].disconnect();
-      }.bind(this));
+      for (let client of this.clients.values()) {
+        client.disconnect();
+      }
     } // Disconnect whole server
-    if (!this.clients[id])
+    if (!this.clients.has(id)) {
       throw new Error('Invalid client! Disconnected?');
+    }
 
     if (this.grab && this.grab.id !== id) {
       return this.grab_buffer.push([this, 'disconnect', id]);
     }
-
-    this.resource_id_bases.push(this.clients[id].resource_id_base);
-    this.clients[id].disconnect();
+    var client = this.clients.get(id);
+    this.resource_id_bases.push(client.resource_id_base);
+    client.disconnect();
   }
   
   sendEvent() {}
 
   write(client, data) {
-    if (! this.clients[client.id])
+    if (! this.clients.has(client.id)) {
       throw new Error('Invalid client! Disconnected?');
-    if (! data)
+    }
+    if (! data) {
       return console.warn('Empty data');
-    if (data instanceof x_types.WorkReply)
+    }
+    if (data instanceof x_types.WorkReply) {
       return this.sendBuffer(data, client, true);
-    if (! (data instanceof EndianBuffer))
+    }
+    if (! (data instanceof EndianBuffer)) {
       throw new Error('Not a buffer! ' + data.constructor.name);
+    }
     this.sendBuffer(data.buffer, client);
   }
 
   processRequest(message) {
-    var client = this.clients[message.id];
+    var client = this.clients.get(message.id);
     if (this.grab && this.grab !== client)
       return this.grab_buffer.push([this, 'processRequest', message]);
     console.log('Request', message.id, message.type);
@@ -302,7 +309,7 @@ export default class XServer {
   }
 
   getResource(id, Type, allowed_values) {
-    var resource = this.resources[id];
+    var resource = this.resources.get(id);
     allowed_values = Array.isArray(allowed_values) ? 
       allowed_values : Array.prototype.slice.call(arguments, 2);
     if (~ allowed_values.indexOf(id))
@@ -315,15 +322,18 @@ export default class XServer {
   putResource(resource) {
     var owner = resource.owner;
     console.warn('server.putResource', resource.id, resource);
-    if (((~ owner.resource_id_mask) & owner.resource_id_base) !== owner.resource_id_base)
+    if (((~ owner.resource_id_mask) & owner.resource_id_base) !== owner.resource_id_base) {
       throw new x_types.Error({}, 14 /* IDChoise */, resource.id); 
-    if (this.resources[resource.id])
+    }
+    if (this.resources.has(resource.id)) {
       throw new x_types.Error({}, 14 /* IDChoice */, resource.id);
-    return this.resources[resource.id] = resource;
+    }
+    this.resources.set(resource.id, resource);
+    return resource;
   }
   
   freeResource(id, Type) {
-    var resource = this.resources[id];
+    var resource = this.resources.get(id);
     console.warn('server.freeResource', id, resource);
     if (Type && !(resource instanceof Type))
       throw new x_types.Error(
@@ -331,7 +341,7 @@ export default class XServer {
           Type.error_code || 1,
           id,
           `Resource at ${id} (${resource}) is not an instance of ${Type.name}`);
-    delete this.resources[id];
+    this.resources.delete(id);
   }
   
   resolveAtom(id) {
@@ -391,19 +401,26 @@ export default class XServer {
 
   listFonts(pattern) {
     var re = new RegExp('^' + pattern.replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1").replace(/\\([*?])/g, '.$1') + '$', 'i');
-    return Object.keys(this.fonts_dir).filter(function(name) { return re.test(name) });
+    var fonts = [];
+    for (let name of this.fonts_dir.keys()) {
+      if (re.test(name)) {
+        fonts.push(name);
+      }
+    }
+    return fonts;
   }
 
   resolveFont(name) {
     var resolved_name;
-    if (! (name in this.fonts_dir)) {
+    if (!this.fonts_dir.has(name)) {
       if (/[*?]/.test(name)) {
         var names = this.listFonts(name);
-        if (names && names.length)
-          resolved_name = [names[0], this.fonts_dir[names[0]]];
+        if (names && names.length) {
+          resolved_name = [names[0], this.fonts_dir.get(names[0])];
+        }
       }
     }
-    return resolved_name || [name, this.fonts_dir[name]];
+    return resolved_name || [name, this.fonts_dir.get(name)];
   }
 
   loadFont(resolved_name, server_name, callback) {

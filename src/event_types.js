@@ -164,7 +164,7 @@ export var prototypes = [];
       switch (this.event_type) {
         case 'StructureNotify':
           if (this.event_window === this.window) {
-            delete this.window.owner.server.resources[this.window.id];
+            this.window.owner.server.resources.delete(this.window.id);
             return true;
           }
           return false;
@@ -389,12 +389,12 @@ export var prototypes = [];
       this.data.writeUInt8 (this.override_redirect, 22);
     }
     static fromBuffer(child, code, detail, buffer, offset) {
-      var event_window = child.server.resources[buffer.readUInt32(offset)]
+      var event_window = child.server.resources.get(buffer.readUInt32(offset))
         , e = new this(
-                 child.server.resources[buffer.readUInt32(offset + 4)] // Window
+                 child.server.resources.get(buffer.readUInt32(offset + 4)) // Window
               , {
                     event_window: event_window
-                  , above_sibling: child.server.resources[buffer.readUInt32(offset + 8)]
+                  , above_sibling: child.server.resources.get(buffer.readUInt32(offset + 8))
                   , x: buffer.readInt16(offset + 12)
                   , y: buffer.readInt16(offset + 14)
                   , width: buffer.readUInt16(offset + 16)
@@ -420,7 +420,7 @@ export var prototypes = [];
     }
     static fromBuffer(child, code, detail, buffer, offset) { 
       return new this(
-          child.server.resources[buffer.readUInt32(offset)]
+          child.server.resources.get(buffer.readUInt32(offset))
         , {
               detail: detail
             , data_type: buffer.readUInt32(offset + 4)

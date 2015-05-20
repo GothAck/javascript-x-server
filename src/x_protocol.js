@@ -1,7 +1,7 @@
 import { GCVField, WinVField, WinConfigureField } from './common';
 import * as x_types from './x_types';
 import EndianBuffer from './endianbuffer';
-import { v6 } from 'ipv6';
+import { v6 } from 'ip-address';
 
 export class XProtocolServer  {
   constructor(socket, onClose) {

@@ -8,7 +8,7 @@
     "babel-runtime": "*",
     "express": "*",
     "future": "*",
-    "ipv6": "*",
+    "ip-address": "*",
     "morgan": "*",
     "react": "*",
     "react-tools": "*",
@@ -35,7 +35,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "supervisor -i lib,fonts,public,src,node_modules proxy",
-    "postinstall": "./postinstall.sh",
     "cloc": "cloc --exclude-dir=node_modules,public/lib,fonts,public/fonts,public/xcb ."
   },
   "repository": {

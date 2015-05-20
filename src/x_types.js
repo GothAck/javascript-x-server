@@ -6,7 +6,7 @@ import { GCVField, WinVField, WinConfigureField } from './common';
 import * as fs from './fs';
 import EndianBuffer from './endianbuffer';
 import * as events from './event_types';
-import * as v6 from 'ipv6';
+import * as v6 from 'ip-address';
 export * from './x_types_font';
 export {events};
 

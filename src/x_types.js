@@ -109,6 +109,7 @@ export class XString {
 class NewString extends String {
   constructor(string) {
     super(string);
+    this.string = string;
   }
   writeBuffer(buffer, offset) {
     buffer.write(this.string, offset, this.string.length, 'ascii');

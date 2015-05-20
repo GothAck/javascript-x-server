@@ -467,13 +467,13 @@ export class GraphicsContext {
     context.restore();
     context.save();
     context.translate(0.5, 0.5);
-    context.webkitImageSmoothingEnabled = false;
+    context.imageSmoothingEnabled = false;
     context.fillStyle = '#' + rgb.slice(2);
     context.strokeStyle = context.fillStyle;
     if (this.font) {
       context.font = this.font.height + 'px "' + this.font.file_name + '"';
     }
-//    context.webkitImageSmoothingEnabled = false;
+//    context.imageSmoothingEnabled = false;
     return context;
   }
 

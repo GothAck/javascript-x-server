@@ -2,12 +2,12 @@
  * Copyright Greg Miell 2013-present
  * @flow weak
  */
-import { GCVField, WinVField, WinConfigureField } from "common";
-import * as fs from "fs";
-import * as EndianBuffer from "endianbuffer";
-import * as events from "event_types";
-import * as v6 from "lib/ipv6";
-export * from "x_types_font";
+import { GCVField, WinVField, WinConfigureField } from './common';
+import * as fs from './fs';
+import EndianBuffer from './endianbuffer';
+import * as events from './event_types';
+import * as v6 from 'ipv6';
+export * from './x_types_font';
 export {events};
 
 export class ExtrasArray {
@@ -669,7 +669,7 @@ export class Window extends Drawable {
       }
     }
 
-    if (this.owner instanceof (require('x_client'))) {
+    if (this.owner instanceof (require('./x_client'))) {
       this.owner.reps.push(
         events.map[event]
           ? new events.map[event](event, this, data)
@@ -677,7 +677,7 @@ export class Window extends Drawable {
       );
       return this.owner.processReps();
     }
-    if (this.owner instanceof (require('x_server'))) {
+    if (this.owner instanceof (require('./x_server'))) {
       // Do X Server Events
     }
 //    }

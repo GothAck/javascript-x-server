@@ -1,8 +1,8 @@
-import * as fs from 'fs';
-import * as EndianBuffer from 'endianbuffer';
-import * as x_types from 'x_types';
-import * as XServerClient from 'x_client';
-import * as keymap from 'keymap';
+import * as fs from './fs';
+import EndianBuffer from './endianbuffer';
+import * as x_types from './x_types';
+import XServerClient from './x_client';
+import * as keymap from './keymap';
 
 
 var default_atoms = [
@@ -304,7 +304,6 @@ export default class XServer {
     var client = this.clients.get(message.id);
     if (this.grab && this.grab !== client)
       return this.grab_buffer.push([this, 'processRequest', message]);
-    console.log('Request', message.id, message.type);
     client.processRequest(message);
   }
 
@@ -421,6 +420,26 @@ export default class XServer {
       }
     }
     return resolved_name || [name, this.fonts_dir.get(name)];
+  }
+
+  async loadFontAsync(resolved_name, server_name) {
+    if (this.fonts_cache.has(resolved_name)) {
+      return this.fonts_cache.get(resolved_name);
+    }
+    this.grab = 'loadFont';
+    var meta = await fs.readFileAsync('fonts/' + resolved_name + '.meta.json', 'utf8');
+    var font = x_types.Font.factory(
+      JSON.parse(meta),
+      resolved_name,
+      server_name
+    );
+
+    await font.loadDataAsync();
+
+    this.fonts_cache.set(resolved_name, font);
+    this.grab = null;
+
+    return font;
   }
 
   loadFont(resolved_name, server_name, callback) {

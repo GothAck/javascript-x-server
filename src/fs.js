@@ -18,3 +18,14 @@
     }
     req.send();
   }
+
+export function readFileAsync(filename, encoding) {
+  return new Promise((res, rej) => {
+    readFile(filename, encoding, (err, data) => {
+      if (err) {
+        return rej(err);
+      }
+      res(data);
+    })
+  });
+}

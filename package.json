@@ -5,6 +5,7 @@
   "main": "proxy.js",
   "dependencies": {
     "async": "*",
+    "babel-runtime": "*",
     "express": "*",
     "future": "*",
     "ipv6": "*",
@@ -18,10 +19,18 @@
     "wolfy-eventemitter": "*"
   },
   "devDependencies": {
-    "grunt": "*",
-    "grunt-babel": "*",
-    "grunt-contrib-watch": "*",
-    "load-grunt-tasks": "*"
+    "babelify": "^6.1.1",
+    "browserify": "^10.2.0",
+    "factor-bundle": "^2.4.0",
+    "gulp": "^3.8.11",
+    "gulp-insert": "^0.4.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-sourcemaps": "^1.5.2",
+    "gulp-util": "^3.0.4",
+    "gulp-watch": "^4.2.4",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "vinyl-transform": "^1.0.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

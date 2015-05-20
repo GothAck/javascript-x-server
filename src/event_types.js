@@ -1,4 +1,4 @@
-import * as EndianBuffer from 'endianbuffer';
+import EndianBuffer from './endianbuffer';
 
 export var prototypes = [];
 

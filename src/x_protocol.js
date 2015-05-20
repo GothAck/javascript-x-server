@@ -1,8 +1,7 @@
-import { GCVField, WinVField, WinConfigureField } from "common";
-import * as async from "lib/async";
-import * as x_types from "x_types";
-import * as EndianBuffer from 'endianbuffer';
-import * as ipv6 from "lib/ipv6";
+import { GCVField, WinVField, WinConfigureField } from './common';
+import * as x_types from './x_types';
+import EndianBuffer from './endianbuffer';
+import { v6 } from 'ipv6';
 
 export class XProtocolServer  {
   constructor(socket, onClose) {
@@ -27,16 +26,13 @@ export class XProtocolServer  {
     this.socket.send(buffer.buffer);
   }
   serverReply(message) {
-    console.log('serverReply');
     try {
       var client = this.clients[message.id]
         , ReqObj = Request[Request.opcodes[message.data.opcode]]
         , Rep = ReqObj.Rep;
       var rep = new Rep(message.data, client)
-      console.log(rep, rep.length);
       var data = rep.toBuffer()
         , buffer = new EndianBuffer(data.length + client.id.length + 1);
-      console.log(rep, buffer.length);
       buffer.writeUInt8(client.id.length, 0);
       buffer.write(client.id, 1, null, 'ascii');
       data.copy(buffer, client.id.length + 1);
@@ -169,7 +165,6 @@ export class XProtocolClient  {
             break;
           }
           console.time(req_str);
-          console.log('>> Post request', req.opcode, req.opname);
           this.sequence = this.sequence + 1;
           this.postRequest(req);
           if (data.length > 0)

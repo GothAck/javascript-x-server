@@ -1,4 +1,7 @@
-require(['endianbuffer', 'x_server', 'x_types'], function (EndianBuffer, XServer, x_types) {
+var EndianBuffer = require('./endianbuffer');
+var XServer = require('./x_server');
+var x_types = require('./x_types');
+
   /*
   var debug = /debug=on/.test(window.location);
   if (!debug)
@@ -20,7 +23,7 @@ require(['endianbuffer', 'x_server', 'x_types'], function (EndianBuffer, XServer
   test.postMessage('');
   */
   
-  worker_comms = new Worker('worker_comms.js');
+  var worker_comms = new Worker('worker_comms.js');
   function connect () {
     var server
       , connected = false;
@@ -210,4 +213,3 @@ require(['endianbuffer', 'x_server', 'x_types'], function (EndianBuffer, XServer
   });
 
   $(connect);
-});

@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as EndianBuffer from 'endianbuffer';
-import * as loadCSSFont from 'loadcssfont';
-import { MustImplementError } from 'common';
+import * as fs from './fs';
+import EndianBuffer from './endianbuffer';
+import loadCSSFont from './loadcssfont';
+import { MustImplementError } from './common';
 
 export class CharInfo {
   constructor(char) {
@@ -78,6 +78,18 @@ export class Font {
 
   loadData(callback) {
     throw new MustImplementError('Font', 'loadData');
+  }
+
+  loadDataAsync() {
+    console.warn('TODO: migrate all to Font.loadDataAsync');
+    return new Promise((res, rej) => {
+      this.loadData((err) => {
+        if (err) {
+          return rej(err);
+        }
+        res();
+      });
+    });
   }
 
   close() {}

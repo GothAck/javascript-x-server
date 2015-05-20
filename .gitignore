@@ -1,10 +1,12 @@
 node_modules
-public/fonts
-public/require.js
 .project
 .settings
 *.sublime-workspace
 ignored
 npm-debug.log
-public/modules/**/*.js
-public/modules/**/*.js.map
+public/common.js
+public/common.js.map
+public/worker_comms.js
+public/wosker_comms.js.map
+public/site.js
+public/site.js.map

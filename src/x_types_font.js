@@ -56,6 +56,8 @@ export class FontProp {
 
 export class Font {
   static factory(meta: mixed, file_name: string, name: string): Font {
+    if (!meta.type)
+      meta.type = 'woff';
     switch (meta.type) {
       case 'ttf':
       case 'woff':
@@ -462,7 +464,6 @@ export class VectorFont extends Font {
   }
   
   loadData(callback) {
-    this.constructor.call(this);
     var height = this.getChar(-1);
     height = height.ascent + height.descent - 1;
     if (! $('style#' + this.css_name).length)

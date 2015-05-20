@@ -7,6 +7,6 @@ npm-debug.log
 public/common.js
 public/common.js.map
 public/worker_comms.js
-public/wosker_comms.js.map
+public/worker_comms.js.map
 public/site.js
 public/site.js.map

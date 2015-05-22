@@ -929,7 +929,7 @@ export class Window extends Drawable {
   }
   set sibling(sibling) {
     if (typeof sibling === 'number') {
-      this._sibling = this.owner.server.resources.get(id);
+      this._sibling = this.owner.server.resources.get(sibling);
     } else {
       this._sibling = sibling;
     }

@@ -240,8 +240,12 @@ export class Request {
     var req;
     var opcode = data.readUInt8(0);
     var opname = Request.opcodes[opcode];
-    if (opname) {
-      req = new (Request[opname])(data, sequence, opcode, opname);
+    if (opname && Request[opname]) {
+      try {
+        req = new (Request[opname])(data, sequence, opcode, opname);
+      } catch (e) {
+        console.error('factory error', opname, e);
+      }
     } else {
       req = new Request(data, sequence, opcode, opname);
       console.warn(`Unknown opcode ${opcode}`);

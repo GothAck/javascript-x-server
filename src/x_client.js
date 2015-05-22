@@ -760,7 +760,7 @@ export default class XServerClient {
 
   async ChangeGC(req) {
     this.server.getResource(req.gc, x_types.GraphicsContext)
-      .changeFields(this, req.fields);
+      .changeFields(this, GCVField.fromObject(req.fields));
   }
 
   async CopyGC(req) {

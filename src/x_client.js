@@ -42,7 +42,7 @@ export default class XServerClient {
 
       console.time(req_str);
       try {
-        rep = await this::func(req);
+        rep = func && await this::func(req);
         console.timeEnd(req_str);
         if (rep) {
           if (Array.isArray(rep)) {
@@ -707,8 +707,11 @@ export default class XServerClient {
       }
       var font = await this.server.loadFontAsync(resolved_name, server_name);
       var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+      // CLOWNTOWN: Instead of fitting 2x 12 byte CHARINFO into 24 byte standard
+      // reply, they broke the spec with 12 CHARINFO 4 PAD 12 CHARINFO 4 PAD
+      // DAFUQ PEOPLE?!
       rep.data = new EndianBuffer(32);
-      rep.data.endian = self.endian;
+      rep.data.endian = this.endian;
       rep.data_byte = font.name.length;
       font.getChar(-1).toCharInfo().writeBuffer(rep.data, 0);
       font.getChar(-2).toCharInfo().writeBuffer(rep.data, 16);

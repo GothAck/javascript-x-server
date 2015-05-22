@@ -443,34 +443,9 @@ export default class XServer {
   }
 
   loadFont(resolved_name, server_name, callback) {
-    var self = this;
-    console.log('XServer.loadFont', [].slice.call(arguments));
-    console.log('Font cached?', this.fonts_cache.has(resolved_name));
-    if (this.fonts_cache.has(resolved_name))
-      return callback(null, this.fonts_cache.get(resolved_name));
-    self.grab = 'loadFont';
-    fs.readFile('fonts/' + resolved_name + '.meta.json', 'utf8', function (err, meta) {
-      console.log('read meta');
-      if (err)
-        return callback(err);
-      try {
-        meta = JSON.parse(meta);
-      } catch (e) {
-        return callback(e);
-      }
-      console.log(meta);
-      var font = x_types.Font.factory(meta, resolved_name, server_name)
-      font.loadData(function (err) {
-        self.grab = null;
-        console.log('XServer.loadFont callback', [].slice.call(arguments));
-        if (!err) {
-          console.log('Font loaded', font);
-        }
-        self.fonts_cache.set(resolved_name, font);
-        console.log('Font loaded2', font);
-        callback(err, font);
-      });
-    });
+    this.loadFontAsync(resolved_name, server_name).then(
+      (font) => callback(null, font),
+      (err) => callback(err));
   }
 
   openFont(client, fid, name) {

@@ -106,14 +106,16 @@ export class XString {
   }
 }
 
-class NewString extends String {
+class NewString {
   constructor(string) {
-    super(string);
-    this.string = string;
+    this.__string = string;
   }
   writeBuffer(buffer, offset) {
-    buffer.write(this.string, offset, this.string.length, 'ascii');
+    buffer.write(this.__string, offset, this.length, 'ascii');
     return offset + this.length;
+  }
+  get length() {
+    return this.__string.length;
   }
   static encodeString(str) {
     var out_str = '';

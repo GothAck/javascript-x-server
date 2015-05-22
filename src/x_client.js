@@ -136,7 +136,6 @@ export default class XServerClient {
     res.writeUInt16(this.server.vendor.length, 24);
     res.writeUInt16(this.server.maximum_request_length, 26);
     res.writeUInt8(this.server.screens.length, 28); // Number screens
-    console.log('a', this.server.screens.length);
     res.writeUInt8(this.server.formats.length, 29); // Number formats
     res.writeUInt8(0, 30); // image lsb first
     res.writeUInt8(0, 31); // pixmap lsb first

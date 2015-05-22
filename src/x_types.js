@@ -350,7 +350,6 @@ export class Reply {
     return this.data_extra.writeBuffer(buffer, offset += this.data.length);
   }
   toBuffer() {
-    console.log(this.length);
     var buffer = new EndianBuffer(this.length);
     buffer.endian = this.data.endian;
     this.writeBuffer(buffer, 0);

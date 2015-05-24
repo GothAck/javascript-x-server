@@ -77,7 +77,7 @@ var default_atoms = [
 ];
 
 export default class XServer {
-  constructor(id, sendBuffer, screen) {
+  constructor(id, sendBuffer, screen_elem) {
     Object.defineProperty(this, 'server', {
         enumerable: false
       , value: this
@@ -91,7 +91,6 @@ export default class XServer {
     this.updateAllowedHostsLookup();
 
     this.sendBuffer = sendBuffer;
-    this.screen = screen;
     this.protocol_major = 11;
     this.protocol_minor = 0;
     this.release = 11300000;
@@ -128,16 +127,16 @@ export default class XServer {
     );
     this.screens = new x_types.ExtrasArray();
     this.screens.push(
-        new x_types.Screen(
+        this.screen = new x_types.Screen(
             0x00000026 // root
           , 0x00000022 // def colormap
           , 0x00ffffff // white
           , 0x00000000 // black
           , 0x00000000 // current input masks
-          , $('.screen').width() // width px
-          , $('.screen').height() // height px
-          , Math.round($('.screen').width() / (96 / 25.4)) // width mm
-          , Math.round($('.screen').height() / (96 / 25.4)) // height mm
+          , 800 // width px
+          , 600 // height px
+          , Math.round(800 / (96 / 25.4)) // width mm
+          , Math.round(600 / (96 / 25.4)) // height mm
           , 0x0001 // min maps
           , 0x0001 // max maps
           , 0x20 // root visual
@@ -174,6 +173,8 @@ export default class XServer {
             ]
         )
     );
+    screen_elem.parentNode.replaceChild(
+      this.screen.element, screen_elem)
     this.atoms = default_atoms.slice();
     this.atom_owners = [];
     this.resources = new Map();
@@ -198,10 +199,14 @@ export default class XServer {
       , 0x00000026
       , 0x18 // depth 24
       , 0, 0
-      , this.screen.width(), this.screen.height()
+      , this.screen.width_px, this.screen.height_px
       , 0, 1, 0
     ));
-    this.root.parent = { element: $('.screen'), owner: this, children: [this.root] }
+    this.root.parent = {
+      element: this.screens.get(0).element,
+      owner: this,
+      children: [this.root]
+    };
     this.font_path = 'fonts';
     this.fonts_dir = new Map();
     this.fonts_scale = new Map();
@@ -222,10 +227,10 @@ export default class XServer {
     });
 
     this.clients = new Map();
-    var c = this.resources.get(0x00000026).canvas[0].getContext('2d')
+    var c = this.resources.get(0x00000026).canvas.getContext('2d')
       , img = new Image;
-    img.onload = function () {
-      c.rect(0, 0, $('.screen').width(), $('.screen').height());
+    img.onload = () => {
+      c.rect(0, 0, c.canvas.width, c.canvas.height);
       c.fillStyle = c.createPattern(img, 'repeat');
       c.fill();
     }
@@ -235,9 +240,9 @@ export default class XServer {
 
     this.mouseX = this.mouseY = 0;
     var self = this;
-    this.screen.on('mousemove.xy', function (event) {
-      self.mouseX = event.offsetX;
-      self.mouseY = event.offsetY;
+    this.screen.element.addEventListener('mousemove', (e) => {
+      this.mouseX = e.offsetX;
+      this.mouseY = e.offsetY;
     });
   }
 

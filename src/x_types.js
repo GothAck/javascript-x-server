@@ -228,6 +228,8 @@ export class Depth {
 }
 
 export class Screen {
+  element = document.createElement('x-screen');
+
   constructor(
     window,
     colormap,
@@ -251,6 +253,9 @@ export class Screen {
     this.white = white || 0;
     this.black = black || 0;
     this.current_input_masks = current_input_masks || 0;
+    this.element.setAttribute('height', height_px);
+    this.element.setAttribute('width', width_px);
+    this.element.setAttribute('mapped', true);
     this.height_px = height_px || 0;
     this.width_px = width_px || 0;
     this.height_mm = height_mm || 0;
@@ -411,7 +416,7 @@ export class GraphicsContext {
     this.owner = owner;
     this.id = id;
     this.drawable = drawable;
-    this.context = drawable.canvas[0].getContext('2d');
+    this.context = drawable.canvas.getContext('2d');
     this.changeFields(owner, GCVField.fromObject(fields));
     this.x = 0;
     this.y = 0;
@@ -432,7 +437,7 @@ export class GraphicsContext {
       return this._clip_mask = null;
     this._clip_mask = this.owner.server.resources.get(did);
     return;
-    this._clip_mask_data = this._clip_mask.canvas[0].getContext('2d').getImageData(0, 0, this._clip_mask.width, this._clip_mask.height);
+    this._clip_mask_data = this._clip_mask.canvas.getContext('2d').getImageData(0, 0, this._clip_mask.width, this._clip_mask.height);
     for (var i = 3; i < this._clip_mask_data.data.length; i += 4) {
       this._clip_mask_data.data[i] = this._clip_mask_data.data[i-1];
     }
@@ -461,7 +466,7 @@ export class GraphicsContext {
   }
 
   getContext(drawable) {
-    var context = drawable.canvas[0].getContext('2d')
+    var context = drawable.canvas.getContext('2d')
       , rgb = (this.foreground || 0).toString(16);
     if (rgb.length < 8)
       rgb = (new Array(9 - rgb.length)).join('0') + rgb;
@@ -507,7 +512,7 @@ export class GraphicsContext {
 GraphicsContext.error_code = 13;
 
 export class Drawable {
-  canvas = $('<canvas></canvas>');
+  element = document.createElement('x-drawable');
 
   constructor(owner, depth, width, height) {
     this.owner = owner;
@@ -520,31 +525,34 @@ export class Drawable {
   }
   set width(width) {
     this._width = width;
-    this.canvas.attr('width', width);
+    this.element.setAttribute('width', width);
   }
   get height() {
     return this._height;
   }
   set height(height) {
     this._height = height;
-    this.canvas.attr('height', height);
+    this.element.setAttribute('height', height);
   }
   getRoot() {
     return (this.owner.server || this.owner).root;
   }
   destroy() {
   }
+  get canvas() {
+    return this.element.canvas;
+  }
 
   getImageData(x, y, width, height) {
-    return this.canvas[0].getContext('2d').getImageData(x, y, width, height);
+    return this.canvas.getContext('2d').getImageData(x, y, width, height);
   }
 
   putImageData(data, x, y) {
-    return this.canvas[0].getContext('2d').putImageData(data, x, y);
+    return this.canvas.getContext('2d').putImageData(data, x, y);
   }
 
   createImageData(width, height) {
-    return this.canvas[0].getContext('2d').createImageData(width, height);
+    return this.canvas.getContext('2d').createImageData(width, height);
   }
 }
 
@@ -556,7 +564,8 @@ export class Pixmap extends Drawable {
     this.id = id;
     this.drawable = drawable;
     // FIXME: create correct buffer size for image!
-    $('.buffers').append(this.canvas.attr('id', this.id));
+    this.element.setAttribute('id', this.id);
+    $('.buffers').append(this.element);
   }
 }
 
@@ -590,30 +599,27 @@ var _win_vfield_types = [
 ];
 
 export class Window extends Drawable {
-  element = $('<div class="drawable" tabindex="0"><div class="relative"></div></div>')
-    .attr('owner', this.owner.id)
-    .data('xob', this)
-    .css({
-      width: this.width,
-      height: this.height,
-    });
+  element = document.createElement('x-window');
 
   constructor(owner, id, depth, x, y, width, height, border_width, _class, visual, fields) {
     super(owner, depth, width, height);
     this.id = id;
-    this.element.attr('id', 'e' + id);
+    this.element.dataset.id = id;
+    this.element.dataset.owner = owner.id;
+    this.element.xob = this;
+    this.width = width;
+    this.height = height;
     this.border_width = border_width;
     this.class = _class;
     this.visual = visual;
     this.events = [];
     this.events.mask = 0;
     this.event_clients = new Map();
-    this.element.css('display', 'none');
-    this.element.children().append(this.canvas.attr('id', this.id));
+    this.element.removeAttribute('mapped');
     fields = WinVField.fromObject(fields);
     this.changeFields(owner, fields);
     this.properties = {}
-//    var ctx = this.canvas[0].getContext('2d');
+//    var ctx = this.canvas.getContext('2d');
     this.x = x;
     this.y = y;
   }
@@ -631,7 +637,14 @@ export class Window extends Drawable {
       event = new events.map[event](this, data || {});
     console.log('sendEvent', event, data, event_mask);
     event.send_event = true;
-    return this.element.trigger('SendEvent', { event: event, event_mask: event_mask });
+    return this.element.dispatchEvent(
+      new CustomEvent(
+        'SendEvent',
+        {
+          detail: { event: event, event_mask: event_mask },
+          bubbles: true,
+          cancelable: true,
+        }));
   }
 
   triggerEvent(event, data) {
@@ -642,11 +655,26 @@ export class Window extends Drawable {
     //console.log(self.element.parents('body').length);
     //console.log('.' + des.join(',.'));
     //console.log(self.element.parentsUntil('#eventfilter').andSelf().filter('.' + des.join(',.')).length)
-    if (event.constructor.custom_dom_events)
+    if (event.constructor.custom_dom_events) {
       return event.constructor.custom_dom_events.forEach((dom_event) => {
-        this.element.trigger(dom_event, [event]);
+        this.element.dispatchEvent(
+          new CustomEvent(
+            dom_event,
+            {
+              detail: event,
+              bubbles: true,
+              cancelable: true,
+            }));
       });
-    return this.element.trigger(event.constructor.name, [event]);
+    }
+    return this.element.dispatchEvent(
+      new CustomEvent(
+        event.constructor.name,
+        {
+          detail: event,
+          bubbles: true,
+          cancelable: true,
+        }));
   }
 
   onEvent(event, data) {
@@ -693,24 +721,25 @@ export class Window extends Drawable {
   }
 
   map() {
-    if (this.element.css('display') !== 'none')
+    if (this.element.getAttribute('mapped')) {
       return;
-    this.element.css('display', 'block');
+    }
+    this.element.setAttribute('mapped', true);
     this.triggerEvent('MapNotify');
     return true;
   }
 
   unmap() {
-    if (this.element.css('display') === 'none')
+    if (!this.element.getAttribute('mapped')) {
       return;
-    this.element.css('display', 'none');
+    }
+    this.element.removeAttribute('mapped');
     this.triggerEvent('UnmapNotify');
     return true;
   }
 
   isMapped() {
-    return !!(this.element && this.element.css('display') !== 'none')
-    return !!(this.element && this.element[0].parentNode && this.parent && (!this.parent.id || this.parent.isMapped()));
+    return !!this.element.getAttribute('mapped');
   }
 
   mapSubwindows() {
@@ -810,8 +839,8 @@ export class Window extends Drawable {
   }
 
   get children() {
-    return Array.prototype.slice.call(
-      this.element.children().children().map((i, e) => $(e).data('xob')));
+    return Array.from(this.element.childNodes)
+      .map((e) => e.xob);
   }
   get x() {
     return this._x;
@@ -821,30 +850,15 @@ export class Window extends Drawable {
   }
   set x(x) {
     this._x = x;
-    this.element.css('left', x + 'px');
+    this.element.style.left = x + 'px';
   }
   set y(y) {
     this._y = y;
-    this.element.css('top' , y + 'px');
-  }
-
-  get width() {
-    return this._width;
-  }
-  get height() {
-    return this._height;
-  }
-  set width(width) {
-    super.width = width;
-    this.element && this.element.css('width', width);
-  }
-  set height(height) {
-    super.height = height;
-    this.element && this.element.css('height', height);
+    this.element.style.top = y + 'px';
   }
   set parent(parent) {
     this._parent = parent;
-    parent.element.children().append(this.element);
+    parent.element.appendChild(this.element);
   }
   get parent() {
     return this._parent;
@@ -860,9 +874,9 @@ export class Window extends Drawable {
   }
   set cursor(cursor) {
     if (this._cursor) {
-      this.element.removeClass('cursor_' + this._cursor);
+      this.element.classList.remove('cursor_' + this._cursor);
     }
-    this.element.addClass('cursor_' + cursor);
+    this.element.classList.add('cursor_' + cursor);
     this._cursor = cursor;
   }
   set background_pixel(pixel) {
@@ -871,7 +885,7 @@ export class Window extends Drawable {
     if (pixel.length < 6) {
       pixel = (new Array(7 - pixel.length)).join('0') + pixel;
     }
-    this.element.css('background-color', '#' + pixel.slice(0, 6));
+    this.element.style.backgroundColor = '#' + pixel.slice(0, 6);
   }
   get background_pixel() {
     return this._background_pixel;
@@ -900,8 +914,8 @@ export class Window extends Drawable {
     this.events = this.processEventMask(event_mask);
     this.events.mask = event_mask;
 
-    this.element.removeClass(Window._event_mask_fields.join(' '));
-    this.element.addClass(this.events.join(' '));
+    this.element.classList.remove(...Window._event_mask_fields);
+    this.element.classList.add(...this.events);
   }
   get event_mask() {
     var set_client = this._currentClient;
@@ -912,8 +926,8 @@ export class Window extends Drawable {
     this.do_not_propagate_events = Window._do_not_propagate_mask_fields
       .filter((mask, i) => event_mask & Math.pow(2, i));
     this._do_not_propagate_event_mask = event_mask;
-    this.element.removeClass(_do_not_propagate_mask_fields.join(' '));
-    this.element.addClass(this.do_not_propagate_events.join(' '));
+    this.element.classList.remove(..._do_not_propagate_mask_fields);
+    this.element.classList.add(...this.do_not_propagate_events);
   }
   get do_not_propagate_mask() {
     return this._do_not_propagate_event_mask || 0;
@@ -946,60 +960,71 @@ export class Window extends Drawable {
     return this._sibling;
   }
   set stack_mode(mode) {
-    var siblings = this.parent.children
-      , elem_siblings = this.parent.element.children().children().not(this.element)
-      , elem = this.element;
+    var elem_siblings = Array.from(this.element.genSiblings());
+    var siblings = elem_siblings.map((e) => e.xob);
+    var elem = this.element;
     if (! elem_siblings.length)
       return;
     console.log('Window.stack_mode', mode, this.sibling);
     switch (mode) {
       case 0: // Above
-        if (this.sibling && ~siblings.indexOf(this.sibling)) {
-          elem.insertAfter(this.sibling.element);
+        if (
+          this.sibling &&
+          ~siblings.indexOf(this.sibling)
+        ) {
+          this.parent.element.insertAfter(
+            elem, this.sibling.element);
         } else {
-          elem.insertAfter(elem_siblings.last());
+          this.parent.element.appendChild(elem);
         }
       break;
       case 1: // Below
         if (this.sibling && ~siblings.indexOf(this.sibling)) {
-          elem.insertBefore(this.sibling.element);
+          this.parent.element.insertBefore(
+            elem, this.sibling.element);
         } else {
-          elem.insertBefore(elem_siblings.first());
+          this.parent.element.insertBefore(elem, elem_siblings[0]);
         }
       break;
       case 2: // TopIf
         if (this.sibling && ~siblings.indexOf(this.sibling)) {
-          if (elem.nextAll().has(this.sibling.element).length && elem.collision(this.sibling.element).length)
-            elem.insertAfter(elem_siblings.last());
+          if (elem.hasNextSibling(this.sibling.element) && elem.collidesWith(this.sibling.element)) {
+            this.parent.element.appendChild(elem);
+          }
         } else {
-          if (elem.collision(elem.nextAll()).length)
-            elem.insertAfter(elem_siblings.last());
+          if (elem.collidesWith(...Array.from(elem.genNextSiblings()))) {
+            this.parent.element.appendChild(elem);
+          }
         }
       break;
       case 3: // BtmIf
         if (this.sibling && ~siblings.indexOf(this.sibling)) {
-          if (elem.prevAll().has(this.sibling.element).length && elem.collision(this.sibling.element).length)
-            elem.insertBefore(elem_siblings.first());
+          if (elem.hasPrevSibling(this.sibling.element) && elem.collidesWith(this.sibling.element)) {
+            elem.insertBefore(elem_siblings[0]);
+          }
         } else {
-          if (elem.collision(elem.prevAll()).length)
-            elem.insertBefore(elem_siblings.first());
+          if (elem.collidesWith(elem.prevAll()).length) {
+            elem.insertBefore(elem_siblings[0]);
+          }
         }
       break;
       case 4: // Opposite
         if (this.sibling && ~siblings.indexOf(this.sibling)) {
-          if (elem.collision(this.sibling.element).length) {
-            if (elem.nextAll().has(this.sibling.element).length)
-              elem.insertAfter(elem_siblings.last());
-            else
-              elem.insertBefore(elem_siblings.first());
+          if (elem.collidesWith(this.sibling.element)) {
+            if (elem.hasNextSibling(this.sibling.element)) {
+              this.parent.element.appendNode(elem);
+            } else {
+              this.parent.element.prependNode(elem);
+            }
           }
         } else {
-          var collision = elem.collision(elem_siblings.not(elem));
+          var collision = elem.collidesWith(elem_siblings);
           if (collision.length) {
-            if (elem.nextAll().has(collision).length)
-              elem.insertAfter(elem_siblings.last());
-            else
-              elem.insertBefore(elem_siblings.first());
+            if (elem.nextAll().has(collision).length) {
+              this.parent.element.appendNode(elem);
+            } else {
+              this.parent.element.prependNode(elem);
+            }
           }
         }
       break;

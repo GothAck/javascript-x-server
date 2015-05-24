@@ -1,3 +1,6 @@
+import * as elements from './elements';
+elements.register();
+
 var EndianBuffer = require('./endianbuffer');
 var XServer = require('./x_server');
 var x_types = require('./x_types');
@@ -54,7 +57,7 @@ var x_types = require('./x_types');
             if (new_reply)
               return worker_comms.postMessage({ cmd: 'reply', id: client.id, data: data, state: client.state });
             worker_comms.postMessage({ cmd: 'message', id: client.id, data:data, state: client.state }, [data]);
-          }, $('.screen'));
+          }, document.getElementById('screen'));
           document.title = 'XSession :' + event.data.id;
           $('h2').text('0 clients');
         break;
@@ -128,7 +131,7 @@ var x_types = require('./x_types');
           if (x11_event && ! event.createdX11) {
             var src = $(event.srcElement)
               , drawable = src.not('.drawable').parentsUntil('.drawable').last().parent().add(src).first()
-              , window = drawable.data('xob');
+              , window = drawable.get(0).xob;
             event.createdX11 = true;
             if (event.type === 'mouseover')
               drawable.addClass('hover');
@@ -154,7 +157,7 @@ var x_types = require('./x_types');
       if (x11_event_map[_class].grab === 'pointer') {
         wrapper
           .on(_class, '#eventfilter.grab_pointer.owner_event .drawable.' + _class, function (dom_event, x_event) {
-            var window = $(this).data('xob')
+            var window = this.xob
               , server = window.owner.server
               , grab_window = server.grab_pointer;
             if (window.owner === grab_window.owner) {
@@ -165,23 +168,23 @@ var x_types = require('./x_types');
             }
           })
           .on(_class, '#eventfilter.grab_pointer .drawable', function (dom_event, x_event) {
-            var window = $(this).data('xob')
+            var window = this.xob
               , server = window.owner.server
               , grab_window = server.grab_pointer;
             x_event.window = grab_window;
             x_event.event_window = window;
             x_event.event_type = dom_event.type;
-            $(this).data('xob').owner.server.grab_pointer.onEvent(x_event);
+            this.xob.owner.server.grab_pointer.onEvent(x_event);
             dom_event.stopImmediatePropagation();
           });
       }
       if (x11_event_map[_class].grab === 'keyboard')
         wrapper
           .on(_class, '#eventfilter.grab_keyboard .drawable', function (event, data) {
-            var window = $(this).data('xob');
+            var window = this.xob;
             data.event_window = window;
             data.event_type = event.type;
-            $(this).data('xob').owner.server.grab_keyboard.onEvent(data);
+            this.xob.owner.server.grab_keyboard.onEvent(data);
             event.stopImmediatePropagation();
           });
       wrapper
@@ -189,7 +192,7 @@ var x_types = require('./x_types');
           event.stopPropagation();
         })
         .on(_class, '#eventfilter .drawable.' + _class, function (event, data) {
-          var window = $(this).data('xob');
+          var window = this.xob;
           data.event_window = window;
           data.event_type = event.type;
           window.onEvent(data);
@@ -200,7 +203,7 @@ var x_types = require('./x_types');
         // });
     });
     $('.screen').on('SendEvent', '.drawable', function (event, data) {
-      var xob = $(this).data('xob');
+      var xob = this.xob;
       if ((xob.event_mask && data.event_mask) || ! data.event_mask ) {
         data.event.event_window = xob;
         xob.onEvent('SendEvent', data.event);

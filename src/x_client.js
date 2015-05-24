@@ -774,7 +774,7 @@ export default class XServerClient {
     var window = this.server.getResource(req.window, x_types.Window)
       , w = req.w || (window.width - req.y)
       , h = req.h || (window.height - req.x);
-    var context = window.canvas[0].getContext('2d');
+    var context = window.canvas.getContext('2d');
     context.clearRect(req.x, req.y, w, h);
     if (req.exposures)
       window.triggerEvent('Expose', { x: req.x, y: req.y, width: w, height: h });
@@ -835,8 +835,8 @@ export default class XServerClient {
 
   async PolyArc(req) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
-      , d_w = drawable.canvas[0].width
-      , d_h = drawable.canvas[0].height
+      , d_w = drawable.canvas.width
+      , d_h = drawable.canvas.height
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad - 3) / 3
@@ -889,14 +889,14 @@ export default class XServerClient {
     });
     if (gc.clip_mask) {
       gc.globalCompositeOperation = 'xor';
-      //context.drawImage(gc.clip_mask.canvas[0], gc.clip_x_origin || 0, gc.clip_y_origin || 0);
+      //context.drawImage(gc.clip_mask.canvas, gc.clip_x_origin || 0, gc.clip_y_origin || 0);
     }
   }
 
   async PolyFillArc(req) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
-      , d_w = drawable.canvas[0].width
-      , d_h = drawable.canvas[0].height
+      , d_w = drawable.canvas.width
+      , d_h = drawable.canvas.height
       , gc = this.server.getResource(req.gc, x_types.GraphicsContext)
       , context = gc.getContext(drawable)
       , count = (req.length_quad - 3) / 3

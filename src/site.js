@@ -195,6 +195,9 @@ var x_types = require('./x_types');
           window.onEvent(data);
           return false;
         });
+        // wrapper.on(_class, '.drawable', function (event, data) {
+        //   console.debug('Event debug', _class, event, data, $(this).data('xob'));
+        // });
     });
     $('.screen').on('SendEvent', '.drawable', function (event, data) {
       var xob = $(this).data('xob');

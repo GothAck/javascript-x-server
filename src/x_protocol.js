@@ -156,15 +156,15 @@ export class XProtocolClient  {
         while (data.length > 0) {
           gooj -= 1;
           if (gooj < 1) throw new Error('You are out of jail, have a nice day!');
-          var req_str = '> Request decode (' + this.idLog + ') ' + this.sequence;
-          console.time(req_str);
+          var req_str = `> Request decode (${this.idLog}) ${this.sequence}`;
+          // console.time(req_str);
           req = Request.factory(data, this.sequence);
-          console.timeEnd(req_str);
+          // console.timeEnd(req_str);
           if (req.length > data.length) {
             this.buffer = data;
             break;
           }
-          console.time(req_str);
+          // console.time(req_str);
           this.sequence = this.sequence + 1;
           this.postRequest(req);
           if (data.length > 0)

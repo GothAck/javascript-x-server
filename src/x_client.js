@@ -31,7 +31,7 @@ export default class XServerClient {
 
   async processRequest(message) {
     var req = message.request
-      , req_str = '> Request (' + this.idLog + ') ' + message.type;
+      , req_str = `> Request ${req.sequence} (${this.idLog}) ${message.type}`;
     var rep;
     if (message.type === 'SetupRequest') {
       if (this.state !== 0)

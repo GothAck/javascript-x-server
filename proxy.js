@@ -11,7 +11,7 @@ var express = require('express')
   , lib_fonts = require('./lib/fonts');
 
 var app = exports.app = express()
-  .use(morgan('combined'))
+  // .use(morgan('combined'))
   .use(serve_static('public'));
 
 app.get('/fonts', function (req, res) {
@@ -59,7 +59,7 @@ function X11Proxy (screen, connection, window_manager) {
   this.server_socket = net.createServer(this.newClient.bind(this)).listen(6000 + this.screen);
   if (window_manager)
     setTimeout(function () {
-      self.spawnProcess(window_manager);
+      self.spawnProcess(window_manager, []); //['-fn', 'cursor']);
     }, 750);
 }
 util.inherits(X11Proxy, EventEmitter);
@@ -176,7 +176,7 @@ wss.on('request', function (req) {
     return req.reject();
   }
   console.log('New client');
-  var proxy = new X11Proxy(screen, req.accept('x11-proxy', req.origin)); //, 'blackbox' Don't load blackbox by default
+  var proxy = new X11Proxy(screen, req.accept('x11-proxy', req.origin), 'xeyes'); //, 'blackbox' Don't load blackbox by default
 /*
   ping_interval = setInterval(function () {
     var counter = ping_counter ++;

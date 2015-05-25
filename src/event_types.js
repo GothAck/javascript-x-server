@@ -114,6 +114,8 @@ export var prototypes = [];
 
   // Expose
   export class Expose extends XEvent {
+    static custom_dom_events = ['Exposure'];
+
     constructor(child_window, data) {
       super(child_window, data);
       this.child_window = child_window;
@@ -132,7 +134,6 @@ export var prototypes = [];
       this.data.writeUInt16(this.child_window.height, 10);
       this.data.writeUInt16(this.count, 12);
     }
-    get dom_events() { return ['Exposure']; }
   }
   prototypes.push(Expose);
 
@@ -155,7 +156,7 @@ export var prototypes = [];
       super(window, data)
       this.window = window;
     }
-    dom_events = ['StructureNotify', 'SubstructureNotify'];
+    static custom_dom_events = ['StructureNotify', 'SubstructureNotify'];
     writeData(buffer, offset) {
       this.data.writeUInt32((this.event_window || this.window).id, 0);
       this.data.writeUInt32(this.window.id, 4);
@@ -182,7 +183,7 @@ export var prototypes = [];
       super(window, data);
       this.window = window;
     }
-    dom_events = ['StructureNotify', 'SubstructureNotify'];
+    static custom_dom_events = ['StructureNotify', 'SubstructureNotify'];
     writeData(buffer, offset) {
       this.data.writeUInt32((this.event_window || this.window).id, 0);
       this.data.writeUInt32(this.window.id, 4);
@@ -206,7 +207,7 @@ export var prototypes = [];
       super(window, data);
       this.window = window;
     }
-    dom_events = ['SubstructureRedirect'];
+    static custom_dom_events = ['SubstructureRedirect'];
     writeData(buffer, offset) {
       this.data.writeUInt32(this.window.parent.id, 0);
       this.data.writeUInt32(this.window.id, 4);
@@ -220,7 +221,7 @@ export var prototypes = [];
       super(window, data);
       this.window = window;
     }
-    dom_events = ['StructureNotify'];
+    static custom_dom_events = ['StructureNotify'];
     writeData(buffer, offset) {
       this.data.writeUInt32((this.event_window || this.window).id, 0);
       this.data.writeUInt32(this.window.id, 4);
@@ -233,7 +234,7 @@ export var prototypes = [];
     constructor(window, data) {
       super(window, data);
     }
-    dom_events = ['StructureNotify'];
+    static custom_dom_events = ['StructureNotify'];
     writeData(buffer, offset) {
       this.data.writeUInt32(this.event_window.id, 0);
       this.data.writeUInt32(this.window.id, 4);
@@ -260,7 +261,7 @@ export var prototypes = [];
       super(window, data);
       this.window = window;
     }
-    dom_events = ['PropertyNotify'];
+    static custom_dom_events = ['PropertyNotify'];
     writeData(buffer, offset) {
       this.data.writeUInt32(this.window.id, 0);
       this.data.writeUInt32(this.atom, 4);
@@ -318,7 +319,7 @@ export var prototypes = [];
       super(window, data);
       this.detail = data.button;
     }
-    dom_events = ['ButtonPress'];
+    static custom_dom_events = ['ButtonPress'];
     static dom_events = ['mousedown'];
     static grab = 'pointer';
   }
@@ -329,7 +330,7 @@ export var prototypes = [];
       super(window, data);
       this.detail = data.button;
     }
-    dom_events = ['ButtonRelease'];
+    static custom_dom_events = ['ButtonRelease'];
     static dom_events = ['mouseup'];
     static grab = 'pointer';
   }
@@ -340,7 +341,7 @@ export var prototypes = [];
       super(window, data);
       this.detail = 0; // TODO: Add PointerMotionHint
     }
-    dom_events = ['MotionNotify', 'ButtonMotion'];
+    static custom_dom_events = ['MotionNotify', 'ButtonMotion'];
     static dom_events = ['mousemove'];
     static grab = 'pointer';
     testReady() {

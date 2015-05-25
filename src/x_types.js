@@ -607,7 +607,7 @@ export class Window extends Drawable {
     this.visual = visual;
     this.events = [];
     this.events.mask = 0;
-    this.event_clients = {};
+    this.event_clients = new Map();
     this.element.css('display', 'none');
     this.element.children().append(this.canvas.attr('id', this.id));
     fields = WinVField.fromObject(fields);
@@ -642,8 +642,8 @@ export class Window extends Drawable {
     //console.log(self.element.parents('body').length);
     //console.log('.' + des.join(',.'));
     //console.log(self.element.parentsUntil('#eventfilter').andSelf().filter('.' + des.join(',.')).length)
-    if (event.dom_events)
-      return event.dom_events.forEach((dom_event) => {
+    if (event.constructor.custom_dom_events)
+      return event.constructor.custom_dom_events.forEach((dom_event) => {
         this.element.trigger(dom_event, [event]);
       });
     return this.element.trigger(event.constructor.name, [event]);
@@ -652,14 +652,21 @@ export class Window extends Drawable {
   onEvent(event, data) {
 //    if (~this.events.indexOf(event)) {
     if (event instanceof events.XEvent) {
-      if (event.testReady())
-        Object.keys(this.event_clients).forEach((k) => {
-          if (~ this.event_clients[k].indexOf(event.event_type)) {
-            if (! this.owner.server.clients[k])
-              return delete this.event_clients[k];
-            this.owner.server.clients[k].sendEvent(event);
+      if (event.testReady()) {
+        var to_del = [];
+        for (let [id, mask] of this.event_clients) {
+          if (~mask.indexOf(event.event_type)) {
+            if (!this.owner.server.clients.has(id)) {
+              to_del.push(id);
+              continue;
+            }
+            this.owner.server.clients.get(id).sendEvent(event);
           }
-        });
+        }
+        for (let id of to_del) {
+          this.event_clients.delete(id);
+        }
+      }
       return;
     }
     if (data instanceof events.XEvent) {
@@ -874,20 +881,22 @@ export class Window extends Drawable {
   }
   set event_mask(event_mask) {
     var set_client = this._currentClient;
-    this.event_clients[set_client.id] = this.processEventMask(event_mask);
-    this.event_clients[set_client.id].mask = event_mask;
+    var events_array = this.processEventMask(event_mask);
+    events_array.mask = event_mask;
+    this.event_clients.set(set_client.id, events_array);
     
     console.log(
         'Window.event_mask set'
       , set_client.id
-      , this.event_clients[set_client.id].join(', ')
-      , this.event_clients[set_client.id].mask
-      , this.event_clients[set_client.id].mask.toString(2)
-    ) 
+      , events_array.join(', ')
+      , events_array.mask
+      , events_array.mask.toString(2)
+    );
 
-    event_mask = Object.keys(this.event_clients)
-      .map((client_id) => this.event_clients[client_id].mask)
-      .reduce((val, mask) => val | mask);
+    for (let arr of this.event_clients.values()) {
+      event_mask |= arr.mask;
+    }
+
     this.events = this.processEventMask(event_mask);
     this.events.mask = event_mask;
 

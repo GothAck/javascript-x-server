@@ -110,8 +110,8 @@ var x_types = require('./x_types');
           }, {})
       , x11_event_map = x_types.events.prototypes.reduce(
           function (o, v) {
-            if (v.prototype.dom_events)
-              v.prototype.dom_events.forEach(function (event_name) {
+            if (v.custom_dom_events)
+              v.custom_dom_events.forEach(function (event_name) {
                 o[event_name] = v;
               });
             o[v.name] = v;

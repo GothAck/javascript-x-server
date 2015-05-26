@@ -939,6 +939,9 @@ export class Window extends Drawable {
     this.events = this.processEventMask(event_mask);
     this.events.mask = event_mask;
 
+    this.element.classList.remove(...Window._event_mask_fields);
+    this.element.classList.add(...this.events);
+
     // Commented for now, because we have two places that can set up event listeners
     // for (let [event, listener] of this.event_listeners) {
     //   if (! this.events.has(event)) {

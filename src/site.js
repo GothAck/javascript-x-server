@@ -23,9 +23,11 @@ var x_types = require('./x_types');
         break;
         case 'new':
           server.newClient(event.data.id, event.data.host, event.data.port, event.data.host_type);
+          $('h2').text(`${server.clients.size} clients`);
         break;
         case 'end':
           server.disconnect(event.data.id);
+          $('h2').text(`${server.clients.size} clients`);
         break;
         case 'request':
           EndianBuffer.ensure(event.data.request);
@@ -38,7 +40,7 @@ var x_types = require('./x_types');
             worker_comms.postMessage({ cmd: 'message', id: client.id, data:data, state: client.state }, [data]);
           }, document.getElementById('screen'));
           document.title = 'XSession :' + event.data.id;
-          $('h2').text('0 clients');
+          $('h2').text(`${server.clients.size} clients`);
         break;
         default:
           console.error('Unknown message', event.data);

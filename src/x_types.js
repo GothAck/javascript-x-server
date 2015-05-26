@@ -614,6 +614,7 @@ export class Window extends Drawable {
     this.visual = visual;
     this.events = [];
     this.events.mask = 0;
+    this.event_listeners = new Map();
     this.event_clients = new Map();
     this.element.removeAttribute('mapped');
     fields = WinVField.fromObject(fields);
@@ -683,7 +684,7 @@ export class Window extends Drawable {
       if (event.testReady()) {
         var to_del = [];
         for (let [id, mask] of this.event_clients) {
-          if (~mask.indexOf(event.event_type)) {
+          if (~mask.has(event.event_type)) {
             if (!this.owner.server.clients.has(id)) {
               to_del.push(id);
               continue;
@@ -691,8 +692,10 @@ export class Window extends Drawable {
             this.owner.server.clients.get(id).sendEvent(event);
           }
         }
-        for (let id of to_del) {
-          this.event_clients.delete(id);
+        if (to_del.length) {
+          for (let id of to_del) {
+            this.event_clients.delete(id);
+          }
         }
       }
       return;
@@ -718,6 +721,18 @@ export class Window extends Drawable {
       // Do X Server Events
     }
 //    }
+  }
+
+  __eventListener(event) {
+    if (this.do_not_propagate_events) {
+      event.stopImmediatePropagation();
+    }
+    if (this.events.has(event.type)) {
+      var x_event = event.detail;
+      x_event.event_type = event.type;
+      this.onEvent(x_event);
+      event.stopPropagation();
+    }
   }
 
   map() {
@@ -891,7 +906,8 @@ export class Window extends Drawable {
     return this._background_pixel;
   }
   processEventMask(_mask) {
-    return Window._event_mask_fields.filter((mask, i) => _mask & (1 << i));
+    return new Set(
+      Window._event_mask_fields.filter((mask, i) => _mask & (1 << i)));
   }
   set event_mask(event_mask) {
     var set_client = this._currentClient;
@@ -902,20 +918,33 @@ export class Window extends Drawable {
     console.log(
         'Window.event_mask set'
       , set_client.id
-      , events_array.join(', ')
+      , events_array
       , events_array.mask
       , events_array.mask.toString(2)
     );
 
-    for (let arr of this.event_clients.values()) {
+    for (let event of events_array) {
+      if (!this.event_listeners.has(event)) {
+        var listener = this.__eventListener.bind(this);
+        this.event_listeners.set(event, listener);
+        this.element.addEventListener(event, listener);
+      }
+    }
+
+    for (let arr of this.event_clients) {
       event_mask |= arr.mask;
     }
 
     this.events = this.processEventMask(event_mask);
     this.events.mask = event_mask;
 
-    this.element.classList.remove(...Window._event_mask_fields);
-    this.element.classList.add(...this.events);
+    // Commented for now, because we have two places that can set up event listeners
+    // for (let [event, listener] of this.event_listeners) {
+    //   if (! this.events.has(event)) {
+    //     this.element.removeEventListener(event, listener);
+    //     this.event_listeners.delete(event);
+    //   }
+    // }
   }
   get event_mask() {
     var set_client = this._currentClient;
@@ -923,8 +952,17 @@ export class Window extends Drawable {
     return this.events.mask || 0;
   }
   set do_not_propagate_mask(event_mask) {
-    this.do_not_propagate_events = Window._do_not_propagate_mask_fields
-      .filter((mask, i) => event_mask & Math.pow(2, i));
+    this.do_not_propagate_events = new Set(Window._do_not_propagate_mask_fields
+      .filter((mask, i) => event_mask & Math.pow(2, i)));
+
+    for (let event of this.do_not_propagate_events) {
+      if (!this.event_listeners.has(event)) {
+        var listener = this.__eventListener.bind(this);
+        this.event_listeners.set(event, listener);
+        this.element.addEventListener(event, listener);
+      }
+    }
+
     this._do_not_propagate_event_mask = event_mask;
     this.element.classList.remove(..._do_not_propagate_mask_fields);
     this.element.classList.add(...this.do_not_propagate_events);

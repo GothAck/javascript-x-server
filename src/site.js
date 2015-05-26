@@ -5,27 +5,6 @@ var EndianBuffer = require('./endianbuffer');
 var XServer = require('./x_server');
 var x_types = require('./x_types');
 
-  /*
-  var debug = /debug=on/.test(window.location);
-  if (!debug)
-    console = Object.keys(console.__proto__).reduce(function (o, k) { o[k] = new Function; return o }, {});
-  */ 
-  
-  // Worker test
-  
-  /*
-  test = new Worker('worker_test.js');
-  var _cons = console;
-  test.addEventListener('message', function (event) {
-    if (event.data.cmd !== 'console')
-      return;
-    _cons[event.data.func].bind(_cons)(event.data.arguments, event.data.stack.split('\n')[2]);
-    event.stopImmediatePropagation();
-  }, false);
-  test.addEventListener('error', console.error.bind(console));
-  test.postMessage('');
-  */
-  
   var worker_comms = new Worker('worker_comms.js');
   function connect () {
     var server
@@ -102,32 +81,26 @@ var x_types = require('./x_types');
       }
     }
 
-    var x11_dom_event_map = x_types.events.prototypes.reduce(
-          function (o, v) {
-            if (! v.dom_events)
-              return o;
-            v.dom_events.forEach(function (dom_event) {
-              o[dom_event] = v;
-            })
-            return o;
-          }, {})
-      , x11_event_map = x_types.events.prototypes.reduce(
-          function (o, v) {
-            if (v.custom_dom_events)
-              v.custom_dom_events.forEach(function (event_name) {
-                o[event_name] = v;
-              });
-            o[v.name] = v;
-            return o;
-          }, {}
-        );
+    var x11_dom_event_map = new Map(x_types.events.prototypes.reduce((o, v) => {
+      if (! v.dom_events)
+        return o;
+      v.dom_events.forEach((dom_event) => o.push([dom_event, v]));
+      return o;
+    }, []));
+    var x11_event_map = new Map(x_types.events.prototypes.reduce((o, v) => {
+      if (v.custom_dom_events) {
+        v.custom_dom_events.forEach((event_name) => o.push([event_name, v]));
+      }
+      o.push([v.name, v]);
+      return o;
+    }, []));
 
     // Turn DOM events into X11 events
     $('#eventwrapper').on(
         'blur focus focusin focusout load resize scroll unload click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select submit keydown keypress keyup error'
       , '#eventfilter .drawable'
       , function (event) {
-          var x11_event = x11_dom_event_map[event.type];
+          var x11_event = x11_dom_event_map.get(event.type);
           if (x11_event && ! event.createdX11) {
             var src = $(event.srcElement)
               , drawable = src.not('.drawable').parentsUntil('.drawable').last().parent().add(src).first()
@@ -148,56 +121,61 @@ var x_types = require('./x_types');
       else
         server.buttons &= ~ (1 << (mouse_buttons[event.button] - 1));
     });
+    // FIXME: BROKEN!
+    for (let [_class, constructor] of x11_event_map) {
+      let wrapper = document.getElementById('eventwrapper');
+
+      if (constructor.grab === 'pointer') {
+        let base_event = '#eventfilter.grab_pointer';
+        let owner_event = `${base_event}.owner_event .drawable.${_class}`;
+        wrapper.addEventListener(_class, (event) => {
+          if (!event.currentTarget.matches(owner_event)) {
+            return;
+          }
+          var x_event = event.detail;
+          var window = event.currentTarget.xob;
+          var server = window.owner.server;
+          var grab_window = server.grab_pointer;
+          if (window.owner === grab_window.owner) {
+            x_event.event_window = window;
+            x_event.event_type = event.type;
+            window.onEvent(x_event);
+            event.stopImmediatePropagation();
+          }
+        });
+        let main_event = `${base_event} .drawable`;
+        wrapper.addEventListener(_class, (event) => {
+          if (!event.currentTarget.matches(main_event)) {
+            return;
+          }
+          var x_event = event.detail;
+          var window = event.currentTarget.xob;
+          var server = window.owner.server;
+          var grab_window = server.grab_pointer;
+          x_event.window = grab_window;
+          x_event.event_window = window;
+          x_event.event_type = event.type;
+          grab_window.onEvent(x_event);
+          dom_event.stopImmediatePropagation();
+        });
+      }
+      if (constructor.grab === 'keyboard') {
+        let main_event = '#eventfilter.grab_keyboard .drawable';
+        wrapper.addEventListener(_class, (event) => {
+          if (!event.currentTarget.matches(main_event)) {
+            return;
+          }
+          var x_event = event.detail;
+          var window = event.currentTarget.xob;
+          x_event.event_window = window;
+          x_event.event_type = event.type;
+          window.owner.server.grab_keyboard.onEvent(x_event);
+          event.stopImmediatePropagation();
+        });
+      }
+    }
     Object.keys(x11_event_map).forEach(function (_class) {
       var wrapper = $('#eventwrapper');
-      // wrapper
-      //   .on(_class, '#eventfilter .drawable.' + _class, function (dom_event, x_event) {
-      //     console.error('EVENT', dom_event, x_event);
-      //   });
-      if (x11_event_map[_class].grab === 'pointer') {
-        wrapper
-          .on(_class, '#eventfilter.grab_pointer.owner_event .drawable.' + _class, function (dom_event, x_event) {
-            var window = this.xob
-              , server = window.owner.server
-              , grab_window = server.grab_pointer;
-            if (window.owner === grab_window.owner) {
-              x_event.event_window = window;
-              x_event.event_type = dom_event.type;
-              window.onEvent(x_event);
-              dom_event.stopImmediatePropagation();
-            }
-          })
-          .on(_class, '#eventfilter.grab_pointer .drawable', function (dom_event, x_event) {
-            var window = this.xob
-              , server = window.owner.server
-              , grab_window = server.grab_pointer;
-            x_event.window = grab_window;
-            x_event.event_window = window;
-            x_event.event_type = dom_event.type;
-            this.xob.owner.server.grab_pointer.onEvent(x_event);
-            dom_event.stopImmediatePropagation();
-          });
-      }
-      if (x11_event_map[_class].grab === 'keyboard')
-        wrapper
-          .on(_class, '#eventfilter.grab_keyboard .drawable', function (event, data) {
-            var window = this.xob;
-            data.event_window = window;
-            data.event_type = event.type;
-            this.xob.owner.server.grab_keyboard.onEvent(data);
-            event.stopImmediatePropagation();
-          });
-      wrapper
-        .on(_class, '#eventfilter .drawable.NoPropagate' + _class, function (event) {
-          event.stopPropagation();
-        })
-        .on(_class, '#eventfilter .drawable.' + _class, function (event, data) {
-          var window = this.xob;
-          data.event_window = window;
-          data.event_type = event.type;
-          window.onEvent(data);
-          return false;
-        });
         // wrapper.on(_class, '.drawable', function (event, data) {
         //   console.debug('Event debug', _class, event, data, $(this).data('xob'));
         // });

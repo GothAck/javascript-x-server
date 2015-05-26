@@ -91,8 +91,14 @@ export default class XServerClient {
     console.log('Disconnect', this.id);
     this.server.clients.delete(this.id);
     if (this.closedown === 'destroy') {
+      var to_destroy = [];
       for (let resource of this.server.resources.values()) {
         if (resource.owner === this) {
+          to_destroy.push(resource);
+        }
+      }
+      if (to_destroy.length) {
+        for (let resource of to_destroy) {
           resource.destroy();
         }
       }

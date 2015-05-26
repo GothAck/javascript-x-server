@@ -1,3 +1,12 @@
+import * as x_types from "./x_types";
+
+var x11_dom_event_map = new Map(x_types.events.prototypes.reduce((o, v) => {
+  if (! v.dom_events)
+    return o;
+  v.dom_events.forEach((dom_event) => o.push([dom_event, v]));
+  return o;
+}, []));
+
 function _HTMLDivElement() {}
 _HTMLDivElement.prototype = HTMLDivElement.prototype;
 
@@ -35,9 +44,95 @@ export class XDrawableElement extends _HTMLDivElement {
   }
 }
 
+var mouse_buttons = [1,3,2];
+var events = [
+  'blur',
+  'focus',
+  'focusin',
+  'focusout',
+  'load',
+  'resize',
+  'scroll',
+  'unload',
+  'click',
+  'dblclick',
+  'mousedown',
+  'mouseup',
+  'mousemove',
+  'mouseover',
+  'mouseout',
+  'mouseenter',
+  'mouseleave',
+  'change',
+  'select',
+  'submit',
+  'keydown',
+  'keypress',
+  'keyup',
+  'error'
+];
+
 export class XWindowElement extends XDrawableElement {
+  getCustomEventData(dom_event) {
+      var server = this.xob.owner.server;
+      var keybutmask = (
+              (server && server.buttons || 0) |
+//              (
+//                  dom_event.type === 'mousedown' &&
+//                  (1 << (mouse_buttons[dom_event.button] - 1))
+//              )
+              0
+          ) << 8;
+      if (dom_event.type === 'mousedown' || dom_event.type === 'mouseup') {
+        keybutmask |= 0x10;
+        keybutmask &= ~((1 << (mouse_buttons[dom_event.button] - 1)) << 8); 
+      }
+      // keybutmask |= dom_event.shiftKey && 1;
+      // lock? = 2
+      // keybutmask |= dom_event.ctrlKey  && 4;
+      var event_source = $(event.srcElement)
+        , root_offset = event_source.parents('.screen').andSelf().first().offset()
+        , win_offset = event_source.offset();
+      win_offset.left -= root_offset.left;
+      win_offset.top  -= root_offset.top;
+
+      return {
+          x: dom_event.offsetX
+        , y: dom_event.offsetY
+        , root_x: dom_event.offsetX + win_offset.left
+        , root_y: dom_event.offsetY + win_offset.top
+        , button: mouse_buttons[dom_event.button]
+        , keycode: dom_event.keyCode
+        , keybutmask: keybutmask
+      };
+  }
+  browserEventCallback(event) {
+    var X11Event = x11_dom_event_map.get(event.type);
+    if (X11Event) {
+      var src = this;
+      var window = this.xob;
+      if (event.type === 'mouseover') {
+        this.classList.add('hover');
+      }
+      if (event.type === 'mouseout') {
+        this.classList.remove('hover');
+      }
+      var x11_event = new X11Event(window, this.getCustomEventData(event))
+      window.triggerEvent(x11_event);
+      event.stopPropagation();
+    }
+  }
   createdCallback() {
     super.createdCallback();
+    if (!this.void_events) {
+      for (let event of events) {
+        this.addEventListener(event, (e) => this.browserEventCallback(e));
+      }
+    }
+    this.addEventListener('contextmenu', (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    });
     var shadow = this.createShadowRoot();
     var relative = this.createElement('div', {className: 'relative'})
     this.container = this.createElement('div', {className: 'container'});
@@ -138,7 +233,21 @@ export class XWindowElement extends XDrawableElement {
 }
 
 export class XScreenElement extends XWindowElement {
+  createdCallback() {
+    this.void_events = true;
+    super.createdCallback();
+    this.addEventListener('mousedown', (event) => {
+      this.xob.owner.buttons |= 1 << (mouse_buttons[event.button] - 1);
+    }, true);
+    this.addEventListener('mouseup', (event) => {
+      this.xob.owner.buttons &= ~ (1 << (mouse_buttons[event.button] - 1));
+    }, true);
+    this.addEventListener('mousemove', (event) => {
+      this.xob.owner.mouseX = event.offsetX;
+      this.xob.owner.mouseY = event.offsetY;
+    }, true);
 
+  }
 }
 
 export function register() {

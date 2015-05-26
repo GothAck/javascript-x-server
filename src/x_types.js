@@ -232,6 +232,7 @@ export class Screen {
   element = document.createElement('x-screen');
 
   constructor(
+    owner,
     window,
     colormap,
     white,
@@ -249,6 +250,8 @@ export class Screen {
     root_depth,
     depths
   ) {
+    this.owner = owner;
+    this.element.xob = this;
     this.window = window || 0;
     this.colormap = colormap || 0;
     this.white = white || 0;
@@ -628,6 +631,7 @@ export class Window extends Drawable {
 
   destroy() {
     this.owner.server.resources.delete(this.id);
+    this.element.remove();
     this.triggerEvent('DestroyNotify');
   }
 
@@ -731,6 +735,7 @@ export class Window extends Drawable {
     if (this.events.has(event.type)) {
       var x_event = event.detail;
       x_event.event_type = event.type;
+      x_event.event_window = this;
       this.onEvent(x_event);
       event.stopPropagation();
     }

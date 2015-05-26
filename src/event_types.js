@@ -282,8 +282,8 @@ export var prototypes = [];
       this.data.writeUInt32(this.window.getRoot().id, 4); // Root id
       this.data.writeUInt32((this.event_window || this.window).id, 8); // Parent / event win id
       this.data.writeUInt32((this.window.id !== this.event_window.id && this.window.id) || 0, 12); // Child id (0 if same as parent)
-      var this_offset = this.window.element.offset()
-        , root_offset = this.event_window.getRoot().element.offset();
+      var this_offset = this.window.element.getBoundingClientRect()
+        , root_offset = this.event_window.getRoot().element.getBoundingClientRect();
 
       this.data.writeInt16(this_offset.left - root_offset.left + this.x, 16); // Root x
       this.data.writeInt16(this_offset.top  - root_offset.top  + this.y , 18); // Root y
@@ -361,6 +361,7 @@ export var prototypes = [];
       super(window, data);
     }
     static dom_events = ['mouseover'];
+    static custom_dom_events = ['EnterWindow'];
   }
   prototypes.push(EnterNotify);
 
@@ -369,6 +370,7 @@ export var prototypes = [];
       super(window, data);
     }
     static dom_events = ['mouseout'];
+    static custom_dom_events = ['LeaveWindow'];
   }
   prototypes.push(LeaveNotify);
 

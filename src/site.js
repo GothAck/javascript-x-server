@@ -47,46 +47,6 @@ var x_types = require('./x_types');
   }
 
   $(function () {
-    var mouse_buttons = [1,3,2];
-    function event_data (dom_event) {
-      var keybutmask = (
-              (server && server.buttons || 0) |
-//              (
-//                  dom_event.type === 'mousedown' &&
-//                  (1 << (mouse_buttons[dom_event.button] - 1))
-//              )
-              0
-          ) << 8;
-      if (dom_event.type === 'mousedown' || dom_event.type === 'mouseup') {
-        keybutmask |= 0x10;
-        keybutmask &= ~((1 << (mouse_buttons[dom_event.button] - 1)) << 8); 
-      }
-      // keybutmask |= dom_event.shiftKey && 1;
-      // lock? = 2
-      // keybutmask |= dom_event.ctrlKey  && 4;
-      var event_source = $(event.srcElement)
-        , root_offset = event_source.parents('.screen').andSelf().first().offset()
-        , win_offset = event_source.offset();
-      win_offset.left -= root_offset.left;
-      win_offset.top  -= root_offset.top;
-
-      return {
-          x: dom_event.offsetX
-        , y: dom_event.offsetY
-        , root_x: dom_event.offsetX + win_offset.left
-        , root_y: dom_event.offsetY + win_offset.top
-        , button: mouse_buttons[dom_event.button]
-        , keycode: dom_event.keyCode
-        , keybutmask: keybutmask
-      }
-    }
-
-    var x11_dom_event_map = new Map(x_types.events.prototypes.reduce((o, v) => {
-      if (! v.dom_events)
-        return o;
-      v.dom_events.forEach((dom_event) => o.push([dom_event, v]));
-      return o;
-    }, []));
     var x11_event_map = new Map(x_types.events.prototypes.reduce((o, v) => {
       if (v.custom_dom_events) {
         v.custom_dom_events.forEach((event_name) => o.push([event_name, v]));
@@ -95,33 +55,6 @@ var x_types = require('./x_types');
       return o;
     }, []));
 
-    // Turn DOM events into X11 events
-    $('#eventwrapper').on(
-        'blur focus focusin focusout load resize scroll unload click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select submit keydown keypress keyup error'
-      , '#eventfilter .drawable'
-      , function (event) {
-          var x11_event = x11_dom_event_map.get(event.type);
-          if (x11_event && ! event.createdX11) {
-            var src = $(event.srcElement)
-              , drawable = src.not('.drawable').parentsUntil('.drawable').last().parent().add(src).first()
-              , window = drawable.get(0).xob;
-            event.createdX11 = true;
-            if (event.type === 'mouseover')
-              drawable.addClass('hover');
-            if (event.type === 'mouseout')
-              drawable.removeClass('hover');
-            window.triggerEvent(new x11_event(window, event_data(event)));
-          }
-        }
-    );
-    // Update server.buttons
-    $('.screen').on('mousedown mouseup', function (event) {
-      if (event.type === 'mousedown')
-        server.buttons |= 1 << (mouse_buttons[event.button] - 1);
-      else
-        server.buttons &= ~ (1 << (mouse_buttons[event.button] - 1));
-    });
-    // FIXME: BROKEN!
     for (let [_class, constructor] of x11_event_map) {
       let wrapper = document.getElementById('eventwrapper');
 
@@ -174,12 +107,6 @@ var x_types = require('./x_types');
         });
       }
     }
-    Object.keys(x11_event_map).forEach(function (_class) {
-      var wrapper = $('#eventwrapper');
-        // wrapper.on(_class, '.drawable', function (event, data) {
-        //   console.debug('Event debug', _class, event, data, $(this).data('xob'));
-        // });
-    });
     $('.screen').on('SendEvent', '.drawable', function (event, data) {
       var xob = this.xob;
       if ((xob.event_mask && data.event_mask) || ! data.event_mask ) {
@@ -193,7 +120,6 @@ var x_types = require('./x_types');
       event.stopImmediatePropagation();
       return false;
     });
-    $('.screen').on('contextmenu', '*', false);
   });
 
   $(connect);

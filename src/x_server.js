@@ -128,7 +128,8 @@ export default class XServer {
     this.screens = new x_types.ExtrasArray();
     this.screens.push(
         this.screen = new x_types.Screen(
-            0x00000026 // root
+            this
+          , 0x00000026 // root
           , 0x00000022 // def colormap
           , 0x00ffffff // white
           , 0x00000000 // black
@@ -240,10 +241,6 @@ export default class XServer {
 
     this.mouseX = this.mouseY = 0;
     var self = this;
-    this.screen.element.addEventListener('mousemove', (e) => {
-      this.mouseX = e.offsetX;
-      this.mouseY = e.offsetY;
-    });
   }
 
   get clients_array() {

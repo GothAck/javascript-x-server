@@ -133,6 +133,7 @@ class NewString {
       }
       out_str += str.charAt(i);
     }
+    return out_str;
   }
 }
 

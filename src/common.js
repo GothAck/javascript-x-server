@@ -91,7 +91,6 @@ export class MaskedField {
         }
       }
     }
-    console.log('Fields.fromObject', mf, o);
     return mf;
   }
 

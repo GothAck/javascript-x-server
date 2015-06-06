@@ -10,3 +10,6 @@ public/worker_comms.js
 public/worker_comms.js.map
 public/site.js
 public/site.js.map
+tmp/
+.swp
+.vagrant/

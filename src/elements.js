@@ -93,17 +93,12 @@ export class XWindowElement extends XDrawableElement {
       // keybutmask |= dom_event.shiftKey && 1;
       // lock? = 2
       // keybutmask |= dom_event.ctrlKey  && 4;
-      var event_source = $(event.srcElement)
-        , root_offset = event_source.parents('.screen').andSelf().first().offset()
-        , win_offset = event_source.offset();
-      win_offset.left -= root_offset.left;
-      win_offset.top  -= root_offset.top;
 
       return {
           x: dom_event.offsetX
         , y: dom_event.offsetY
-        , root_x: dom_event.offsetX + win_offset.left
-        , root_y: dom_event.offsetY + win_offset.top
+        , root_x: dom_event.offsetX
+        , root_y: dom_event.offsetY
         , button: mouse_buttons[dom_event.button]
         , keycode: dom_event.keyCode
         , keybutmask: keybutmask

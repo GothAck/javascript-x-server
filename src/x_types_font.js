@@ -133,7 +133,7 @@ export class PCFCharacter {
           var _bit_offset = this.lsbit ? (row_data_byte * 8) - 1 - bit_offset : bit_offset;
           if ((byte_offset * 8) + bit_offset >= this.width) {
             console.log('rar');
-            break byte;
+            break; //byte;
           }
           pixels.push((Math.pow(2, _bit_offset) & data) && 1);
         }
@@ -469,7 +469,10 @@ export class VectorFont extends Font {
     var font_class = `font_${this.name}`;
     var {ascent, descent} = this.getChar(-1);
     var height = ascent + descent - 1
-    var f = new FontFace(this.name, `url(fonts/${this.file_name}.${this.type})`, {});
+    var f = new window.FontFace(
+      this.name,
+      `url(fonts/${this.file_name}.${this.type})`,
+      {});
     await f.load();
     document.fonts.add(f);
     var style = document.createElement("style");

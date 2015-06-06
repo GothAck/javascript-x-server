@@ -66,7 +66,7 @@ export class XProtocolServer  {
           delete this.clients[data[1]]
         break;
         case 'PING':
-          socket.send('PONG');
+          this.socket.send('PONG');
         break;
         default:
           console.error('Unknown message received', data.join(' '));

@@ -359,7 +359,6 @@ export default class XServerClient {
       ! ((window.parent.event_clients.get(this.id) && window.parent.event_clients.get(this.id).has('SubstructureRedirect')) ||
          window.override_redirect)
     ) {
-      xt = x_types;
       window.parent.triggerEvent(new x_types.events.map.MapRequest(window, {}));
     } else
     if (window.map()) {
@@ -477,7 +476,7 @@ export default class XServerClient {
     var window = this.server.getResource(req.window, x_types.Window)
       , delta = req.delta
       , property_names = req.atoms.map(function (atom) { return this.server.getAtom(atom) }, this)
-      , property_vals = property_keys.map(function (key) { return this.getProperty(key) }, window);
+      , property_vals = property_names.map(function (key) { return this.getProperty(key) }, window);
 
     if (property_vals.some(function (val) { return 'undefined' === typeof val }))
       throw new Error('FIXME: This should throw a Match error'); //FIXME: Should also throw if dup keys
@@ -486,7 +485,7 @@ export default class XServerClient {
     property_vals.slice(-delta)
       .concat(property_vals.slice(0, -delta))
       .forEach(function (val, i) {
-        window.setProperty(property_keys, val);
+        window.setProperty(property_names[i], val);
       });
   }
 
@@ -1139,7 +1138,7 @@ export default class XServerClient {
 
   async Bell(req) {
     var percent = req.data_byte;
-    $('audio#bell')[0].play();
+    document.getElementById('bell').play();
   }
 
   async ChangeHosts(req) {

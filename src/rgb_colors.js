@@ -1,4 +1,4 @@
-export default colors = new Map([
+export default new Map([
   ["snow"                   , 0xfffafa],
   ["ghost white"            , 0xf8f8ff],
   ["GhostWhite"             , 0xf8f8ff],

@@ -36,6 +36,10 @@ gulp.task('js', function () {
         'runtime',
         'utility.inlineEnvironmentVariables',
         'minification.deadCodeElimination',
+        'minification.memberExpressionLiterals',
+        'minification.propertyLiterals',
+        'validation.undeclaredVariableCheck',
+        'spec.undefinedToVoid',
       ],
       blacklist: [
         'strict', // Blacklisted to allow access to objs in stacktraces

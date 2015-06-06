@@ -569,7 +569,7 @@ export class Pixmap extends Drawable {
     this.drawable = drawable;
     // FIXME: create correct buffer size for image!
     this.element.setAttribute('id', this.id);
-    $('.buffers').append(this.element);
+    document.getElementById('buffers').appendChild(this.element);
   }
 }
 
@@ -781,6 +781,7 @@ export class Window extends Drawable {
 
   getParents(until) {
     var parents = [];
+    var current = this;
     while (current.parent && current.parent.id && current.parent !== until)
       parents.push(current = current.parent);
     return parents;
@@ -805,11 +806,12 @@ export class Window extends Drawable {
   // FIXME: Unused due to differing reply format to send format!
   getData() {
     var data = new EndianBuffer(_win_vfield_types
-      .map((name) => x_types[name])
+      .map((name) => exports[name])
       .reduce((o, v) => o + v));
+    var offset = 0;
     for (var i = 0; i < _gc_vfields.length; i++) {
       data['write' + _win_vfield_types[i]](this[_win_vfields[i]], offset);
-      offset += x_types[_win_vfield_types[i]].length;
+      offset += exports[_win_vfield_types[i]].length;
     }
   }
 
@@ -965,7 +967,7 @@ export class Window extends Drawable {
     }
 
     this._do_not_propagate_event_mask = event_mask;
-    this.element.classList.remove(..._do_not_propagate_mask_fields);
+    this.element.classList.remove(...Window._do_not_propagate_mask_fields);
     this.element.classList.add(...this.do_not_propagate_events);
   }
   get do_not_propagate_mask() {

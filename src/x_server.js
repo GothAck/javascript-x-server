@@ -409,7 +409,7 @@ export default class XServer {
   
   freeAtom(id) {
     var atom = this.atoms[id];
-    if (!(resource instanceof x_types.Atom))
+    if (!(atom instanceof x_types.Atom))
       throw new x_types.Error({}, 14 /* IDChoice */);
     delete this.atoms[id];
   }

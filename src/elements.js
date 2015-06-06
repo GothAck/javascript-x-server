@@ -29,6 +29,9 @@ export class XDrawableElement extends _HTMLDivElement {
     var shadow = this.createShadowRoot();
     this.canvas = this.createElement('canvas');
     shadow.appendChild(this.canvas);
+    shadow.appendChild(
+      document.importNode(
+        document.getElementById('x-drawable-style').content, true));
   }
   attributeChangedCallback(name, oldVal, newVal) {
     switch (name) {

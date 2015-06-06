@@ -344,7 +344,7 @@ export default class XServerClient {
     window.y = req.y;
     window.triggerEvent('ReparentNotify', { new_parent: parent })
     window.parent = parent;
-    window.element.appendTo(parent.element.children());
+    parent.element.appendChild(window.element);
     window.triggerEvent('ReparentNotify', { new_parent: parent })
     if (was_mapped)
       window.map();
@@ -356,7 +356,7 @@ export default class XServerClient {
     var reps = [];
     if (
       (window.parent.events.has('SubstructureRedirect')) &&
-      ! (window.parent.event_clients.get(this.id).has('SubstructureRedirect') ||
+      ! ((window.parent.event_clients.get(this.id) && window.parent.event_clients.get(this.id).has('SubstructureRedirect')) ||
          window.override_redirect)
     ) {
       xt = x_types;

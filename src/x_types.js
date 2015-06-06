@@ -421,7 +421,6 @@ export class GraphicsContext {
     this.owner = owner;
     this.id = id;
     this.drawable = drawable;
-    this.context = drawable.canvas.getContext('2d');
     this.changeFields(owner, GCVField.fromObject(fields));
     this.x = 0;
     this.y = 0;
@@ -922,14 +921,6 @@ export class Window extends Drawable {
     events_array.mask = event_mask;
     this.event_clients.set(set_client.id, events_array);
     
-    console.log(
-        'Window.event_mask set'
-      , set_client.id
-      , events_array
-      , events_array.mask
-      , events_array.mask.toString(2)
-    );
-
     for (let event of events_array) {
       if (!this.event_listeners.has(event)) {
         var listener = this.__eventListener.bind(this);

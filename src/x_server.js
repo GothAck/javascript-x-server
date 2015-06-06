@@ -328,7 +328,9 @@ export default class XServer {
     var client = this.clients.get(message.id);
     if (this.grab && this.grab !== client)
       return this.grab_buffer.push([this, 'processRequest', message]);
-    client.processRequest(message);
+    client.processRequest(message).catch((e) => {
+      console.error(e.stack);
+    });
   }
 
   getResource(id, Type, allowed_values) {

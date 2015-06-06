@@ -57,8 +57,8 @@ export default class XServerClient {
           e.endian = req.endian;
           e.opcode = req.opcode;
           e.sequence = req.sequence & 0xffff;
-          console.error(this.id, e, e.stack);
           this.processReply(e);
+          throw e;
         } else {
           console.error('Implementation Error', e.stack);
           this.processReply(new x_types.Error(req, 17, 0));
@@ -279,10 +279,6 @@ export default class XServerClient {
 
   async CreateWindow(req) {
     var parent = this.server.getResource(req.parent)
-    console.log(
-        'CreateWindow', req.id, req.depth, req.parent
-      , req.x, req.y, req.width, req.height, req.fields
-    );
     var window = this.server.putResource(new x_types.Window(
             this, req.id, req.depth, req.x, req.y, req.width, req.height
           , req.border_width, req.class, req.visual, req.fields
@@ -291,7 +287,6 @@ export default class XServerClient {
   }
 
   async ChangeWindowAttributes(req) {
-    console.log('ChangeWindowAttributes', req);
     this.server.getResource(req.window, x_types.Window)
       .changeFields(this, WinVField.fromObject(req.fields));
   }
@@ -366,7 +361,6 @@ export default class XServerClient {
     ) {
       xt = x_types;
       window.parent.triggerEvent(new x_types.events.map.MapRequest(window, {}));
-      console.log('!REDIRECT!');
     } else
     if (window.map()) {
       window.triggerEvent('Expose', { count: 0 });
@@ -376,20 +370,17 @@ export default class XServerClient {
 
   async MapSubwindows(req) {
     var window = this.server.getResource(req.window, x_types.Window);
-    console.log('MapSubwindows', window.id);
     window.mapSubwindows();
     return [];
   }
 
   async UnmapWindow(req) {
     var window = this.server.getResource(req.window, x_types.Window);
-    console.log('UnmapWindow');
     window.unmap()
   }
   
   async UnmapSubwindows(req) {
     var window = this.server.getResource(req.window, x_types.Window);
-    console.log('UnmapSubwindows');
     window.children.forEach(function (child) {
       child.unmap();
     });
@@ -397,7 +388,6 @@ export default class XServerClient {
 
   async ConfigureWindow(req) {
     var window = this.server.getResource(req.window, x_types.Window)
-    console.log('ConfigureWindow', window, req.fields);
     window.sibling = null;
     for (let [k, v] of WinConfigureField.fromObject(req.fields)) {
       window[k] = v;
@@ -784,8 +774,9 @@ export default class XServerClient {
       , h = req.h || (window.height - req.x);
     var context = window.canvas.getContext('2d');
     context.clearRect(req.x, req.y, w, h);
-    if (req.exposures)
+    if (req.exposures) {
       window.triggerEvent('Expose', { x: req.x, y: req.y, width: w, height: h });
+    }
   }
 
   async CopyArea(req) {
@@ -793,10 +784,11 @@ export default class XServerClient {
       , dst    = this.server.getResource(req.dst, x_types.Drawable)
       , gc     = this.server.getResource(req.gc, x_types.GraphicsContext)
       , data   = src.getImageData(req.src_x, req.src_y, req.width, req.height);
-    console.log('CopyArea', src.id, dst.id, req.src_x, req.src_y, req.dst_x, req.dst_y, req.width, req.height);
+    console.log('CopyArea', src, dst, req.src_x, req.src_y, req.dst_x, req.dst_y, req.width, req.height);
     dst.putImageData(data, req.dst_x, req.dst_y);
-    if (gc.graphics_exposures)
+    if (gc.graphics_exposures) {
       dst.owner.sendEvent(new x_types.events.map.NoExposure(dst, { major: req.opcode, minor: 0 }));
+    }
   }
 
   async FreeGC(req) {
@@ -928,7 +920,6 @@ export default class XServerClient {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
       , context = this.server.getResource(req.context, x_types.GraphicsContext)
     context.putImage(drawable, req.format, req.image, req.width, req.height, req.x, req.y, req.pad, req.depth);
-    console.log(req.format, req.width, req.height, req.x, req.y, req.pad, req.depth);
   }
 
   async GetImage(req) {

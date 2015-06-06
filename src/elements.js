@@ -142,10 +142,10 @@ export class XWindowElement extends XDrawableElement {
         }
       });
     }
-    this.addEventListener('contextmenu', (event) => {
-      event.stopPropagation();
-      event.preventDefault();
     this.style.display = 'none';
+    this.addEventListener('contextmenu', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
     });
     var shadow = this.createShadowRoot();
     var relative = this.createElement('div', {className: 'relative'})
@@ -250,15 +250,15 @@ export class XScreenElement extends XWindowElement {
   createdCallback() {
     this.void_events = true;
     super.createdCallback();
-    this.addEventListener('mousedown', (event) => {
-      this.xob.owner.buttons |= 1 << (mouse_buttons[event.button] - 1);
+    this.addEventListener('mousedown', (e) => {
+      this.xob.owner.buttons |= 1 << (mouse_buttons[e.button] - 1);
     }, true);
-    this.addEventListener('mouseup', (event) => {
-      this.xob.owner.buttons &= ~ (1 << (mouse_buttons[event.button] - 1));
+    this.addEventListener('mouseup', (e) => {
+      this.xob.owner.buttons &= ~ (1 << (mouse_buttons[e.button] - 1));
     }, true);
-    this.addEventListener('mousemove', (event) => {
-      this.xob.owner.mouseX = event.offsetX;
-      this.xob.owner.mouseY = event.offsetY;
+    this.addEventListener('mousemove', (e) => {
+      this.xob.owner.mouseX = e.offsetX;
+      this.xob.owner.mouseY = e.offsetY;
     }, true);
     for (let [name, XEvent] of x_types.events.x11_dom_events_map) {
       if (XEvent.grab) {

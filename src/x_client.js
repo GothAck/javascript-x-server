@@ -1,5 +1,5 @@
 import EndianBuffer from './endianbuffer';
-import * as rgb_colors from './rgb_colors';
+import rgb_colors from './rgb_colors';
 
 import * as x_types from './x_types';
 import { GCVField, WinVField, WinConfigureField } from './common';
@@ -999,7 +999,7 @@ export default class XServerClient {
     var cmap = this.server.getResource(req.cmap, x_types.ColorMap)
       , length = req.name_length
       , name = req.name
-      , color = rgb_colors[name] || 0
+      , color = rgb_colors.get(name) || 0
       , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
 
     rep.data.writeUInt16((color & 0xff0000) >> 16,  0);

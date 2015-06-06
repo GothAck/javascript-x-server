@@ -1,6 +1,5 @@
 import * as fs from './fs';
 import EndianBuffer from './endianbuffer';
-import loadCSSFont from './loadcssfont';
 import { MustImplementError } from './common';
 
 export class CharInfo {
@@ -462,16 +461,35 @@ export class VectorFont extends Font {
         });
     }, this);
   }
-  
-  loadData(callback) {
-    var height = this.getChar(-1);
-    height = height.ascent + height.descent - 1;
-    if (! $('style#' + this.css_name).length)
-      loadCSSFont('fonts/' + this.file_name, this.type, height, 'font_' + this.name, this.css_name, callback);
-  }
 
+  async loadDataAsync() {
+    if (document.getElementById(this.css_name)) {
+      return;
+    }
+    var font_class = `font_${this.name}`;
+    var {ascent, descent} = this.getChar(-1);
+    var height = ascent + descent - 1
+    var f = new FontFace(this.name, `url(fonts/${this.file_name}.${this.type})`, {});
+    await f.load();
+    document.fonts.add(f);
+    var style = document.createElement("style");
+    style.appendChild(document.createTextNode(""));
+    style.id = this.css_name;
+    document.head.appendChild(style);
+    style.sheet.insertRule(
+      `.${font_class} {
+        font-family: ${this.name};
+        font-size: ${height}px;
+        line-height: ${height}px;}`);
+    style.sheet.insertRule(
+      `.${font_class}_important {
+        font-family: ${this.name} !important;
+        font-size: ${height}px;
+        line-height: ${height}px;}`);
+  }
+  
   close() {
-    $('style#' + this.css_name).remove();
+    document.getElementById(this.css_name).remove();
   }
 
   get height() {

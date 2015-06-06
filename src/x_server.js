@@ -480,6 +480,9 @@ export default class XServer {
     if (resolved_name[1]) {
       this.grab = 'openFont';
       this.loadFont(resolved_name[1], resolved_name[0], function (err, font) {
+        if (err) {
+          console.error(err);
+        }
         font.id = fid;
         font.owner = client;
         if (err)

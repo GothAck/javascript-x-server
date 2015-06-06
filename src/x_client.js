@@ -1024,9 +1024,11 @@ export default class XServerClient {
             source_font && (source_char_meta.ascent)
           , mask_font   && (mask_char_meta.ascent)
         );
-    var canvas = $('<canvas />').attr('width', width).attr('height', height)[0]
-      , context = canvas.getContext('2d');
-    $('.buffers').append(canvas);
+    var canvas = document.createElement('canvas');
+    canvas.setAttribute('width', width);
+    canvas.setAttribute('height', height);
+    document.getElementById('buffers').appendChild(canvas);
+    var context = canvas.getContext('2d');
     context.save();
     if (req.mask_char) {
       var color = (
@@ -1036,7 +1038,7 @@ export default class XServerClient {
         ).toString(16)
       color = (new Array(7 - color.length)).join(0) + color;
       context.fillStyle = '#' + color;
-      context.font = '30px "' + mask_font.file_name + '"';
+      context.font = '30px "' + mask_font.name + '"';
       context.fillText(
           x_types.String.encodeString(String.fromCharCode(req.mask_char))
         , x
@@ -1061,7 +1063,7 @@ export default class XServerClient {
 //    source_char.drawTo(context, x, y, fore_r, fore_g, fore_b);
     canvas.id = req.cursor_id;
     context.restore();
-    $('style#cursors')[0].innerHTML += [
+    document.getElementById('cursors').innerHTML += [
       , '.cursor_' , req.cursor_id , ' { '
       ,   'cursor: url(' , canvas.toDataURL() , ') ' , x , ' ' , y , ', default;'
       , '}'

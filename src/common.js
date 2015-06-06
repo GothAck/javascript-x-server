@@ -29,8 +29,9 @@ export class MaskedField {
     for (let [k, v] of fields) {
       if (vmask & (2 ** i)) {
         let type = v || default_type;
-        this.set(k, vdata['read' + type](offset));
-        offset += type_lengths.get(type);
+        let value = vdata['readUInt32'](offset);
+        this.set(k, value);
+        offset += 4; // type_lengths.get(type);
       }
       i++;
     }

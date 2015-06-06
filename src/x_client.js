@@ -360,11 +360,9 @@ export default class XServerClient {
     console.log('MapWindow', window.id);
     var reps = [];
     if (
-      (~ window.parent.events.indexOf('SubstructureRedirect')) &&
-      Object.keys(window.parent.event_clients).filter(function (id) {
-        return ~ window.parent.event_clients[id].indexOf('SubstructureRedirect') && id != this.id
-      }, this).length &&
-      ! window.override_redirect
+      (window.parent.events.has('SubstructureRedirect')) &&
+      ! (window.parent.event_clients.get(this.id).has('SubstructureRedirect') ||
+         window.override_redirect)
     ) {
       xt = x_types;
       window.parent.triggerEvent(new x_types.events.map.MapRequest(window, {}));
@@ -544,13 +542,14 @@ export default class XServerClient {
       var root = window.getRoot();
       if (cursor) {
         var cursor_class = 'cursor_' + cursor + '_important';
-        root.element
-          .addClass(cursor_class).data('grab_pointer_class', cursor_class);
+        root.element.classList.add(cursor_class);
+        root.element.dataset.grab_pointer_class = cursor_class;
       }
-      var event_filter = root.element.parent().parent().parent();
-      event_filter.addClass('grab_pointer');
-      if (req.owner_events)
-        event_filter.addClass('owner_events');
+      root.element.classList.add('grab_pointer');
+      if (req.owner_events) {
+        root.element.classList.add('owner_events');
+        this.server.grab_pointer_owner = true;
+      }
       this.server.grab_pointer = window;
       this.server.grab_pointer_owner_events = req.owner_events;
       this.server.grab_pointer_mask = window.processEventMask(req.events);
@@ -564,10 +563,13 @@ export default class XServerClient {
     var time = req.time;
     if (this.server.grab_pointer) {
       this.server.grab_pointer = null;
-      var cursor = this.server.root.element.data('grab_pointer_class');
-      if (cursor)
-        this.server.root.element.removeClass(cursor);
-      this.server.root.element.parent().parent().parent().removeClass('grab_pointer');
+      this.server.grab_pointer_owner = null;
+      var cursor = this.server.root.element.dataset.grab_pointer_class;
+      if (cursor) {
+        this.server.root.element.classList.remove(cursor);
+        delete this.server.root.element.dataset.grab_pointer_class;
+      }
+      this.server.root.element.classList.remove('grab_pointer');
     }
   }
   
@@ -585,7 +587,7 @@ export default class XServerClient {
       rep.data_byte = 3;
     } else {
       var root = window.getRoot();
-      root.element.parent().parent().parent().addClass('grab_keyboard');
+      root.element.classList.add('grab_keyboard');
       this.server.grab_keyboard = window;
       rep.data_byte = 0;
     }
@@ -597,7 +599,7 @@ export default class XServerClient {
     var time = req.time;
     if (this.server.grab_keyboard) {
       this.server.grab_keyboard = null;
-      this.server.root.element.parent().parent().parent().removeClass('grab_keyboard');
+      this.server.root.element.classList.remove('grab_keyboard');
     }
   }
 

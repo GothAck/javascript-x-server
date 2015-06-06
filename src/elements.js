@@ -107,7 +107,7 @@ export class XWindowElement extends XDrawableElement {
       };
   }
   browserEventCallback(event) {
-    var X11Event = x11_dom_event_map.get(event.type);
+    var X11Event = x_types.events.dom_event_to_x11_map.get(event.type);
     if (X11Event) {
       var src = this;
       var window = this.xob;
@@ -128,6 +128,16 @@ export class XWindowElement extends XDrawableElement {
       for (let event of events) {
         this.addEventListener(event, (e) => this.browserEventCallback(e));
       }
+      this.addEventListener('SendMask', (e) => {
+        var xob = this.xob;
+        var event_mask = e.detail.event_mask;
+        var x_event = e.detail.event;
+        if ((xob.event_mask && event_mask) || ! event_mask) {
+          x_event.event_window = xob;
+          xob.onEvent('SendEvent', x_event);
+          e.stopPropagation();
+        }
+      });
     }
     this.addEventListener('contextmenu', (event) => {
       event.stopPropagation();
@@ -246,6 +256,11 @@ export class XScreenElement extends XWindowElement {
       this.xob.owner.mouseX = event.offsetX;
       this.xob.owner.mouseY = event.offsetY;
     }, true);
+    for (let [name, XEvent] of x_types.events.x11_dom_events_map) {
+      if (XEvent.grab) {
+        this.addEventListener(name, (event) => this.xob.owner.screenEvent(event), true);
+      }
+    }
 
   }
 }

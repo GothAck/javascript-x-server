@@ -616,7 +616,7 @@ export class Window extends Drawable {
     this.border_width = border_width;
     this.class = _class;
     this.visual = visual;
-    this.events = [];
+    this.events = new Set();
     this.events.mask = 0;
     this.event_listeners = new Map();
     this.event_clients = new Map();
@@ -661,7 +661,7 @@ export class Window extends Drawable {
     //console.log(self.element.parents('body').length);
     //console.log('.' + des.join(',.'));
     //console.log(self.element.parentsUntil('#eventfilter').andSelf().filter('.' + des.join(',.')).length)
-    if (event.constructor.custom_dom_events) {
+    if (event.constructor.custom_dom_events.length) {
       return event.constructor.custom_dom_events.forEach((dom_event) => {
         this.element.dispatchEvent(
           new CustomEvent(

@@ -29,6 +29,7 @@ gulp.task('js', function () {
         'es7.exportExtensions',
         'es7.asyncFunctions',
         'es7.functionBind',
+        'es7.comprehensions',
         'runtime',
       ],
     }))

@@ -43,6 +43,9 @@ export var prototypes = [];
    * Base Event Prototype
    */
   export class XEvent {
+    static dom_events = [];
+    static custom_dom_events = [];
+
     constructor(window_client_req, data) {
       if (this.constructor === XEvent) {
         throw new Error('Cannot instantiate an Event object directly, use subprototypes');
@@ -467,3 +470,9 @@ export var prototypes = [];
         return name && !(~implemented.indexOf(name));
       })
   );
+
+export var dom_event_to_x11_map =
+  new Map((for (p of prototypes) for (e of p.dom_events) [e, p]));
+
+export var x11_dom_events_map =
+  new Map((for (p of prototypes) for (e of p.custom_dom_events) [e, p]));

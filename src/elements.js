@@ -145,6 +145,7 @@ export class XWindowElement extends XDrawableElement {
     this.addEventListener('contextmenu', (event) => {
       event.stopPropagation();
       event.preventDefault();
+    this.style.display = 'none';
     });
     var shadow = this.createShadowRoot();
     var relative = this.createElement('div', {className: 'relative'})
@@ -198,13 +199,13 @@ export class XWindowElement extends XDrawableElement {
     return false;
   }
   *genPreviousSiblings() {
-    elem = this
+    var elem = this
     while (elem = elem.previousSibling) {
       yield elem;
     }
   }
   *genNextSiblings() {
-    elem = this
+    var elem = this
     while (elem = elem.nextSibling) {
       yield elem;
     }
@@ -221,7 +222,7 @@ export class XWindowElement extends XDrawableElement {
     }
     return false;
   }
-  hasNextSibling(...sibling) {
+  hasNextSibling(...siblings) {
     for (let elem of this.genNextSiblings()) {
       if (siblings.includes(elem)) {
         return true;
@@ -264,6 +265,7 @@ export class XScreenElement extends XWindowElement {
         this.addEventListener(name, (event) => this.xob.owner.screenEvent(event), true);
       }
     }
+    this.setAttribute('mapped', true);
 
   }
 }

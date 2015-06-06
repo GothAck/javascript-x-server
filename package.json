@@ -14,6 +14,7 @@
     "react-tools": "*",
     "requirejs": "*",
     "serve-static": "*",
+    "source-map-support": "^0.3.1",
     "supervisor": "*",
     "websocket": "*",
     "wolfy-eventemitter": "*"

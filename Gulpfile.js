@@ -9,6 +9,9 @@ var insert = require('gulp-insert');
 var browserify = require('browserify');
 var babelify = require('babelify');
 
+if (process.env.NODE_ENV === undefined) {
+  process.env.NODE_ENV = 'development';
+}
 
 gulp.task('js', function () {
   var worker_stream = source('./worker_comms.js');
@@ -31,6 +34,11 @@ gulp.task('js', function () {
         'es7.functionBind',
         'es7.comprehensions',
         'runtime',
+        'utility.inlineEnvironmentVariables',
+        'minification.deadCodeElimination',
+      ],
+      blacklist: [
+        'strict', // Blacklisted to allow access to objs in stacktraces
       ],
     }))
     .plugin(factor, {o: [

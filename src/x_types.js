@@ -369,6 +369,7 @@ export class Reply {
 export class XError extends Error {
   constructor(req, code, value, msg) {
     super(msg);
+    Error.captureStackTrace(this, XError);
     this.endian = req.endian;
     this.code = code || 1;
     this.opcode = req.opcode;

@@ -22,7 +22,7 @@ export class ExtrasArray {
     return this;
   }
   push(...args: Array<mixed>) {
-    return this._array.push(...args)
+    return this._array.push(...args);
   }
   reduce(func: Function, initial?: mixed) {
     return this._array.reduce(func, initial);
@@ -34,7 +34,7 @@ export class ExtrasArray {
     this._array.forEach(func, bind);
   }
   filter(func: Function, bind?: mixed) {
-    return new ExtrasArray(this._array.filter(func, bind));
+    return new ExtrasArray(...this._array.filter(func, bind));
   }
   writeBuffer(buffer: EndianBuffer, offset: number) {
     return this.reduce((o, item) => item.writeBuffer(buffer, o), offset);

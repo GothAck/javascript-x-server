@@ -7,7 +7,7 @@ var express = require('express')
   , child_process = require('child_process')
   , util = require('util')
   , EventEmitter = require('events').EventEmitter
-  , ipv6 = require('ipv6')
+  , ip = require('ip-address')
   , lib_fonts = require('./lib/fonts');
 
 var app = exports.app = express()
@@ -81,7 +81,7 @@ X11Proxy.prototype.newClient = function (socket) {
       );
   } else {
     idBuf.writeUInt8(6, 18);
-    idBuf = (new ipv6.v6.Address(socket.remoteAddress)).parsedAddress
+    idBuf = (new ip.v6.Address(socket.remoteAddress)).parsedAddress
       .reduce(
           function (o, v, i) {
             o.writeUInt16BE(v, i * 2);

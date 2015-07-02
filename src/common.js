@@ -1,6 +1,9 @@
+var useCaptureStackTrace = !!Error.captureStackStace;
+
 export class MustImplementError extends Error {
   constructor(cls, method) {
     super(`Subclasses of ${cls} must implement ${method}`);
+    useCaptureStackTrace && Error.captureStackStace(this, MustImplementError);
   }
 }
 

@@ -7,7 +7,7 @@ export class MustImplementError extends Error {
   }
 }
 
-export class MaskedField {
+export class MaskedField extends Map {
   static fields: Map<string, ?string>;
   static default_type: string = 'UInt32';
   static type_lengths: Map<string, number> = new Map([
@@ -18,9 +18,9 @@ export class MaskedField {
     ['Int16',  2],
     ['Int32',  4],
   ]);
-  _map: Map<string, number> = new Map();
 
   constructor(vmask: Number, vdata?: EndianBuffer) {
+    super();
     if (vmask === 0) {
       return;
     }
@@ -40,18 +40,6 @@ export class MaskedField {
     }
   }
 
-  [Symbol.iterator]() {
-    return this._map[Symbol.iterator]();
-  }
-
-  set(key: string, value: number) {
-    return this._map.set(key, value);
-  }
-
-  get(key: string) {
-    return this._map.get(key);
-  }
-
   writeBuffer(buffer: EndianBuffer, offset?: number) {
     var fields = this.constructor.fields;
     var default_type = this.constructor.default_type;
@@ -65,7 +53,7 @@ export class MaskedField {
   }
 
   toMap() {
-    return this._map;
+    return new Map(this);
   }
 
   toObject() {
@@ -87,6 +75,9 @@ export class MaskedField {
   }
 
   static fromObject(o) {
+    if (o instanceof Map) {
+      return this.fromMap(o);
+    }
     var mf = new this(0);
     if (o) {
       for (let [k, _] of this.fields) {

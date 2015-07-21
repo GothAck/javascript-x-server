@@ -2,7 +2,7 @@
  * Copyright Greg Miell 2013-present
  * @flow weak
  */
-import { GCVField, WinVField, WinConfigureField } from './common';
+import { GCVField, WinVField, WinConfigureField, yieldAll } from './common';
 import * as fs from './fs';
 import EndianBuffer from './endianbuffer';
 import * as events from './event_types';
@@ -604,6 +604,8 @@ var _win_vfield_types = [
 
 export class Window extends Drawable {
   element = document.createElement('x-window');
+  events = new Set();
+  do_not_propagate_events = new Set();
 
   constructor(owner, id, depth, x, y, width, height, border_width, _class, visual, fields) {
     super(owner, depth, width, height);
@@ -616,7 +618,6 @@ export class Window extends Drawable {
     this.border_width = border_width;
     this.class = _class;
     this.visual = visual;
-    this.events = new Set();
     this.events.mask = 0;
     this.event_listeners = new Map();
     this.event_clients = new Map();
@@ -689,7 +690,7 @@ export class Window extends Drawable {
       if (event.testReady()) {
         var to_del = [];
         for (let [id, mask] of this.event_clients) {
-          if (~mask.has(event.event_type)) {
+          if (event.matchesSet(mask)) {
             if (!this.owner.server.clients.has(id)) {
               to_del.push(id);
               continue;
@@ -729,11 +730,11 @@ export class Window extends Drawable {
   }
 
   __eventListener(event) {
-    if (this.do_not_propagate_events) {
+    var x_event = event.detail;
+    if (x_event.matchesSet(this.do_not_propagate_events)) {
       event.stopImmediatePropagation();
     }
-    if (this.events.has(event.type)) {
-      var x_event = event.detail;
+    if (x_event.matchesSet(this.events)) {
       x_event.event_type = event.type;
       x_event.event_window = this;
       this.onEvent(x_event);
@@ -794,6 +795,18 @@ export class Window extends Drawable {
   changeFields(owner, fields) {
     this._currentClient = owner;
     if (fields) {
+      var process_events = false;
+      if (fields.has('event_mask')) {
+        process_events = true;
+        this.setEventMask(fields.get('event_mask'), owner, true);
+        fields.delete('event_mask');
+      }
+      if (fields.has('do_not_propagate_mask')) {
+        process_events = true;
+        this.setPropagateMask(fields.get('do_not_propagate_mask'), owner, true);
+        fields.delete('do_not_propagate_mask');
+      }
+      this.updateEventListeners();
       for (let [key, val] of fields) {
         this[key] = val;
       }
@@ -914,61 +927,57 @@ export class Window extends Drawable {
     return this._background_pixel;
   }
   processEventMask(_mask) {
-    return new Set(
+    var mask = new Set(
       Window._event_mask_fields.filter((mask, i) => _mask & (1 << i)));
+    mask.mask = _mask;
+    return mask;
   }
-  set event_mask(event_mask) {
-    var set_client = this._currentClient;
-    var events_array = this.processEventMask(event_mask);
-    events_array.mask = event_mask;
-    this.event_clients.set(set_client.id, events_array);
-    
-    for (let event of events_array) {
-      if (!this.event_listeners.has(event)) {
-        var listener = this.__eventListener.bind(this);
-        this.event_listeners.set(event, listener);
-        this.element.addEventListener(event, listener);
+  setEventMask(mask, set_client, defer_update) {
+    var events_set = this.processEventMask(mask);
+    this.event_clients.set(set_client.id, events_set);
+    for (let set of this.event_clients) {
+      mask |= set.mask;
+    }
+    this.events = this.processEventMask(mask);
+    if (!defer_update) {
+      this.updateEventListeners();
+    }
+  }
+  setPropagateMask(mask, set_client, defer_update) {
+    this.do_not_propagate_events = this.processEventMask(mask);
+    if (!defer_update) {
+      this.updateEventListeners();
+    }
+  }
+  updateEventListeners() {
+    var current_listeners = new Set(this.event_listeners.keys());
+    var require_listeners = new Set(yieldAll(
+      this.events,
+      this.do_not_propagate_events));
+    for (let e of require_listeners) {
+      for (let xe of events.x11_event_mask_map.get(e)) {
+        if (!this.event_listeners.has(xe)) {
+          var listener = this.__eventListener.bind(this);
+          this.event_listeners.set(xe, listener);
+          this.element.addEventListener(xe, listener);
+          this.element.classList.add(xe);
+        }
+        current_listeners.delete(xe);
       }
     }
-
-    for (let arr of this.event_clients) {
-      event_mask |= arr.mask;
+    for (let xe of current_listeners) {
+      if (this.event_listeners.has(xe)) {
+        this.element.removeEventListener(xe, this.event_listeners.get(xe));
+        this.event_listeners.delete(xe);
+        this.element.classList.remove(xe);
+      }
     }
-
-    this.events = this.processEventMask(event_mask);
-    this.events.mask = event_mask;
-
-    this.element.classList.remove(...Window._event_mask_fields);
-    this.element.classList.add(...this.events);
-
-    // Commented for now, because we have two places that can set up event listeners
-    // for (let [event, listener] of this.event_listeners) {
-    //   if (! this.events.has(event)) {
-    //     this.element.removeEventListener(event, listener);
-    //     this.event_listeners.delete(event);
-    //   }
-    // }
   }
+
   get event_mask() {
     var set_client = this._currentClient;
     //TODO: Return correct event_mask
     return this.events.mask || 0;
-  }
-  set do_not_propagate_mask(event_mask) {
-    this.do_not_propagate_events = new Set(Window._do_not_propagate_mask_fields
-      .filter((mask, i) => event_mask & Math.pow(2, i)));
-
-    for (let event of this.do_not_propagate_events) {
-      if (!this.event_listeners.has(event)) {
-        var listener = this.__eventListener.bind(this);
-        this.event_listeners.set(event, listener);
-        this.element.addEventListener(event, listener);
-      }
-    }
-
-    this._do_not_propagate_event_mask = event_mask;
-    this.element.classList.remove(...Window._do_not_propagate_mask_fields);
-    this.element.classList.add(...this.do_not_propagate_events);
   }
   get do_not_propagate_mask() {
     return this._do_not_propagate_event_mask || 0;

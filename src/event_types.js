@@ -108,6 +108,14 @@ export var prototypes = [];
         this.__proto__ = exports.map[code].prototype;
       }
     }
+    matchesSet(set) {
+      for (var name of this.constructor.custom_dom_events) {
+        if (set.has(name)) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
   prototypes.push(XEvent);
 
@@ -344,7 +352,7 @@ export var prototypes = [];
       super(window, data);
       this.detail = 0; // TODO: Add PointerMotionHint
     }
-    static custom_dom_events = ['MotionNotify', 'ButtonMotion'];
+    static custom_dom_events = ['PointerMotion', 'ButtonMotion'];
     static dom_events = ['mousemove'];
     static grab = 'pointer';
     testReady() {

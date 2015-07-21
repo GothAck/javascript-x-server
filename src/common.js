@@ -138,3 +138,9 @@ export class WinConfigureField extends MaskedField {
     .map((v) => [v])
   );
 }
+
+export function* yieldAll(...generators) {
+  for (var gen of generators) {
+    yield* gen;
+  }
+}

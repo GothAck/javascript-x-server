@@ -610,6 +610,7 @@ export class Window extends Drawable {
   constructor(owner, id, depth, x, y, width, height, border_width, _class, visual, fields) {
     super(owner, depth, width, height);
     this.id = id;
+    this.element.id = id;
     this.element.dataset.id = id;
     this.element.dataset.owner = owner.id;
     this.element.xob = this;

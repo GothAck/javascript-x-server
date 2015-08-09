@@ -7,6 +7,9 @@ import { GCVField, WinVField, WinConfigureField } from './common';
 var _image_formats = ['Bitmap', 'XYPixmap', 'ZPixmap'];
 var _closedown_mode = ['destroy', 'permanent', 'temporary'];
 
+function stringPad (string) {
+  return string.length + (4 - ((string.length % 4) || 4));
+}
 
 export default class XServerClient {
   constructor(server, id, resource_id_base, resource_id_mask, host) {
@@ -1312,10 +1315,6 @@ XServerClient.opcodes = {
   , 119: 'GetModifierMapping'
   , 127: 'NoOperation'
 }; // 34 or 127
-
-  function stringPad (string) {
-    return string.length + (4 - ((string.length % 4) || 4));
-  }
 
   (function () {
     console.log(

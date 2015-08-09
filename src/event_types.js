@@ -352,6 +352,28 @@ import {ArrayMap} from './common';
     }
   }
 
+  export class FocusIn extends Event_WindowInputDevicePointer {
+    constructor(window, data) {
+      super(window, data);
+      this.detail = 0;
+    }
+    static custom_dom_events = ['FocusChange'];
+    testReady() {
+      return true;
+    }
+  }
+
+  export class FocusOut extends Event_WindowInputDevicePointer {
+    constructor(window, data) {
+      super(window, data);
+      this.detail = 0;
+    }
+    static custom_dom_events = ['FocusChange'];
+    testReady() {
+      return true;
+    }
+  }
+
   export class EnterNotify extends Event_WindowInputDevicePointer {
     constructor(window, data) {
       super(window, data);

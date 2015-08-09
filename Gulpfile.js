@@ -22,10 +22,6 @@ gulp.task('js', function () {
   })
     .transform(babelify.configure({
       sourceMap: true,
-      // moduleRoot: '',
-      // sourceRoot: 'src',
-      // modules: 'amd',
-      // moduleIds: true,
       optional: [
         'es7.objectRestSpread',
         'es7.classProperties',
@@ -35,12 +31,13 @@ gulp.task('js', function () {
         'es7.comprehensions',
         'runtime',
         'utility.inlineEnvironmentVariables',
-        'minification.deadCodeElimination',
+        // 'minification.deadCodeElimination',
         'minification.memberExpressionLiterals',
         'minification.propertyLiterals',
-        'validation.undeclaredVariableCheck',
+        // 'validation.undeclaredVariableCheck',
         'spec.undefinedToVoid',
       ],
+      experimental: true,
       blacklist: [
         'strict', // Blacklisted to allow access to objs in stacktraces
       ],

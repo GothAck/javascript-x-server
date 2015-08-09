@@ -364,7 +364,6 @@ export default class XServer {
   
   freeResource(id, Type) {
     var resource = this.resources.get(id);
-    console.warn('server.freeResource', id, resource);
     if (Type && !(resource instanceof Type))
       throw new x_types.Error(
           {},

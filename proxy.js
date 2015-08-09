@@ -1,6 +1,5 @@
 var express = require('express')
   , morgan = require('morgan')
-  , serve_static = require('serve-static')
   , http = require('http')
   , net = require('net')
   , WSS = require('websocket').server
@@ -12,7 +11,7 @@ var express = require('express')
 
 var app = exports.app = express()
   // .use(morgan('combined'))
-  .use(serve_static('public'));
+  .use(express.static(__dirname + '/public'));
 
 app.get('/fonts', function (req, res) {
     lib_fonts.list_fonts(req.query.filter)

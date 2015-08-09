@@ -1,11 +1,9 @@
 import * as x_types from "./x_types";
 
-var x11_dom_event_map = new Map(x_types.events.prototypes.reduce((o, v) => {
-  if (! v.dom_events)
-    return o;
-  v.dom_events.forEach((dom_event) => o.push([dom_event, v]));
-  return o;
-}, []));
+var x11_dom_event_map = new Map((
+  for (p of x_types.events.map.values())
+    if (p.dom_event)
+      [p.dom_event, p]));
 
 function _HTMLDivElement() {}
 _HTMLDivElement.prototype = HTMLDivElement.prototype;
@@ -255,9 +253,15 @@ export class XScreenElement extends XWindowElement {
       this.xob.owner.mouseX = e.offsetX;
       this.xob.owner.mouseY = e.offsetY;
     }, true);
-    for (let [name, XEvent] of x_types.events.x11_dom_events_map) {
+    for (let [name, XEvent] of x_types.events.x11_events_map) {
       if (XEvent.grab) {
-        this.addEventListener(name, (event) => this.xob.owner.screenEvent(event), true);
+        this.addEventListener(
+          name,
+          (event) => this.xob.owner.screenEvent(event, true),
+          true);
+        // this.addEventListener(
+        //   name,
+        //   (event) => this.xob.owner.screenEvent(event));
       }
     }
     this.setAttribute('mapped', true);

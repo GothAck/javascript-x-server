@@ -359,7 +359,7 @@ export default class XServerClient {
       ! ((window.parent.event_clients.get(this.id) && window.parent.event_clients.get(this.id).has('SubstructureRedirect')) ||
          window.override_redirect)
     ) {
-      window.parent.triggerEvent(new x_types.events.map.MapRequest(window, {}));
+      window.parent.triggerEvent(new x_types.events.MapRequest(window, {}));
     } else
     if (window.map()) {
       window.triggerEvent('Expose', { count: 0 });
@@ -786,7 +786,7 @@ export default class XServerClient {
     console.log('CopyArea', src, dst, req.src_x, req.src_y, req.dst_x, req.dst_y, req.width, req.height);
     dst.putImageData(data, req.dst_x, req.dst_y);
     if (gc.graphics_exposures) {
-      dst.owner.sendEvent(new x_types.events.map.NoExposure(dst, { major: req.opcode, minor: 0 }));
+      dst.owner.sendEvent(new x_types.events.NoExposure(dst, { major: req.opcode, minor: 0 }));
     }
   }
 

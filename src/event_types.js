@@ -1,6 +1,6 @@
 import EndianBuffer from './endianbuffer';
 
-export var prototypes = [];
+import {ArrayMap} from './common';
 
   var event_opcodes = [
     // Events start at opcode 2
@@ -43,7 +43,6 @@ export var prototypes = [];
    * Base Event Prototype
    */
   export class XEvent {
-    static dom_events = [];
     static custom_dom_events = [];
 
     constructor(window_client_req, data) {
@@ -117,7 +116,6 @@ export var prototypes = [];
       return false;
     }
   }
-  prototypes.push(XEvent);
 
   /*
    * Event Prototypes
@@ -146,7 +144,6 @@ export var prototypes = [];
       this.data.writeUInt16(this.count, 12);
     }
   }
-  prototypes.push(Expose);
 
   //NoExposure
   export class NoExposure extends XEvent {
@@ -159,7 +156,6 @@ export var prototypes = [];
       this.data.writeUInt8(this.major, 6);
     }
   }
-  prototypes.push(NoExposure);
 
   // DestroyNotify
   export class DestroyNotify extends XEvent {
@@ -186,7 +182,6 @@ export var prototypes = [];
       return false;
     }
   }
-  prototypes.push(DestroyNotify);
 
   // MapNotify
   export class MapNotify extends XEvent {
@@ -210,7 +205,6 @@ export var prototypes = [];
       return false;
     }
   }
-  prototypes.push(MapNotify);
 
   // MapRequest
   export class MapRequest extends XEvent {
@@ -224,7 +218,6 @@ export var prototypes = [];
       this.data.writeUInt32(this.window.id, 4);
     }
   }
-  prototypes.push(MapRequest);
 
   // UnmapNotify
   export class UnmapNotify extends XEvent {
@@ -239,7 +232,6 @@ export var prototypes = [];
       this.data.writeUInt8(this.from_configure, 8)
     }
   }
-  prototypes.push(UnmapNotify);
 
   export class ReparentNotify extends XEvent {
     constructor(window, data) {
@@ -264,7 +256,6 @@ export var prototypes = [];
       return false;
     }
   }
-  prototypes.push(ReparentNotify);
 
   // PropertyNotify
   export class PropertyNotify extends XEvent {
@@ -280,7 +271,6 @@ export var prototypes = [];
       this.data.writeUInt8(~~this.deleted, 12);
     }
   }
-  prototypes.push(PropertyNotify);
 
   export class Event_WindowInputDevicePointer extends XEvent {
     constructor(window, data) {
@@ -310,20 +300,18 @@ export var prototypes = [];
       super(window, data);
       this.detail = data.keycode;
     }
-    static dom_events = ['keydown'];
+    static dom_event = 'keydown';
     static grab = 'keyboard';
   }
-  prototypes.push(KeyPress);
 
   export class KeyRelease extends Event_WindowInputDevicePointer {
     constructor(window, data) {
       super(window, data);
       this.detail = data.keycode;
     }
-    static dom_events = ['keyup'];
+    static dom_event = 'keyup';
     static grab = 'keyboard';
   }
-  prototypes.push(KeyRelease);
 
   export class ButtonPress extends Event_WindowInputDevicePointer {
     constructor(window, data) {
@@ -331,10 +319,9 @@ export var prototypes = [];
       this.detail = data.button;
     }
     static custom_dom_events = ['ButtonPress'];
-    static dom_events = ['mousedown'];
+    static dom_event = 'mousedown';
     static grab = 'pointer';
   }
-  prototypes.push(ButtonPress);
 
   export class ButtonRelease extends Event_WindowInputDevicePointer {
     constructor(window, data) {
@@ -342,10 +329,9 @@ export var prototypes = [];
       this.detail = data.button;
     }
     static custom_dom_events = ['ButtonRelease'];
-    static dom_events = ['mouseup'];
+    static dom_event = 'mouseup';
     static grab = 'pointer';
   }
-  prototypes.push(ButtonRelease);
 
   export class MotionNotify extends Event_WindowInputDevicePointer {
     constructor(window, data) {
@@ -353,7 +339,7 @@ export var prototypes = [];
       this.detail = 0; // TODO: Add PointerMotionHint
     }
     static custom_dom_events = ['PointerMotion', 'ButtonMotion'];
-    static dom_events = ['mousemove'];
+    static dom_event = 'mousemove';
     static grab = 'pointer';
     testReady() {
       switch (this.event_type) {
@@ -365,25 +351,22 @@ export var prototypes = [];
       return false;
     }
   }
-  prototypes.push(MotionNotify);
 
   export class EnterNotify extends Event_WindowInputDevicePointer {
     constructor(window, data) {
       super(window, data);
     }
-    static dom_events = ['mouseover'];
+    static dom_event = 'mouseover';
     static custom_dom_events = ['EnterWindow'];
   }
-  prototypes.push(EnterNotify);
 
   export class LeaveNotify extends Event_WindowInputDevicePointer {
     constructor(window, data) {
       super(window, data);
     }
-    static dom_events = ['mouseout'];
+    static dom_event = 'mouseout';
     static custom_dom_events = ['LeaveWindow'];
   }
-  prototypes.push(LeaveNotify);
 
   export class ConfigureNotify extends XEvent {
     constructor(window, data) {
@@ -420,7 +403,6 @@ export var prototypes = [];
       return e;
     }
   }
-  prototypes.push(ConfigureNotify);
 
   export class ClientMessage extends XEvent {
     constructor(window, data) {
@@ -443,18 +425,16 @@ export var prototypes = [];
       );
     }
   }
-  prototypes.push(ClientMessage);
 
 
-  exports.map = prototypes
-    .reduce(
-        function (o, proto) {
-          if (~event_opcodes.indexOf(proto.name))
-            o[proto.name] = proto;
-          return o;
-        }
-      , {}
-    );
+export var map = new Map((
+  for (pn of Object.keys(exports))
+    if (Array.isArray(exports[pn].custom_dom_events) && ~event_opcodes.indexOf(pn))
+      [pn, exports[pn]]));
+
+for (let [pn, p] of map) {
+  p.custom_dom_events.unshift(pn);
+}
 
   export function fromBuffer(server, buffer, offset) {
     var code    = buffer.readUInt8(offset)
@@ -479,8 +459,15 @@ export var prototypes = [];
       })
   );
 
-export var dom_event_to_x11_map =
-  new Map((for (p of prototypes) for (e of p.dom_events) [e, p]));
+export var x11_event_mask_map = new ArrayMap();
 
-export var x11_dom_events_map =
-  new Map((for (p of prototypes) for (e of p.custom_dom_events) [e, p]));
+for (let p of map.values()) {
+  for (let e of p.custom_dom_events) {
+    x11_event_mask_map.addTo(e, p.name);
+  }
+}
+
+export var dom_event_to_x11_map =
+  new Map((for (p of map.values()) if (p.dom_event) [p.dom_event, p]));
+
+export var x11_events_map = new Map((for (p of map.values()) [p.name, p]));

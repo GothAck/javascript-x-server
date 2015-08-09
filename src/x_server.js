@@ -286,25 +286,30 @@ export default class XServer {
   
   sendEvent() {}
 
-  screenEvent(event) {
+  screenEvent(event, capture) {
     var x_event = event.detail;
-    switch (x_event.constructor.grab) {
-      case 'keyboard':
-        if (this.grab_keyboard) {
-          //TODO: owner_event
-          x_event.event_window = event.target.xob;
-          x_event.event_type = event.type;
-          this.grab_keyboard.onEvent(x_event);
-          event.stopPropagation();
-        }
-      case 'pointer':
-        if (this.grab_pointer) {
-          //TODO: owner_event
-          x_event.event_window = event.target.xob;
-          x_event.event_type = event.type;
-          this.grab_pointer.onEvent(x_event);
-          event.stopPropagation();
-        }
+    if (capture) {
+      switch (x_event.constructor.grab) {
+        case 'keyboard':
+          if (this.grab_keyboard) {
+            //TODO: owner_event
+            x_event.event_window = event.target.xob;
+            x_event.event_type = event.type;
+            this.grab_keyboard.onEvent(x_event);
+            event.stopPropagation();
+          }
+        case 'pointer':
+          if (this.grab_pointer) {
+            console.log('GrabPointer Event', x_event, event.target.xob.id, event);
+            //TODO: owner_event
+            x_event.event_window = event.target.xob;
+            x_event.event_type = event.type;
+            this.grab_pointer.onEvent(x_event);
+            event.stopPropagation();
+          }
+      }
+    } else {
+      console.warn(x_event, x_event.stop_propagation);
     }
   }
 

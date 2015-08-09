@@ -144,3 +144,17 @@ export function* yieldAll(...generators) {
     yield* gen;
   }
 }
+
+export class ArrayMap<K, V> extends Map<K, Array<V>> {
+  set(key: K, value: Array<V>): void {
+    throw new Error('set is not callable on ArrayMap')
+  }
+
+  addTo(key: K, value: V): self {
+    if (!this.has(key)) {
+      super.set(key, []);
+    }
+    this.get(key).push(value);
+    return this;
+  }
+}

@@ -641,7 +641,7 @@ export class Window extends Drawable {
     if (event instanceof events.XEvent)
       event_mask = data;
     else
-      event = new events.map[event](this, data || {});
+      event = new (events.map.get(event))(this, data || {});
     console.log('sendEvent', event, data, event_mask);
     event.send_event = true;
     return this.element.dispatchEvent(
@@ -656,24 +656,12 @@ export class Window extends Drawable {
 
   triggerEvent(event, data) {
     if (! (event instanceof events.XEvent))
-      event = new events.map[event](this, data || {});
+      event = new (events.map.get(event))(this, data || {});
     //var des = (event.dom_events || []).slice(0);
     //des.push(event.constructor.name);
     //console.log(self.element.parents('body').length);
     //console.log('.' + des.join(',.'));
     //console.log(self.element.parentsUntil('#eventfilter').andSelf().filter('.' + des.join(',.')).length)
-    if (event.constructor.custom_dom_events.length) {
-      return event.constructor.custom_dom_events.forEach((dom_event) => {
-        this.element.dispatchEvent(
-          new CustomEvent(
-            dom_event,
-            {
-              detail: event,
-              bubbles: true,
-              cancelable: true,
-            }));
-      });
-    }
     return this.element.dispatchEvent(
       new CustomEvent(
         event.constructor.name,
@@ -717,8 +705,8 @@ export class Window extends Drawable {
 
     if (this.owner instanceof (require('./x_client'))) {
       this.owner.reps.push(
-        events.map[event]
-          ? new events.map[event](event, this, data)
+        events.map.has(event)
+          ? new (events.map.get(event))(event, this, data)
           : null
       );
       return this.owner.processReps();
@@ -731,14 +719,17 @@ export class Window extends Drawable {
 
   __eventListener(event) {
     var x_event = event.detail;
+    if (x_event.stop_propagation) {
+      return;
+    }
     if (x_event.matchesSet(this.do_not_propagate_events)) {
-      event.stopImmediatePropagation();
+      x_event.stop_propagation = true;
     }
     if (x_event.matchesSet(this.events)) {
+      x_event.stop_propagation = true;
       x_event.event_type = event.type;
       x_event.event_window = this;
       this.onEvent(x_event);
-      event.stopPropagation();
     }
   }
 

@@ -1,5 +1,5 @@
 if (process.env.NODE_ENV === "development") {
-  require('./stack_magick');
+  // require('./stack_magick');
 }
 
 import * as elements from './elements';

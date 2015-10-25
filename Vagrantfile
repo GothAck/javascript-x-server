@@ -14,6 +14,7 @@ Vagrant.configure(2) do |config|
 	# within the machine from a port on the host machine. In the example below,
 	# accessing "localhost:8080" will access port 80 on the guest machine.
 	config.vm.network "forwarded_port", guest: 3000, host: 3080
+	config.vm.network :forwarded_port, guest: 22, host: 2222, id: "ssh", auto_correct: true
 
 	# Share an additional folder to the guest VM. The first argument is
 	# the path on the host to the actual folder. The second argument is
@@ -30,7 +31,7 @@ Vagrant.configure(2) do |config|
 			if [ ! -d ~/.nvm ]; then
 				git clone https://github.com/creationix/nvm.git ~/.nvm
 				cd ~/.nvm
-				git checkout `git describe --abbrev=0 --tags`
+				git checkout $(git describe --abbrev=0 --tags)
 				cd ~
 			fi
 
@@ -52,8 +53,9 @@ Vagrant.configure(2) do |config|
 		EOF
 
 		cp /mnt/server/dist/xserver.conf /etc/init/
-		kill -HUP 1
+
 		initctl stop xserver
+		kill -HUP 1
 		initctl start xserver
 
 		update-menus

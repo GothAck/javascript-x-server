@@ -36,7 +36,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "supervisor -i lib,fonts,public,src,node_modules proxy",
+    "start": "supervisor -w proxy.js proxy",
     "cloc": "cloc --exclude-dir=node_modules,public/lib,fonts,public/fonts,public/xcb ."
   },
   "repository": {

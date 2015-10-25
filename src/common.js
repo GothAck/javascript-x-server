@@ -1,5 +1,7 @@
 var useCaptureStackTrace = !!Error.captureStackStace;
 
+import type EndianBuffer from './endianbuffer';
+
 export class MustImplementError extends Error {
   constructor(cls, method) {
     super(`Subclasses of ${cls} must implement ${method}`);

@@ -5,9 +5,9 @@ if (process.env.NODE_ENV === "development") {
 import * as elements from './elements';
 elements.register();
 
-var EndianBuffer = require('./endianbuffer');
-var XServer = require('./x_server');
-var x_types = require('./x_types');
+import EndianBuffer from './endianbuffer';
+import XServer from './x_server';
+import x_types from './x_types';
 
 var h2 = document.getElementById('title');
 

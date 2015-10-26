@@ -35,7 +35,7 @@ export default class EndianBuffer {
   slice(start, end) {
     start = start || 0;
     end = end || this.length;
-    var newb = new EndianBuffer(this.buffer.slice(start, end));
+    var newb = new (this.constructor)(this.buffer.slice(start, end));
     newb.endian = this.endian;
     return newb;
   }
@@ -93,17 +93,18 @@ export default class EndianBuffer {
   }
   
   static ensure(obj_arr) {
+    var Constructor = this;
     if (Array.isArray(obj_arr)) {
       obj_arr.forEach(function (v, i, a) {
         if (v instanceof ArrayBuffer)
-          a[i] = new EndianBuffer(v);
+          a[i] = new Constructor(v);
       });
     } else {
       var a = obj_arr;
       Object.keys(obj_arr).forEach(function (i) {
         var v = obj_arr[i];
         if (v instanceof ArrayBuffer)
-          a[i] = new EndianBuffer(v);
+          a[i] = new Constructor(v);
       });
     }
   }

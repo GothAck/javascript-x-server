@@ -121,3 +121,37 @@ export default class EndianBuffer {
     }
   });
 })(EndianBuffer);
+
+
+export class CursorBuffer extends EndianBuffer {
+  static lengths = new Map([
+    ['Int8', 1], ['UInt8', 1],
+    ['Int16', 2], ['UInt16', 2],
+    ['Int32', 4], ['UInt32', 4],
+    ['Float32', 4], ['Float64', 8],
+  ]);
+
+  constructor(buf) {
+    super(buf);
+    this.cursor = 0;
+  }
+
+  moveCursor(by) {
+    this.cursor += by;
+  }
+}
+
+;(function (CursorBuffer) {
+  var keys = ['Int8', 'Uint8', 'Int16', 'Uint16', 'Int32', 'Uint32', 'Float32', 'Float64'];
+  CursorBuffer.lengths.forEach(function (key_length, key) {
+    CursorBuffer.prototype['read' + key.replace('int', 'Int')] = function (offset) {
+      var val = this.dataview['get' + key](this.cursor, this.endian);
+      this.moveCursor(key_length);
+      return val;
+    }
+    CursorBuffer.prototype['write' + key.replace('int', 'Int')] = function (value, offset) {
+      this.dataview['set' + key](this.cursor, value, this.endian);
+      this.moveCursor(key_length);
+    }
+  });
+})(CursorBuffer);

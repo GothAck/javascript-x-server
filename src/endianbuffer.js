@@ -125,9 +125,9 @@ export default class EndianBuffer {
 
 export class CursorBuffer extends EndianBuffer {
   static lengths = new Map([
-    ['Int8', 1], ['UInt8', 1],
-    ['Int16', 2], ['UInt16', 2],
-    ['Int32', 4], ['UInt32', 4],
+    ['Int8', 1], ['Uint8', 1],
+    ['Int16', 2], ['Uint16', 2],
+    ['Int32', 4], ['Uint32', 4],
     ['Float32', 4], ['Float64', 8],
   ]);
 

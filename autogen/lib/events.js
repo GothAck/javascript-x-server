@@ -21,8 +21,8 @@ module.exports = function genEvents(doc, klass) {
     let ref = event.attr('ref').value();
     let number = parseInt(event.attr('number').value());
     event_numbers.set(number, name);
-    klass.addSymMethod(`event_read${name}`, `event_read${ref}`);
-    klass.addSymMethod(`event_write${name}`, `event_write${ref}`);
+    klass.addSymRead(`event_read${name}`, `event_read${ref}`);
+    klass.addSymWrite(`event_write${name}`, `event_write${ref}`);
   }
 
   klass.addProperty('event_numbers', event_numbers, true);

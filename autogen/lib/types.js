@@ -17,22 +17,22 @@ module.exports = function genTypes(doc, klass) {
   var xids = new Map();
 
   for (let [name, type] of types) {
-    klass.addSymMethod(`read${name}`, `read${type}`, false, true);
-    klass.addSymMethod(`write${name}`, `write${type}`, true);
+    klass.addSymRead(`read${name}`, `read${type}`);
+    klass.addSymWrite(`write${name}`, `write${type}`);
   }
 
   for (let def of doc.find('typedef')) {
     let newname = def.attr('newname').value();
     let oldname = def.attr('oldname').value();
-    klass.addSymMethod(`read${newname}`, `read${oldname}`, false, true);
-    klass.addSymMethod(`write${newname}`, `write${oldname}`, true);
+    klass.addSymRead(`read${newname}`, `read${oldname}`);
+    klass.addSymWrite(`write${newname}`, `write${oldname}`);
   }
 
   for (let xid of doc.find('xidtype')) {
     let name = xid.attr('name').value();
     xids.set(name, null);
-    klass.addSymMethod(`read${name}`, 'readCARD32', false, true);
-    klass.addSymMethod(`write${name}`, 'writeCARD32', true);
+    klass.addSymRead(`read${name}`, 'readCARD32');
+    klass.addSymWrite(`write${name}`, 'writeCARD32');
   }
 
   for (let xid of doc.find('xidunion')) {
@@ -40,8 +40,8 @@ module.exports = function genTypes(doc, klass) {
     let _types = xid.find('type').map(t => t.text());
     xids.set(name, new Set(_types));
     types.set(name, 'UInt32');
-    klass.addSymMethod(`read${name}`, 'readCARD32', false, true);
-    klass.addSymMethod(`write${name}`, 'writeCARD32', true);
+    klass.addSymRead(`read${name}`, 'readCARD32', false);
+    klass.addSymWrite(`write${name}`, 'writeCARD32');
   }
 
   // TODO: Map

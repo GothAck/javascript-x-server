@@ -21,8 +21,8 @@ module.exports = function genErrors(doc, klass) {
     let ref = error.attr('ref').value();
     let number = parseInt(error.attr('number').value());
     error_numbers.set(number, name);
-    klass.addSymMethod(`error_read${name}`, `error_read${ref}`);
-    klass.addSymMethod(`error_write${name}`, `error_write${ref}`);
+    klass.addSymRead(`error_read${name}`, `error_read${ref}`);
+    klass.addSymWrite(`error_write${name}`, `error_write${ref}`);
   }
 
   klass.addProperty('error_numbers', error_numbers, true);

@@ -72,20 +72,28 @@ class Class {
         b.blockStatement(body))));
   }
 
-  addSymMethod(name, callname, addArguments, returns) {
+  __addSymMethod(name, callname, read) {
     var callArguments = [];
-    if (addArguments) {
+    if (!read) {
       callArguments = [b.spreadElement(b.identifier('arguments'))];
     }
     this.addMethod(
       name,
       [],
-      [(returns ? b.returnStatement : b.expressionStatement)(b.callExpression(
+      [(read ? b.returnStatement : b.expressionStatement)(b.callExpression(
         b.memberExpression(
           b.identifier('this'),
           b.identifier(callname)),
         callArguments
         ))]);
+  }
+
+  addSymRead(name, callname) {
+    this.__addSymMethod(name, callname, true);
+  }
+
+  addSymWrite(name, callname) {
+    this.__addSymMethod(name, callname, false);
   }
 
   addProperty(name, value, is_static) {

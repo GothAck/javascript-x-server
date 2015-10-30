@@ -20,4 +20,4 @@ require('./lib/events')(doc, klass, klasses);
 require('./lib/errors')(doc, klass, klasses);
 require('./lib/requests')(doc, klass, klasses);
 
-fs.writeFile(path.join(__dirname, 'out.js'), klasses.toString());
+fs.writeFile(path.join(__dirname, '../src/xtypebuffer.js'), klasses.toString());

@@ -163,8 +163,26 @@ module.exports = function parseBody(parent) {
           ));
         }
         break;
-      case 'valueparam':
       case 'exprfield':
+        let child_name = child.attr('name').value();
+        let child_type = child.attr('type').value();
+        read_stmts.push(
+          b.expressionStatement(b.assignmentExpression(
+            '=',
+            b.memberExpression(
+              b.identifier('obj'), b.identifier(child_name)),
+            b.callExpression(
+              b.memberExpression(
+                b.identifier('this'),
+                b.identifier(`read${child_type}`)),
+              []))));
+        write_stmts.push(b.expressionStatement(b.assignmentExpression(
+          '=',
+          b.memberExpression(
+            b.identifier('obj'), b.identifier(child_name)),
+          parseOp(child.get('*'), 'obj'))));
+        break;
+      case 'valueparam':
         //TODO: depends on enum & op
         console.warn(`TODO: ${child_tag}`);
       case 'reply':

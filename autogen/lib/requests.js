@@ -11,13 +11,13 @@ module.exports = function genRequests(doc, klass) {
     request_opcodes.set(opcode, name);
     let [read_stmts, write_stmts] = parseBody(request);
     klass.addMethod(`request_read${name}`, [], read_stmts);
-    // klass.addMethod(`request_write${name}`, [b.identifier('obj')], write_stmts);
+    klass.addMethod(`request_write${name}`, [b.identifier('obj')], write_stmts);
 
     let reply = request.get('reply');
     if (reply) {
       // TODO: Classes & objects
       let [read_stmts, write_stmts] = parseBody(reply);
-      // klass.addMethod(`reply_read${name}`, [], read_stmts);
+      klass.addMethod(`reply_read${name}`, [], read_stmts);
       klass.addMethod(`reply_write${name}`, [b.identifier('obj')], write_stmts);
     }
   }

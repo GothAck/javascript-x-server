@@ -44,19 +44,6 @@ module.exports = function parseBody(parent) {
   if (lists && lists.length) {
     for (let list of lists) {
       let name = list.attr('name').value();
-      // let length = list.get('*');
-      // if (!length) {
-      //   console.error('Waaaaaaaa');
-      //   continue;
-      // }
-
-      // if (list.get('fieldref') === undefined) {
-      //   // FIXME: <op> :(
-      //   console.error('FIXME: Implement <op>');
-      //   continue;
-      // }
-      // let fieldref = list.get('fieldref').text();
-      // write_stmts.push(b.expressionStatement(parseOp(list.get('*'))));
       write_stmts.push(b.expressionStatement(b.assignmentExpression(
         '=',
         b.memberExpression(
@@ -160,29 +147,18 @@ module.exports = function parseBody(parent) {
               ])
           ));
           write_stmts.push(
-            b.forStatement(
+            b.forOfStatement(
               b.variableDeclaration(
                 'let',
-                [b.variableDeclarator(
-                    b.identifier('i'),
-                    b.literal(0))]),
-              b.binaryExpression(
-                '<',
-                b.identifier('i'),
-                b.identifier(`${child_name}_length`)),
-              b.updateExpression(
-                '++',
-                b.identifier('i'),
-                false),
+                [b.identifier('val')]),
+              b.memberExpression(
+                b.identifier('obj'),
+                b.identifier(child_name)),
               b.blockStatement([
                 b.expressionStatement(b.callExpression(
                   b.memberExpression(
                     b.identifier('this'), b.identifier(`write${child_type}`)),
-                  [b.memberExpression(
-                    b.memberExpression(
-                      b.identifier('obj'),
-                      b.identifier(child_name)),
-                    b.identifier('i'), true)])),
+                  [b.identifier('val')])),
               ])
           ));
         }

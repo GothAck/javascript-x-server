@@ -1,5 +1,7 @@
 "use strict";
-var b = require('ast-types').builders;
+var a = require('ast-types');
+var b = a.builders;
+var recast = require('recast');
 
 function _convertValToAST(value) {
   if (Array.isArray(value)) {
@@ -17,6 +19,40 @@ function _convertValToAST(value) {
       [b.arrayExpression(Array.from(value).map(_convertValToAST))]);
   }
   return b.literal(value);
+}
+
+class Classes {
+  constructor() {
+    this.classes = new Map();
+  }
+  newClass(name, extend) {
+    var klass = new Class(name, extend);
+    this.classes.set(name, klass);
+    return klass;
+  }
+  getClass(name) {
+    return this.classes.get(name);
+  }
+  program() {
+    var classes = [
+      b.importDeclaration(
+        [
+          b.importSpecifier(b.identifier('CursorBuffer')),
+        ],
+        b.literal('./endianbuffer')
+      ),
+    ];
+    for (let [name, klass] of this.classes) {
+      classes.push(b.exportDeclaration(false, klass.gen()));
+    }
+    return b.program(classes);
+  }
+  recastPrint() {
+    return recast.print(this.program(), { tabWidth: 2 });
+  }
+  toString() {
+    return this.recastPrint().code;
+  }
 }
 
 class Class {
@@ -76,4 +112,5 @@ class Class {
 
 module.exports = {
   Class: Class,
+  Classes: Classes,
 }

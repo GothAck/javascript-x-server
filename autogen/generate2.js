@@ -6,16 +6,17 @@ var fs = require('fs');
 var libxml = require('libxmljs');
 var b = require('ast-types').builders;
 var recast = require('recast');
-var misc = require('./lib/misc');
+var Classes = require('./lib/misc').Classes;
 
 var doc = libxml.parseXml(fs.readFileSync(path.join(__dirname, 'proto/xproto.xml'), 'ascii'));
 
-var klass = new misc.Class('XTypeBuffer', 'CursorBuffer');
+var klasses = new Classes();
 
-require('./lib/types')(doc, klass);
-require('./lib/events')(doc, klass);
-require('./lib/errors')(doc, klass);
-require('./lib/requests')(doc, klass);
+var klass = klasses.newClass('XTypeBuffer', 'CursorBuffer');
 
+require('./lib/types')(doc, klass, klasses);
+require('./lib/events')(doc, klass, klasses);
+require('./lib/errors')(doc, klass, klasses);
+require('./lib/requests')(doc, klass, klasses);
 
-fs.writeFile(path.join(__dirname, 'out.js'), recast.print(b.program([klass.gen()])).code);
+fs.writeFile(path.join(__dirname, 'out.js'), klasses.toString());

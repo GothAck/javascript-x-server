@@ -18,6 +18,9 @@ function _convertValToAST(value) {
       b.identifier('Set'),
       [b.arrayExpression(Array.from(value).map(_convertValToAST))]);
   }
+  if (a.namedTypes.Node.check(value)) {
+    return value;
+  }
   return b.literal(value);
 }
 
@@ -37,6 +40,8 @@ class Classes {
     var classes = [
       b.importDeclaration(
         [
+          b.importSpecifier(b.identifier('ValueEnum')),
+          b.importSpecifier(b.identifier('BitEnum')),
           b.importSpecifier(b.identifier('CursorBuffer')),
         ],
         b.literal('./endianbuffer')

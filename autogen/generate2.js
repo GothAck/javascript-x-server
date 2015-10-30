@@ -15,6 +15,7 @@ var klasses = new Classes();
 var klass = klasses.newClass('XTypeBuffer', 'CursorBuffer');
 
 require('./lib/types')(doc, klass, klasses);
+require('./lib/enums')(doc, klass, klasses);
 require('./lib/events')(doc, klass, klasses);
 require('./lib/errors')(doc, klass, klasses);
 require('./lib/requests')(doc, klass, klasses);

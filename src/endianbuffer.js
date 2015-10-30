@@ -155,3 +155,82 @@ export class CursorBuffer extends EndianBuffer {
     }
   });
 })(CursorBuffer);
+
+type EnumIterable = Array<number> | Set<number>;
+
+class Enum extends Set {
+  static _values: Map<number, string> = new Map();
+
+  constructor(values?: ?EnumIterable) {
+    super();
+    if (values) {
+      for (val of values) {
+        this.add(val);
+      }
+    }
+  }
+
+  getFirst(): ?string {
+    var out = null;
+    for (let v of this) {
+      out = v;
+      break;
+    }
+    return out;
+  }
+
+  decode(value: number): boolean {
+    if (this._values.has(value)) {
+      this.add(this._values.get(value));
+      return true;
+    }
+    return false;
+  }
+
+  encode(): ?number {
+    // TODO: Performance, reverse the hash once?
+    let out = null;
+    if (this.size === 1 && this._values.size) {
+      let first = this.getFirst();
+      if (first === null) {
+        for (let [value, name] of this._values) {
+          if (name === first) {
+            out = value;
+            break;
+          }
+        }
+      }
+    }
+    return out;
+  }
+}
+
+export class ValueEnum extends Enum {}
+
+export class BitEnum extends Enum {
+  static _bits: Map<number, string> = new Map()
+
+  decode(value: number): boolean {
+    if (super.decode(value)) {
+      return true;
+    }
+    for (let [bit, bit_value] of this._bits) {
+      if (value & Math.pow(bit, 2)) {
+        this.add(bit_value);
+      }
+    }
+  }
+
+  encode(): ?number {
+    let out = super.encode();
+    if (out !== null) {
+      return out;
+    }
+    out = 0;
+    for (let [bit, bit_value] of this._bits) {
+      if (this.has(bit_value)) {
+        out |= Math.pow(bit, 2);
+      }
+    }
+  }
+}

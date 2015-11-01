@@ -3867,7 +3867,7 @@ TODO
     <field type="DRAWABLE" name="drawable" />
     <valueparam value-mask-type="CARD32"
                 value-mask-name="value_mask"
-                value-list-name="value_list" />
+                value-list-name="GC" />
     <doc>
       <brief>Creates a graphics context</brief>
       <description><![CDATA[
@@ -3908,7 +3908,7 @@ The X server could not allocate the requested resources (no memory?).
     <field type="GCONTEXT" name="gc" />
     <valueparam value-mask-type="CARD32"
                 value-mask-name="value_mask"
-                value-list-name="value_list" />
+                value-list-name="GC" />
     <doc>
       <brief>change graphics context components</brief>
       <description><![CDATA[
@@ -4966,7 +4966,7 @@ sensitive!
     <pad bytes="1" />
     <valueparam value-mask-type="CARD32"
                 value-mask-name="value_mask"
-                value-list-name="value_list" />
+                value-list-name="KB" />
   </request>
 
   <request name="GetKeyboardControl" opcode="103">

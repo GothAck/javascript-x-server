@@ -38,6 +38,7 @@ function parseOp(root, member, invert) {
 
 module.exports = function parseBody(parent, klasses) {
   let children = parent.find('*');
+  let parent_name = parent.attr('name') && parent.attr('name').value();
   let read_stmts = [];
   
   let lists = parent.find('list');
@@ -89,6 +90,20 @@ module.exports = function parseBody(parent, klasses) {
                   b.thisExpression(),
                   b.identifier(`read${child_type}`)),
                 []))));
+          if (parent_name === 'SetupRequest' && child_name === 'byte_order') {
+            read_stmts.push(
+              b.expressionStatement(b.assignmentExpression(
+                '=',
+                b.memberExpression(
+                  b.thisExpression(), b.identifier('endian')),
+                b.binaryExpression(
+                  '!==',
+                  b.memberExpression(
+                    b.identifier('obj'), b.identifier(child_name)),
+                  b.literal(66))
+                )));
+            // data.readUInt8(0) !== 66
+          }
           write_stmts.push(
             b.expressionStatement(b.callExpression(
               b.memberExpression(

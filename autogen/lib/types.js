@@ -44,7 +44,6 @@ module.exports = function genTypes(doc, klass, klasses) {
     klass.addSymWrite(`write${name}`, 'writeCARD32');
   }
 
-  // TODO: Map
   klass.addProperty('xids', xids, true);
 
   for (let struct of doc.find('struct')) {
@@ -52,10 +51,5 @@ module.exports = function genTypes(doc, klass, klasses) {
     let [read_stmts, write_stmts] = parseBody(struct, klasses);
     klass.addMethod(`read${name}`, [], read_stmts);
     klass.addMethod(`write${name}`, [b.identifier('obj')], write_stmts);
-  }
-
-  for (let struct of doc.find('enum')) {
-    // TODO: remember contains bitmasks also
-    // Name: enum_readBlah
   }
 }

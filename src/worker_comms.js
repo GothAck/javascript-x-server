@@ -1,4 +1,5 @@
 import * as x_protocol from './x_protocol';
+import * as x_protocol_new from './x_protocol_new';
 import * as EndianBuffer from './endianbuffer';
 
 var string_split = /(\w+)(\s\w+){0,1}$/

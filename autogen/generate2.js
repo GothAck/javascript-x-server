@@ -4,9 +4,9 @@
 var path = require('path');
 var fs = require('fs');
 var libxml = require('libxmljs');
-var b = require('ast-types').builders;
+var { b: builders } = require('ast-types');
 var recast = require('recast');
-var Classes = require('./lib/misc').Classes;
+var { Classes } = require('./lib/misc');
 
 var doc = libxml.parseXml(fs.readFileSync(path.join(__dirname, 'proto/xproto.xml'), 'ascii'));
 

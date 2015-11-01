@@ -1,5 +1,5 @@
 "use strict";
-var b = require('ast-types').builders;
+var { builders :b } = require('ast-types');
 var parseBody = require('./statement_body');
 
 module.exports = function genEvents(doc, klass, klasses) {

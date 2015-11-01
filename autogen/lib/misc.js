@@ -1,6 +1,5 @@
 "use strict";
-var a = require('ast-types');
-var b = a.builders;
+var { builders :b, namedTypes} = require('ast-types');
 var recast = require('recast');
 
 function _convertValToAST(value) {
@@ -18,7 +17,7 @@ function _convertValToAST(value) {
       b.identifier('Set'),
       [b.arrayExpression(Array.from(value).map(_convertValToAST))]);
   }
-  if (a.namedTypes.Node.check(value)) {
+  if (namedTypes.Node.check(value)) {
     return value;
   }
   return b.literal(value);

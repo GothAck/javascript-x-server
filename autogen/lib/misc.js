@@ -86,7 +86,7 @@ class Class {
       [],
       [(read ? b.returnStatement : b.expressionStatement)(b.callExpression(
         b.memberExpression(
-          b.identifier('this'),
+          b.thisExpression(),
           b.identifier(callname)),
         callArguments
         ))]);

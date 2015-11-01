@@ -65,13 +65,13 @@ module.exports = function parseBody(parent, klasses) {
         read_stmts.push(
           b.expressionStatement(b.callExpression(
             b.memberExpression(
-              b.identifier('this'),
+              b.thisExpression(),
               b.identifier('moveCursor')),
             [b.literal(bytes)])));
         write_stmts.push(
           b.expressionStatement(b.callExpression(
             b.memberExpression(
-              b.identifier('this'),
+              b.thisExpression(),
               b.identifier('moveCursor')),
             [b.literal(bytes)])));
         break;
@@ -86,13 +86,13 @@ module.exports = function parseBody(parent, klasses) {
                 b.identifier('obj'), b.identifier(child_name)),
               b.callExpression(
                 b.memberExpression(
-                  b.identifier('this'),
+                  b.thisExpression(),
                   b.identifier(`read${child_type}`)),
                 []))));
           write_stmts.push(
             b.expressionStatement(b.callExpression(
               b.memberExpression(
-                b.identifier('this'),
+                b.thisExpression(),
                 b.identifier(`write${child_type}`)),
               [b.memberExpression(
                 b.identifier('obj'),
@@ -171,7 +171,7 @@ module.exports = function parseBody(parent, klasses) {
               b.blockStatement([
                 b.expressionStatement(b.callExpression(
                   b.memberExpression(
-                    b.identifier('this'), b.identifier(`write${child_type}`)),
+                    b.thisExpression(), b.identifier(`write${child_type}`)),
                   [b.identifier('val')])),
               ])
           ));
@@ -187,7 +187,7 @@ module.exports = function parseBody(parent, klasses) {
               b.identifier('obj'), b.identifier(child_name)),
             b.callExpression(
               b.memberExpression(
-                b.identifier('this'),
+                b.thisExpression(),
                 b.identifier(`read${child_type}`)),
               []))));
         write_stmts.push(b.expressionStatement(b.assignmentExpression(
@@ -225,7 +225,7 @@ module.exports = function parseBody(parent, klasses) {
             b.identifier('decode')),
             [b.callExpression(
               b.memberExpression(
-                b.identifier('this'),
+                b.thisExpression(),
                 b.identifier(`read${value_mask_type}`)),
               [])]
           ))));
@@ -246,7 +246,7 @@ module.exports = function parseBody(parent, klasses) {
                 b.identifier('value'), b.identifier('keys')), [])]))]));
         write_stmts.push(b.callStatement(
           b.memberExpression(
-            b.identifier('this'), b.identifier(`write${value_mask_type}`)),
+            b.thisExpression(), b.identifier(`write${value_mask_type}`)),
           [b.callExpression(b.memberExpression(
             b.identifier('value_enum'),
             b.identifier('encode')), [])]));
@@ -255,13 +255,13 @@ module.exports = function parseBody(parent, klasses) {
           read_stmts.push(
             b.expressionStatement(b.callExpression(
               b.memberExpression(
-                b.identifier('this'),
+                b.thisExpression(),
                 b.identifier('moveCursor')),
               [b.literal(2)])));
           write_stmts.push(
             b.expressionStatement(b.callExpression(
               b.memberExpression(
-                b.identifier('this'),
+                b.thisExpression(),
                 b.identifier('moveCursor')),
               [b.literal(2)])));
         }
@@ -294,7 +294,7 @@ module.exports = function parseBody(parent, klasses) {
                 b.identifier('field'),
                 b.callExpression(
                   b.memberExpression(
-                    b.identifier('this'), b.identifier('readCARD32')),
+                    b.thisExpression(), b.identifier('readCARD32')),
                   [])
               ])
             ])));
@@ -307,7 +307,7 @@ module.exports = function parseBody(parent, klasses) {
           b.blockStatement([
             b.callStatement(
               b.memberExpression(
-                b.identifier('this'), b.identifier('writeCARD32')),
+                b.thisExpression(), b.identifier('writeCARD32')),
               [b.callExpression(
                 b.memberExpression(
                   b.identifier('value'), b.identifier('get')),

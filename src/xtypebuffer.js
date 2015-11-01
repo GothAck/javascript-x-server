@@ -1658,20 +1658,94 @@ export class XTypeBuffer extends CursorBuffer {
     obj.border_width = this.readCARD16();
     obj.class = this.readCARD16();
     obj.visual = this.readVISUALID();
+    obj.value_mask = (new CWEnum()).decode(this.readCARD32());
+    var value = new Map();
+    obj.value = value;
+
+    for (let field of obj.value_mask) {
+      value.set(field, this.readCARD32());
+    }
+
     return obj;
+  }
+
+  request_writeCreateWindow(obj) {
+    this.writeCARD8(obj.depth);
+    this.writeWINDOW(obj.wid);
+    this.writeWINDOW(obj.parent);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
+    this.writeCARD16(obj.border_width);
+    this.writeCARD16(obj.class);
+    this.writeVISUALID(obj.visual);
+    var value = obj.value;
+    var value_enum = new CWEnum(value.keys());
+    this.writeCARD32(value_enum.encode());
+
+    for (let field of value_enum) {
+      this.writeCARD32(value.get(field));
+    }
   }
 
   request_readChangeWindowAttributes() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
+    obj.value_mask = (new CWEnum()).decode(this.readCARD32());
+    var value = new Map();
+    obj.value = value;
+
+    for (let field of obj.value_mask) {
+      value.set(field, this.readCARD32());
+    }
+
     return obj;
+  }
+
+  request_writeChangeWindowAttributes(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+    var value = obj.value;
+    var value_enum = new CWEnum(value.keys());
+    this.writeCARD32(value_enum.encode());
+
+    for (let field of value_enum) {
+      this.writeCARD32(value.get(field));
+    }
   }
 
   request_readGetWindowAttributes() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
+    return obj;
+  }
+
+  request_writeGetWindowAttributes(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
+  reply_readGetWindowAttributes() {
+    var obj = {};
+    obj.backing_store = this.readCARD8();
+    obj.visual = this.readVISUALID();
+    obj.class = this.readCARD16();
+    obj.bit_gravity = this.readCARD8();
+    obj.win_gravity = this.readCARD8();
+    obj.backing_planes = this.readCARD32();
+    obj.backing_pixel = this.readCARD32();
+    obj.save_under = this.readBOOL();
+    obj.map_is_installed = this.readBOOL();
+    obj.map_state = this.readCARD8();
+    obj.override_redirect = this.readBOOL();
+    obj.colormap = this.readCOLORMAP();
+    obj.all_event_masks = this.readCARD32();
+    obj.your_event_mask = this.readCARD32();
+    obj.do_not_propagate_mask = this.readCARD16();
+    this.moveCursor(2);
     return obj;
   }
 
@@ -1701,6 +1775,11 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeDestroyWindow(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
   request_readDestroySubwindows() {
     var obj = {};
     this.moveCursor(1);
@@ -1708,11 +1787,21 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeDestroySubwindows(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
   request_readChangeSaveSet() {
     var obj = {};
     obj.mode = this.readBYTE();
     obj.window = this.readWINDOW();
     return obj;
+  }
+
+  request_writeChangeSaveSet(obj) {
+    this.writeBYTE(obj.mode);
+    this.writeWINDOW(obj.window);
   }
 
   request_readReparentWindow() {
@@ -1725,11 +1814,24 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeReparentWindow(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+    this.writeWINDOW(obj.parent);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+  }
+
   request_readMapWindow() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
     return obj;
+  }
+
+  request_writeMapWindow(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
   }
 
   request_readMapSubwindows() {
@@ -1739,11 +1841,21 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeMapSubwindows(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
   request_readUnmapWindow() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
     return obj;
+  }
+
+  request_writeUnmapWindow(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
   }
 
   request_readUnmapSubwindows() {
@@ -1753,13 +1865,42 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeUnmapSubwindows(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
   request_readConfigureWindow() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
     obj.value_mask = this.readCARD16();
     this.moveCursor(2);
+    obj.value_mask = (new ConfigWindowEnum()).decode(this.readCARD16());
+    this.moveCursor(2);
+    var value = new Map();
+    obj.value = value;
+
+    for (let field of obj.value_mask) {
+      value.set(field, this.readCARD32());
+    }
+
     return obj;
+  }
+
+  request_writeConfigureWindow(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+    this.writeCARD16(obj.value_mask);
+    this.moveCursor(2);
+    var value = obj.value;
+    var value_enum = new ConfigWindowEnum(value.keys());
+    this.writeCARD16(value_enum.encode());
+    this.moveCursor(2);
+
+    for (let field of value_enum) {
+      this.writeCARD32(value.get(field));
+    }
   }
 
   request_readCirculateWindow() {
@@ -1769,10 +1910,33 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCirculateWindow(obj) {
+    this.writeCARD8(obj.direction);
+    this.writeWINDOW(obj.window);
+  }
+
   request_readGetGeometry() {
     var obj = {};
     this.moveCursor(1);
     obj.drawable = this.readDRAWABLE();
+    return obj;
+  }
+
+  request_writeGetGeometry(obj) {
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+  }
+
+  reply_readGetGeometry() {
+    var obj = {};
+    obj.depth = this.readCARD8();
+    obj.root = this.readWINDOW();
+    obj.x = this.readINT16();
+    obj.y = this.readINT16();
+    obj.width = this.readCARD16();
+    obj.height = this.readCARD16();
+    obj.border_width = this.readCARD16();
+    this.moveCursor(2);
     return obj;
   }
 
@@ -1791,6 +1955,28 @@ export class XTypeBuffer extends CursorBuffer {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
+    return obj;
+  }
+
+  request_writeQueryTree(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
+  reply_readQueryTree() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.root = this.readWINDOW();
+    obj.parent = this.readWINDOW();
+    obj.children_len = this.readCARD16();
+    this.moveCursor(14);
+    var children_length = obj.children_len;
+    obj.children = [];
+
+    for (let i = 0; i < children_length; i++) {
+      obj.children.push(this.readWINDOW());
+    }
+
     return obj;
   }
 
@@ -1817,6 +2003,20 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeInternAtom(obj) {
+    this.writeBOOL(obj.only_if_exists);
+    this.writeCARD16(obj.name_len);
+    this.moveCursor(2);
+    this.writeSTRING8(obj.name);
+  }
+
+  reply_readInternAtom() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.atom = this.readATOM();
+    return obj;
+  }
+
   reply_writeInternAtom(obj) {
     this.moveCursor(1);
     this.writeATOM(obj.atom);
@@ -1826,6 +2026,20 @@ export class XTypeBuffer extends CursorBuffer {
     var obj = {};
     this.moveCursor(1);
     obj.atom = this.readATOM();
+    return obj;
+  }
+
+  request_writeGetAtomName(obj) {
+    this.moveCursor(1);
+    this.writeATOM(obj.atom);
+  }
+
+  reply_readGetAtomName() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.name_len = this.readCARD16();
+    this.moveCursor(22);
+    obj.name = this.readSTRING8();
     return obj;
   }
 
@@ -1855,12 +2069,34 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeChangeProperty(obj) {
+    obj.data_len = obj.data.length;
+    this.writeCARD8(obj.mode);
+    this.writeWINDOW(obj.window);
+    this.writeATOM(obj.property);
+    this.writeATOM(obj.type);
+    this.writeCARD8(obj.format);
+    this.moveCursor(3);
+    this.writeCARD32(obj.data_len);
+    var data_length = ((obj.data_len * obj.format) / 8);
+
+    for (let val of obj.data) {
+      this.writevoid(val);
+    }
+  }
+
   request_readDeleteProperty() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
     obj.property = this.readATOM();
     return obj;
+  }
+
+  request_writeDeleteProperty(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+    this.writeATOM(obj.property);
   }
 
   request_readGetProperty() {
@@ -1871,6 +2107,32 @@ export class XTypeBuffer extends CursorBuffer {
     obj.type = this.readATOM();
     obj.long_offset = this.readCARD32();
     obj.long_length = this.readCARD32();
+    return obj;
+  }
+
+  request_writeGetProperty(obj) {
+    this.writeBOOL(obj.delete);
+    this.writeWINDOW(obj.window);
+    this.writeATOM(obj.property);
+    this.writeATOM(obj.type);
+    this.writeCARD32(obj.long_offset);
+    this.writeCARD32(obj.long_length);
+  }
+
+  reply_readGetProperty() {
+    var obj = {};
+    obj.format = this.readCARD8();
+    obj.type = this.readATOM();
+    obj.bytes_after = this.readCARD32();
+    obj.value_len = this.readCARD32();
+    this.moveCursor(12);
+    var value_length = (obj.value_len * (obj.format / 8));
+    obj.value = [];
+
+    for (let i = 0; i < value_length; i++) {
+      obj.value.push(this.readvoid());
+    }
+
     return obj;
   }
 
@@ -1895,6 +2157,26 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeListProperties(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
+  reply_readListProperties() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.atoms_len = this.readCARD16();
+    this.moveCursor(22);
+    var atoms_length = obj.atoms_len;
+    obj.atoms = [];
+
+    for (let i = 0; i < atoms_length; i++) {
+      obj.atoms.push(this.readATOM());
+    }
+
+    return obj;
+  }
+
   reply_writeListProperties(obj) {
     obj.atoms_len = obj.atoms.length;
     this.moveCursor(1);
@@ -1916,10 +2198,29 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetSelectionOwner(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.owner);
+    this.writeATOM(obj.selection);
+    this.writeTIMESTAMP(obj.time);
+  }
+
   request_readGetSelectionOwner() {
     var obj = {};
     this.moveCursor(1);
     obj.selection = this.readATOM();
+    return obj;
+  }
+
+  request_writeGetSelectionOwner(obj) {
+    this.moveCursor(1);
+    this.writeATOM(obj.selection);
+  }
+
+  reply_readGetSelectionOwner() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.owner = this.readWINDOW();
     return obj;
   }
 
@@ -1939,6 +2240,15 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeConvertSelection(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.requestor);
+    this.writeATOM(obj.selection);
+    this.writeATOM(obj.target);
+    this.writeATOM(obj.property);
+    this.writeTIMESTAMP(obj.time);
+  }
+
   request_readSendEvent() {
     var obj = {};
     obj.propagate = this.readBOOL();
@@ -1954,6 +2264,18 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSendEvent(obj) {
+    obj.event_len = obj.event.length;
+    this.writeBOOL(obj.propagate);
+    this.writeWINDOW(obj.destination);
+    this.writeCARD32(obj.event_mask);
+    var event_length = 32;
+
+    for (let val of obj.event) {
+      this.writechar(val);
+    }
+  }
+
   request_readGrabPointer() {
     var obj = {};
     obj.owner_events = this.readBOOL();
@@ -1967,6 +2289,23 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeGrabPointer(obj) {
+    this.writeBOOL(obj.owner_events);
+    this.writeWINDOW(obj.grab_window);
+    this.writeCARD16(obj.event_mask);
+    this.writeBYTE(obj.pointer_mode);
+    this.writeBYTE(obj.keyboard_mode);
+    this.writeWINDOW(obj.confine_to);
+    this.writeCURSOR(obj.cursor);
+    this.writeTIMESTAMP(obj.time);
+  }
+
+  reply_readGrabPointer() {
+    var obj = {};
+    obj.status = this.readBYTE();
+    return obj;
+  }
+
   reply_writeGrabPointer(obj) {
     this.writeBYTE(obj.status);
   }
@@ -1976,6 +2315,11 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.time = this.readTIMESTAMP();
     return obj;
+  }
+
+  request_writeUngrabPointer(obj) {
+    this.moveCursor(1);
+    this.writeTIMESTAMP(obj.time);
   }
 
   request_readGrabButton() {
@@ -1993,6 +2337,19 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeGrabButton(obj) {
+    this.writeBOOL(obj.owner_events);
+    this.writeWINDOW(obj.grab_window);
+    this.writeCARD16(obj.event_mask);
+    this.writeCARD8(obj.pointer_mode);
+    this.writeCARD8(obj.keyboard_mode);
+    this.writeWINDOW(obj.confine_to);
+    this.writeCURSOR(obj.cursor);
+    this.writeCARD8(obj.button);
+    this.moveCursor(1);
+    this.writeCARD16(obj.modifiers);
+  }
+
   request_readUngrabButton() {
     var obj = {};
     obj.button = this.readCARD8();
@@ -2000,6 +2357,13 @@ export class XTypeBuffer extends CursorBuffer {
     obj.modifiers = this.readCARD16();
     this.moveCursor(2);
     return obj;
+  }
+
+  request_writeUngrabButton(obj) {
+    this.writeCARD8(obj.button);
+    this.writeWINDOW(obj.grab_window);
+    this.writeCARD16(obj.modifiers);
+    this.moveCursor(2);
   }
 
   request_readChangeActivePointerGrab() {
@@ -2012,6 +2376,14 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeChangeActivePointerGrab(obj) {
+    this.moveCursor(1);
+    this.writeCURSOR(obj.cursor);
+    this.writeTIMESTAMP(obj.time);
+    this.writeCARD16(obj.event_mask);
+    this.moveCursor(2);
+  }
+
   request_readGrabKeyboard() {
     var obj = {};
     obj.owner_events = this.readBOOL();
@@ -2020,6 +2392,21 @@ export class XTypeBuffer extends CursorBuffer {
     obj.pointer_mode = this.readBYTE();
     obj.keyboard_mode = this.readBYTE();
     this.moveCursor(2);
+    return obj;
+  }
+
+  request_writeGrabKeyboard(obj) {
+    this.writeBOOL(obj.owner_events);
+    this.writeWINDOW(obj.grab_window);
+    this.writeTIMESTAMP(obj.time);
+    this.writeBYTE(obj.pointer_mode);
+    this.writeBYTE(obj.keyboard_mode);
+    this.moveCursor(2);
+  }
+
+  reply_readGrabKeyboard() {
+    var obj = {};
+    obj.status = this.readBYTE();
     return obj;
   }
 
@@ -2034,6 +2421,11 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeUngrabKeyboard(obj) {
+    this.moveCursor(1);
+    this.writeTIMESTAMP(obj.time);
+  }
+
   request_readGrabKey() {
     var obj = {};
     obj.owner_events = this.readBOOL();
@@ -2046,6 +2438,16 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeGrabKey(obj) {
+    this.writeBOOL(obj.owner_events);
+    this.writeWINDOW(obj.grab_window);
+    this.writeCARD16(obj.modifiers);
+    this.writeKEYCODE(obj.key);
+    this.writeCARD8(obj.pointer_mode);
+    this.writeCARD8(obj.keyboard_mode);
+    this.moveCursor(3);
+  }
+
   request_readUngrabKey() {
     var obj = {};
     obj.key = this.readKEYCODE();
@@ -2055,6 +2457,13 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeUngrabKey(obj) {
+    this.writeKEYCODE(obj.key);
+    this.writeWINDOW(obj.grab_window);
+    this.writeCARD16(obj.modifiers);
+    this.moveCursor(2);
+  }
+
   request_readAllowEvents() {
     var obj = {};
     obj.mode = this.readCARD8();
@@ -2062,18 +2471,46 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeAllowEvents(obj) {
+    this.writeCARD8(obj.mode);
+    this.writeTIMESTAMP(obj.time);
+  }
+
   request_readGrabServer() {
     return {};
   }
+
+  request_writeGrabServer(obj) {}
 
   request_readUngrabServer() {
     return {};
   }
 
+  request_writeUngrabServer(obj) {}
+
   request_readQueryPointer() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
+    return obj;
+  }
+
+  request_writeQueryPointer(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
+  reply_readQueryPointer() {
+    var obj = {};
+    obj.same_screen = this.readBOOL();
+    obj.root = this.readWINDOW();
+    obj.child = this.readWINDOW();
+    obj.root_x = this.readINT16();
+    obj.root_y = this.readINT16();
+    obj.win_x = this.readINT16();
+    obj.win_y = this.readINT16();
+    obj.mask = this.readCARD16();
+    this.moveCursor(2);
     return obj;
   }
 
@@ -2095,6 +2532,28 @@ export class XTypeBuffer extends CursorBuffer {
     obj.window = this.readWINDOW();
     obj.start = this.readTIMESTAMP();
     obj.stop = this.readTIMESTAMP();
+    return obj;
+  }
+
+  request_writeGetMotionEvents(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+    this.writeTIMESTAMP(obj.start);
+    this.writeTIMESTAMP(obj.stop);
+  }
+
+  reply_readGetMotionEvents() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.events_len = this.readCARD32();
+    this.moveCursor(20);
+    var events_length = obj.events_len;
+    obj.events = [];
+
+    for (let i = 0; i < events_length; i++) {
+      obj.events.push(this.readTIMECOORD());
+    }
+
     return obj;
   }
 
@@ -2120,6 +2579,23 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeTranslateCoordinates(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.src_window);
+    this.writeWINDOW(obj.dst_window);
+    this.writeINT16(obj.src_x);
+    this.writeINT16(obj.src_y);
+  }
+
+  reply_readTranslateCoordinates() {
+    var obj = {};
+    obj.same_screen = this.readBOOL();
+    obj.child = this.readWINDOW();
+    obj.dst_x = this.readINT16();
+    obj.dst_y = this.readINT16();
+    return obj;
+  }
+
   reply_writeTranslateCoordinates(obj) {
     this.writeBOOL(obj.same_screen);
     this.writeWINDOW(obj.child);
@@ -2141,6 +2617,18 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeWarpPointer(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.src_window);
+    this.writeWINDOW(obj.dst_window);
+    this.writeINT16(obj.src_x);
+    this.writeINT16(obj.src_y);
+    this.writeCARD16(obj.src_width);
+    this.writeCARD16(obj.src_height);
+    this.writeINT16(obj.dst_x);
+    this.writeINT16(obj.dst_y);
+  }
+
   request_readSetInputFocus() {
     var obj = {};
     obj.revert_to = this.readCARD8();
@@ -2149,8 +2637,23 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetInputFocus(obj) {
+    this.writeCARD8(obj.revert_to);
+    this.writeWINDOW(obj.focus);
+    this.writeTIMESTAMP(obj.time);
+  }
+
   request_readGetInputFocus() {
     return {};
+  }
+
+  request_writeGetInputFocus(obj) {}
+
+  reply_readGetInputFocus() {
+    var obj = {};
+    obj.revert_to = this.readCARD8();
+    obj.focus = this.readWINDOW();
+    return obj;
   }
 
   reply_writeGetInputFocus(obj) {
@@ -2160,6 +2663,21 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_readQueryKeymap() {
     return {};
+  }
+
+  request_writeQueryKeymap(obj) {}
+
+  reply_readQueryKeymap() {
+    var obj = {};
+    this.moveCursor(1);
+    var keys_length = 32;
+    obj.keys = [];
+
+    for (let i = 0; i < keys_length; i++) {
+      obj.keys.push(this.readCARD8());
+    }
+
+    return obj;
   }
 
   reply_writeQueryKeymap(obj) {
@@ -2188,6 +2706,19 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeOpenFont(obj) {
+    obj.name_len = obj.name.length;
+    this.moveCursor(1);
+    this.writeFONT(obj.fid);
+    this.writeCARD16(obj.name_len);
+    this.moveCursor(2);
+    var name_length = obj.name_len;
+
+    for (let val of obj.name) {
+      this.writechar(val);
+    }
+  }
+
   request_readCloseFont() {
     var obj = {};
     this.moveCursor(1);
@@ -2195,10 +2726,55 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCloseFont(obj) {
+    this.moveCursor(1);
+    this.writeFONT(obj.font);
+  }
+
   request_readQueryFont() {
     var obj = {};
     this.moveCursor(1);
     obj.font = this.readFONTABLE();
+    return obj;
+  }
+
+  request_writeQueryFont(obj) {
+    this.moveCursor(1);
+    this.writeFONTABLE(obj.font);
+  }
+
+  reply_readQueryFont() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.min_bounds = this.readCHARINFO();
+    this.moveCursor(4);
+    obj.max_bounds = this.readCHARINFO();
+    this.moveCursor(4);
+    obj.min_char_or_byte2 = this.readCARD16();
+    obj.max_char_or_byte2 = this.readCARD16();
+    obj.default_char = this.readCARD16();
+    obj.properties_len = this.readCARD16();
+    obj.draw_direction = this.readBYTE();
+    obj.min_byte1 = this.readCARD8();
+    obj.max_byte1 = this.readCARD8();
+    obj.all_chars_exist = this.readBOOL();
+    obj.font_ascent = this.readINT16();
+    obj.font_descent = this.readINT16();
+    obj.char_infos_len = this.readCARD32();
+    var properties_length = obj.properties_len;
+    obj.properties = [];
+
+    for (let i = 0; i < properties_length; i++) {
+      obj.properties.push(this.readFONTPROP());
+    }
+
+    var char_infos_length = obj.char_infos_len;
+    obj.char_infos = [];
+
+    for (let i = 0; i < char_infos_length; i++) {
+      obj.char_infos.push(this.readCHARINFO());
+    }
+
     return obj;
   }
 
@@ -2236,6 +2812,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_readQueryTextExtents() {
     var obj = {};
+    obj.odd_length = this.readBOOL();
     obj.font = this.readFONTABLE();
     var string_length = -1;
     obj.string = [];
@@ -2244,6 +2821,30 @@ export class XTypeBuffer extends CursorBuffer {
       obj.string.push(this.readCHAR2B());
     }
 
+    return obj;
+  }
+
+  request_writeQueryTextExtents(obj) {
+    obj.string_len = obj.string.length;
+    obj.odd_length = (obj.string_len & 1);
+    this.writeFONTABLE(obj.font);
+    var string_length = -1;
+
+    for (let val of obj.string) {
+      this.writeCHAR2B(val);
+    }
+  }
+
+  reply_readQueryTextExtents() {
+    var obj = {};
+    obj.draw_direction = this.readBYTE();
+    obj.font_ascent = this.readINT16();
+    obj.font_descent = this.readINT16();
+    obj.overall_ascent = this.readINT16();
+    obj.overall_descent = this.readINT16();
+    obj.overall_width = this.readINT32();
+    obj.overall_left = this.readINT32();
+    obj.overall_right = this.readINT32();
     return obj;
   }
 
@@ -2273,6 +2874,33 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeListFonts(obj) {
+    obj.pattern_len = obj.pattern.length;
+    this.moveCursor(1);
+    this.writeCARD16(obj.max_names);
+    this.writeCARD16(obj.pattern_len);
+    var pattern_length = obj.pattern_len;
+
+    for (let val of obj.pattern) {
+      this.writechar(val);
+    }
+  }
+
+  reply_readListFonts() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.names_len = this.readCARD16();
+    this.moveCursor(22);
+    var names_length = obj.names_len;
+    obj.names = [];
+
+    for (let i = 0; i < names_length; i++) {
+      obj.names.push(this.readSTR());
+    }
+
+    return obj;
+  }
+
   reply_writeListFonts(obj) {
     obj.names_len = obj.names.length;
     this.moveCursor(1);
@@ -2295,6 +2923,53 @@ export class XTypeBuffer extends CursorBuffer {
 
     for (let i = 0; i < pattern_length; i++) {
       obj.pattern.push(this.readchar());
+    }
+
+    return obj;
+  }
+
+  request_writeListFontsWithInfo(obj) {
+    obj.pattern_len = obj.pattern.length;
+    this.moveCursor(1);
+    this.writeCARD16(obj.max_names);
+    this.writeCARD16(obj.pattern_len);
+    var pattern_length = obj.pattern_len;
+
+    for (let val of obj.pattern) {
+      this.writechar(val);
+    }
+  }
+
+  reply_readListFontsWithInfo() {
+    var obj = {};
+    obj.name_len = this.readCARD8();
+    obj.min_bounds = this.readCHARINFO();
+    this.moveCursor(4);
+    obj.max_bounds = this.readCHARINFO();
+    this.moveCursor(4);
+    obj.min_char_or_byte2 = this.readCARD16();
+    obj.max_char_or_byte2 = this.readCARD16();
+    obj.default_char = this.readCARD16();
+    obj.properties_len = this.readCARD16();
+    obj.draw_direction = this.readBYTE();
+    obj.min_byte1 = this.readCARD8();
+    obj.max_byte1 = this.readCARD8();
+    obj.all_chars_exist = this.readBOOL();
+    obj.font_ascent = this.readINT16();
+    obj.font_descent = this.readINT16();
+    obj.replies_hint = this.readCARD32();
+    var properties_length = obj.properties_len;
+    obj.properties = [];
+
+    for (let i = 0; i < properties_length; i++) {
+      obj.properties.push(this.readFONTPROP());
+    }
+
+    var name_length = obj.name_len;
+    obj.name = [];
+
+    for (let i = 0; i < name_length; i++) {
+      obj.name.push(this.readchar());
     }
 
     return obj;
@@ -2347,8 +3022,37 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetFontPath(obj) {
+    obj.font_len = obj.font.length;
+    this.moveCursor(1);
+    this.writeCARD16(obj.font_qty);
+    this.moveCursor(2);
+    var font_length = obj.font_qty;
+
+    for (let val of obj.font) {
+      this.writeSTR(val);
+    }
+  }
+
   request_readGetFontPath() {
     return {};
+  }
+
+  request_writeGetFontPath(obj) {}
+
+  reply_readGetFontPath() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.path_len = this.readCARD16();
+    this.moveCursor(22);
+    var path_length = obj.path_len;
+    obj.path = [];
+
+    for (let i = 0; i < path_length; i++) {
+      obj.path.push(this.readSTR());
+    }
+
+    return obj;
   }
 
   reply_writeGetFontPath(obj) {
@@ -2373,11 +3077,24 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCreatePixmap(obj) {
+    this.writeCARD8(obj.depth);
+    this.writePIXMAP(obj.pid);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
+  }
+
   request_readFreePixmap() {
     var obj = {};
     this.moveCursor(1);
     obj.pixmap = this.readPIXMAP();
     return obj;
+  }
+
+  request_writeFreePixmap(obj) {
+    this.moveCursor(1);
+    this.writePIXMAP(obj.pixmap);
   }
 
   request_readCreateGC() {
@@ -2388,11 +3105,22 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCreateGC(obj) {
+    this.moveCursor(1);
+    this.writeGCONTEXT(obj.cid);
+    this.writeDRAWABLE(obj.drawable);
+  }
+
   request_readChangeGC() {
     var obj = {};
     this.moveCursor(1);
     obj.gc = this.readGCONTEXT();
     return obj;
+  }
+
+  request_writeChangeGC(obj) {
+    this.moveCursor(1);
+    this.writeGCONTEXT(obj.gc);
   }
 
   request_readCopyGC() {
@@ -2402,6 +3130,13 @@ export class XTypeBuffer extends CursorBuffer {
     obj.dst_gc = this.readGCONTEXT();
     obj.value_mask = this.readCARD32();
     return obj;
+  }
+
+  request_writeCopyGC(obj) {
+    this.moveCursor(1);
+    this.writeGCONTEXT(obj.src_gc);
+    this.writeGCONTEXT(obj.dst_gc);
+    this.writeCARD32(obj.value_mask);
   }
 
   request_readSetDashes() {
@@ -2420,6 +3155,19 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetDashes(obj) {
+    obj.dashes_len = obj.dashes.length;
+    this.moveCursor(1);
+    this.writeGCONTEXT(obj.gc);
+    this.writeCARD16(obj.dash_offset);
+    this.writeCARD16(obj.dashes_len);
+    var dashes_length = obj.dashes_len;
+
+    for (let val of obj.dashes) {
+      this.writeCARD8(val);
+    }
+  }
+
   request_readSetClipRectangles() {
     var obj = {};
     obj.ordering = this.readBYTE();
@@ -2436,11 +3184,29 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetClipRectangles(obj) {
+    obj.rectangles_len = obj.rectangles.length;
+    this.writeBYTE(obj.ordering);
+    this.writeGCONTEXT(obj.gc);
+    this.writeINT16(obj.clip_x_origin);
+    this.writeINT16(obj.clip_y_origin);
+    var rectangles_length = -1;
+
+    for (let val of obj.rectangles) {
+      this.writeRECTANGLE(val);
+    }
+  }
+
   request_readFreeGC() {
     var obj = {};
     this.moveCursor(1);
     obj.gc = this.readGCONTEXT();
     return obj;
+  }
+
+  request_writeFreeGC(obj) {
+    this.moveCursor(1);
+    this.writeGCONTEXT(obj.gc);
   }
 
   request_readClearArea() {
@@ -2452,6 +3218,15 @@ export class XTypeBuffer extends CursorBuffer {
     obj.width = this.readCARD16();
     obj.height = this.readCARD16();
     return obj;
+  }
+
+  request_writeClearArea(obj) {
+    this.writeBOOL(obj.exposures);
+    this.writeWINDOW(obj.window);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
   }
 
   request_readCopyArea() {
@@ -2467,6 +3242,19 @@ export class XTypeBuffer extends CursorBuffer {
     obj.width = this.readCARD16();
     obj.height = this.readCARD16();
     return obj;
+  }
+
+  request_writeCopyArea(obj) {
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.src_drawable);
+    this.writeDRAWABLE(obj.dst_drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeINT16(obj.src_x);
+    this.writeINT16(obj.src_y);
+    this.writeINT16(obj.dst_x);
+    this.writeINT16(obj.dst_y);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
   }
 
   request_readCopyPlane() {
@@ -2485,6 +3273,20 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCopyPlane(obj) {
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.src_drawable);
+    this.writeDRAWABLE(obj.dst_drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeINT16(obj.src_x);
+    this.writeINT16(obj.src_y);
+    this.writeINT16(obj.dst_x);
+    this.writeINT16(obj.dst_y);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
+    this.writeCARD32(obj.bit_plane);
+  }
+
   request_readPolyPoint() {
     var obj = {};
     obj.coordinate_mode = this.readBYTE();
@@ -2498,6 +3300,18 @@ export class XTypeBuffer extends CursorBuffer {
     }
 
     return obj;
+  }
+
+  request_writePolyPoint(obj) {
+    obj.points_len = obj.points.length;
+    this.writeBYTE(obj.coordinate_mode);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    var points_length = -1;
+
+    for (let val of obj.points) {
+      this.writePOINT(val);
+    }
   }
 
   request_readPolyLine() {
@@ -2515,6 +3329,18 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writePolyLine(obj) {
+    obj.points_len = obj.points.length;
+    this.writeBYTE(obj.coordinate_mode);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    var points_length = -1;
+
+    for (let val of obj.points) {
+      this.writePOINT(val);
+    }
+  }
+
   request_readPolySegment() {
     var obj = {};
     this.moveCursor(1);
@@ -2528,6 +3354,18 @@ export class XTypeBuffer extends CursorBuffer {
     }
 
     return obj;
+  }
+
+  request_writePolySegment(obj) {
+    obj.segments_len = obj.segments.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    var segments_length = -1;
+
+    for (let val of obj.segments) {
+      this.writeSEGMENT(val);
+    }
   }
 
   request_readPolyRectangle() {
@@ -2545,6 +3383,18 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writePolyRectangle(obj) {
+    obj.rectangles_len = obj.rectangles.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    var rectangles_length = -1;
+
+    for (let val of obj.rectangles) {
+      this.writeRECTANGLE(val);
+    }
+  }
+
   request_readPolyArc() {
     var obj = {};
     this.moveCursor(1);
@@ -2558,6 +3408,18 @@ export class XTypeBuffer extends CursorBuffer {
     }
 
     return obj;
+  }
+
+  request_writePolyArc(obj) {
+    obj.arcs_len = obj.arcs.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    var arcs_length = -1;
+
+    for (let val of obj.arcs) {
+      this.writeARC(val);
+    }
   }
 
   request_readFillPoly() {
@@ -2578,6 +3440,21 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeFillPoly(obj) {
+    obj.points_len = obj.points.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeCARD8(obj.shape);
+    this.writeCARD8(obj.coordinate_mode);
+    this.moveCursor(2);
+    var points_length = -1;
+
+    for (let val of obj.points) {
+      this.writePOINT(val);
+    }
+  }
+
   request_readPolyFillRectangle() {
     var obj = {};
     this.moveCursor(1);
@@ -2593,6 +3470,18 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writePolyFillRectangle(obj) {
+    obj.rectangles_len = obj.rectangles.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    var rectangles_length = -1;
+
+    for (let val of obj.rectangles) {
+      this.writeRECTANGLE(val);
+    }
+  }
+
   request_readPolyFillArc() {
     var obj = {};
     this.moveCursor(1);
@@ -2606,6 +3495,18 @@ export class XTypeBuffer extends CursorBuffer {
     }
 
     return obj;
+  }
+
+  request_writePolyFillArc(obj) {
+    obj.arcs_len = obj.arcs.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    var arcs_length = -1;
+
+    for (let val of obj.arcs) {
+      this.writeARC(val);
+    }
   }
 
   request_readPutImage() {
@@ -2630,6 +3531,25 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writePutImage(obj) {
+    obj.data_len = obj.data.length;
+    this.writeCARD8(obj.format);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
+    this.writeINT16(obj.dst_x);
+    this.writeINT16(obj.dst_y);
+    this.writeCARD8(obj.left_pad);
+    this.writeCARD8(obj.depth);
+    this.moveCursor(2);
+    var data_length = -1;
+
+    for (let val of obj.data) {
+      this.writeBYTE(val);
+    }
+  }
+
   request_readGetImage() {
     var obj = {};
     obj.format = this.readCARD8();
@@ -2639,6 +3559,31 @@ export class XTypeBuffer extends CursorBuffer {
     obj.width = this.readCARD16();
     obj.height = this.readCARD16();
     obj.plane_mask = this.readCARD32();
+    return obj;
+  }
+
+  request_writeGetImage(obj) {
+    this.writeCARD8(obj.format);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
+    this.writeCARD32(obj.plane_mask);
+  }
+
+  reply_readGetImage() {
+    var obj = {};
+    obj.depth = this.readCARD8();
+    obj.visual = this.readVISUALID();
+    this.moveCursor(20);
+    var data_length = (obj.length * 4);
+    obj.data = [];
+
+    for (let i = 0; i < data_length; i++) {
+      obj.data.push(this.readBYTE());
+    }
+
     return obj;
   }
 
@@ -2671,6 +3616,20 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writePolyText8(obj) {
+    obj.items_len = obj.items.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+    var items_length = -1;
+
+    for (let val of obj.items) {
+      this.writeBYTE(val);
+    }
+  }
+
   request_readPolyText16() {
     var obj = {};
     this.moveCursor(1);
@@ -2686,6 +3645,20 @@ export class XTypeBuffer extends CursorBuffer {
     }
 
     return obj;
+  }
+
+  request_writePolyText16(obj) {
+    obj.items_len = obj.items.length;
+    this.moveCursor(1);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+    var items_length = -1;
+
+    for (let val of obj.items) {
+      this.writeBYTE(val);
+    }
   }
 
   request_readImageText8() {
@@ -2705,6 +3678,20 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeImageText8(obj) {
+    obj.string_len = obj.string.length;
+    this.writeBYTE(obj.string_len);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+    var string_length = obj.string_len;
+
+    for (let val of obj.string) {
+      this.writechar(val);
+    }
+  }
+
   request_readImageText16() {
     var obj = {};
     obj.string_len = this.readBYTE();
@@ -2722,6 +3709,20 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeImageText16(obj) {
+    obj.string_len = obj.string.length;
+    this.writeBYTE(obj.string_len);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeGCONTEXT(obj.gc);
+    this.writeINT16(obj.x);
+    this.writeINT16(obj.y);
+    var string_length = obj.string_len;
+
+    for (let val of obj.string) {
+      this.writeCHAR2B(val);
+    }
+  }
+
   request_readCreateColormap() {
     var obj = {};
     obj.alloc = this.readBYTE();
@@ -2731,11 +3732,23 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCreateColormap(obj) {
+    this.writeBYTE(obj.alloc);
+    this.writeCOLORMAP(obj.mid);
+    this.writeWINDOW(obj.window);
+    this.writeVISUALID(obj.visual);
+  }
+
   request_readFreeColormap() {
     var obj = {};
     this.moveCursor(1);
     obj.cmap = this.readCOLORMAP();
     return obj;
+  }
+
+  request_writeFreeColormap(obj) {
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
   }
 
   request_readCopyColormapAndFree() {
@@ -2746,11 +3759,22 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCopyColormapAndFree(obj) {
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.mid);
+    this.writeCOLORMAP(obj.src_cmap);
+  }
+
   request_readInstallColormap() {
     var obj = {};
     this.moveCursor(1);
     obj.cmap = this.readCOLORMAP();
     return obj;
+  }
+
+  request_writeInstallColormap(obj) {
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
   }
 
   request_readUninstallColormap() {
@@ -2760,10 +3784,35 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeUninstallColormap(obj) {
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
+  }
+
   request_readListInstalledColormaps() {
     var obj = {};
     this.moveCursor(1);
     obj.window = this.readWINDOW();
+    return obj;
+  }
+
+  request_writeListInstalledColormaps(obj) {
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+  }
+
+  reply_readListInstalledColormaps() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.cmaps_len = this.readCARD16();
+    this.moveCursor(22);
+    var cmaps_length = obj.cmaps_len;
+    obj.cmaps = [];
+
+    for (let i = 0; i < cmaps_length; i++) {
+      obj.cmaps.push(this.readCOLORMAP());
+    }
+
     return obj;
   }
 
@@ -2787,6 +3836,26 @@ export class XTypeBuffer extends CursorBuffer {
     obj.green = this.readCARD16();
     obj.blue = this.readCARD16();
     this.moveCursor(2);
+    return obj;
+  }
+
+  request_writeAllocColor(obj) {
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
+    this.writeCARD16(obj.red);
+    this.writeCARD16(obj.green);
+    this.writeCARD16(obj.blue);
+    this.moveCursor(2);
+  }
+
+  reply_readAllocColor() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.red = this.readCARD16();
+    obj.green = this.readCARD16();
+    obj.blue = this.readCARD16();
+    this.moveCursor(2);
+    obj.pixel = this.readCARD32();
     return obj;
   }
 
@@ -2815,6 +3884,32 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeAllocNamedColor(obj) {
+    obj.name_len = obj.name.length;
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
+    this.writeCARD16(obj.name_len);
+    this.moveCursor(2);
+    var name_length = obj.name_len;
+
+    for (let val of obj.name) {
+      this.writechar(val);
+    }
+  }
+
+  reply_readAllocNamedColor() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.pixel = this.readCARD32();
+    obj.exact_red = this.readCARD16();
+    obj.exact_green = this.readCARD16();
+    obj.exact_blue = this.readCARD16();
+    obj.visual_red = this.readCARD16();
+    obj.visual_green = this.readCARD16();
+    obj.visual_blue = this.readCARD16();
+    return obj;
+  }
+
   reply_writeAllocNamedColor(obj) {
     this.moveCursor(1);
     this.writeCARD32(obj.pixel);
@@ -2832,6 +3927,36 @@ export class XTypeBuffer extends CursorBuffer {
     obj.cmap = this.readCOLORMAP();
     obj.colors = this.readCARD16();
     obj.planes = this.readCARD16();
+    return obj;
+  }
+
+  request_writeAllocColorCells(obj) {
+    this.writeBOOL(obj.contiguous);
+    this.writeCOLORMAP(obj.cmap);
+    this.writeCARD16(obj.colors);
+    this.writeCARD16(obj.planes);
+  }
+
+  reply_readAllocColorCells() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.pixels_len = this.readCARD16();
+    obj.masks_len = this.readCARD16();
+    this.moveCursor(20);
+    var pixels_length = obj.pixels_len;
+    obj.pixels = [];
+
+    for (let i = 0; i < pixels_length; i++) {
+      obj.pixels.push(this.readCARD32());
+    }
+
+    var masks_length = obj.masks_len;
+    obj.masks = [];
+
+    for (let i = 0; i < masks_length; i++) {
+      obj.masks.push(this.readCARD32());
+    }
+
     return obj;
   }
 
@@ -2866,6 +3991,34 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeAllocColorPlanes(obj) {
+    this.writeBOOL(obj.contiguous);
+    this.writeCOLORMAP(obj.cmap);
+    this.writeCARD16(obj.colors);
+    this.writeCARD16(obj.reds);
+    this.writeCARD16(obj.greens);
+    this.writeCARD16(obj.blues);
+  }
+
+  reply_readAllocColorPlanes() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.pixels_len = this.readCARD16();
+    this.moveCursor(2);
+    obj.red_mask = this.readCARD32();
+    obj.green_mask = this.readCARD32();
+    obj.blue_mask = this.readCARD32();
+    this.moveCursor(8);
+    var pixels_length = obj.pixels_len;
+    obj.pixels = [];
+
+    for (let i = 0; i < pixels_length; i++) {
+      obj.pixels.push(this.readCARD32());
+    }
+
+    return obj;
+  }
+
   reply_writeAllocColorPlanes(obj) {
     obj.pixels_len = obj.pixels.length;
     this.moveCursor(1);
@@ -2897,6 +4050,18 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeFreeColors(obj) {
+    obj.pixels_len = obj.pixels.length;
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
+    this.writeCARD32(obj.plane_mask);
+    var pixels_length = -1;
+
+    for (let val of obj.pixels) {
+      this.writeCARD32(val);
+    }
+  }
+
   request_readStoreColors() {
     var obj = {};
     this.moveCursor(1);
@@ -2909,6 +4074,17 @@ export class XTypeBuffer extends CursorBuffer {
     }
 
     return obj;
+  }
+
+  request_writeStoreColors(obj) {
+    obj.items_len = obj.items.length;
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
+    var items_length = -1;
+
+    for (let val of obj.items) {
+      this.writeCOLORITEM(val);
+    }
   }
 
   request_readStoreNamedColor() {
@@ -2928,6 +4104,20 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeStoreNamedColor(obj) {
+    obj.name_len = obj.name.length;
+    this.writeCARD8(obj.flags);
+    this.writeCOLORMAP(obj.cmap);
+    this.writeCARD32(obj.pixel);
+    this.writeCARD16(obj.name_len);
+    this.moveCursor(2);
+    var name_length = obj.name_len;
+
+    for (let val of obj.name) {
+      this.writechar(val);
+    }
+  }
+
   request_readQueryColors() {
     var obj = {};
     this.moveCursor(1);
@@ -2937,6 +4127,32 @@ export class XTypeBuffer extends CursorBuffer {
 
     for (let i = 0; i < pixels_length; i++) {
       obj.pixels.push(this.readCARD32());
+    }
+
+    return obj;
+  }
+
+  request_writeQueryColors(obj) {
+    obj.pixels_len = obj.pixels.length;
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
+    var pixels_length = -1;
+
+    for (let val of obj.pixels) {
+      this.writeCARD32(val);
+    }
+  }
+
+  reply_readQueryColors() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.colors_len = this.readCARD16();
+    this.moveCursor(22);
+    var colors_length = obj.colors_len;
+    obj.colors = [];
+
+    for (let i = 0; i < colors_length; i++) {
+      obj.colors.push(this.readRGB());
     }
 
     return obj;
@@ -2970,6 +4186,31 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeLookupColor(obj) {
+    obj.name_len = obj.name.length;
+    this.moveCursor(1);
+    this.writeCOLORMAP(obj.cmap);
+    this.writeCARD16(obj.name_len);
+    this.moveCursor(2);
+    var name_length = obj.name_len;
+
+    for (let val of obj.name) {
+      this.writechar(val);
+    }
+  }
+
+  reply_readLookupColor() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.exact_red = this.readCARD16();
+    obj.exact_green = this.readCARD16();
+    obj.exact_blue = this.readCARD16();
+    obj.visual_red = this.readCARD16();
+    obj.visual_green = this.readCARD16();
+    obj.visual_blue = this.readCARD16();
+    return obj;
+  }
+
   reply_writeLookupColor(obj) {
     this.moveCursor(1);
     this.writeCARD16(obj.exact_red);
@@ -2997,6 +4238,21 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCreateCursor(obj) {
+    this.moveCursor(1);
+    this.writeCURSOR(obj.cid);
+    this.writePIXMAP(obj.source);
+    this.writePIXMAP(obj.mask);
+    this.writeCARD16(obj.fore_red);
+    this.writeCARD16(obj.fore_green);
+    this.writeCARD16(obj.fore_blue);
+    this.writeCARD16(obj.back_red);
+    this.writeCARD16(obj.back_green);
+    this.writeCARD16(obj.back_blue);
+    this.writeCARD16(obj.x);
+    this.writeCARD16(obj.y);
+  }
+
   request_readCreateGlyphCursor() {
     var obj = {};
     this.moveCursor(1);
@@ -3014,11 +4270,31 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeCreateGlyphCursor(obj) {
+    this.moveCursor(1);
+    this.writeCURSOR(obj.cid);
+    this.writeFONT(obj.source_font);
+    this.writeFONT(obj.mask_font);
+    this.writeCARD16(obj.source_char);
+    this.writeCARD16(obj.mask_char);
+    this.writeCARD16(obj.fore_red);
+    this.writeCARD16(obj.fore_green);
+    this.writeCARD16(obj.fore_blue);
+    this.writeCARD16(obj.back_red);
+    this.writeCARD16(obj.back_green);
+    this.writeCARD16(obj.back_blue);
+  }
+
   request_readFreeCursor() {
     var obj = {};
     this.moveCursor(1);
     obj.cursor = this.readCURSOR();
     return obj;
+  }
+
+  request_writeFreeCursor(obj) {
+    this.moveCursor(1);
+    this.writeCURSOR(obj.cursor);
   }
 
   request_readRecolorCursor() {
@@ -3034,10 +4310,36 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeRecolorCursor(obj) {
+    this.moveCursor(1);
+    this.writeCURSOR(obj.cursor);
+    this.writeCARD16(obj.fore_red);
+    this.writeCARD16(obj.fore_green);
+    this.writeCARD16(obj.fore_blue);
+    this.writeCARD16(obj.back_red);
+    this.writeCARD16(obj.back_green);
+    this.writeCARD16(obj.back_blue);
+  }
+
   request_readQueryBestSize() {
     var obj = {};
     obj.class = this.readCARD8();
     obj.drawable = this.readDRAWABLE();
+    obj.width = this.readCARD16();
+    obj.height = this.readCARD16();
+    return obj;
+  }
+
+  request_writeQueryBestSize(obj) {
+    this.writeCARD8(obj.class);
+    this.writeDRAWABLE(obj.drawable);
+    this.writeCARD16(obj.width);
+    this.writeCARD16(obj.height);
+  }
+
+  reply_readQueryBestSize() {
+    var obj = {};
+    this.moveCursor(1);
     obj.width = this.readCARD16();
     obj.height = this.readCARD16();
     return obj;
@@ -3064,6 +4366,28 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeQueryExtension(obj) {
+    obj.name_len = obj.name.length;
+    this.moveCursor(1);
+    this.writeCARD16(obj.name_len);
+    this.moveCursor(2);
+    var name_length = obj.name_len;
+
+    for (let val of obj.name) {
+      this.writechar(val);
+    }
+  }
+
+  reply_readQueryExtension() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.present = this.readBOOL();
+    obj.major_opcode = this.readCARD8();
+    obj.first_event = this.readCARD8();
+    obj.first_error = this.readCARD8();
+    return obj;
+  }
+
   reply_writeQueryExtension(obj) {
     this.moveCursor(1);
     this.writeBOOL(obj.present);
@@ -3074,6 +4398,22 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_readListExtensions() {
     return {};
+  }
+
+  request_writeListExtensions(obj) {}
+
+  reply_readListExtensions() {
+    var obj = {};
+    obj.names_len = this.readCARD8();
+    this.moveCursor(24);
+    var names_length = obj.names_len;
+    obj.names = [];
+
+    for (let i = 0; i < names_length; i++) {
+      obj.names.push(this.readSTR());
+    }
+
+    return obj;
   }
 
   reply_writeListExtensions(obj) {
@@ -3103,11 +4443,44 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeChangeKeyboardMapping(obj) {
+    obj.keysyms_len = obj.keysyms.length;
+    this.writeCARD8(obj.keycode_count);
+    this.writeKEYCODE(obj.first_keycode);
+    this.writeCARD8(obj.keysyms_per_keycode);
+    this.moveCursor(2);
+    var keysyms_length = (obj.keycode_count * obj.keysyms_per_keycode);
+
+    for (let val of obj.keysyms) {
+      this.writeKEYSYM(val);
+    }
+  }
+
   request_readGetKeyboardMapping() {
     var obj = {};
     this.moveCursor(1);
     obj.first_keycode = this.readKEYCODE();
     obj.count = this.readCARD8();
+    return obj;
+  }
+
+  request_writeGetKeyboardMapping(obj) {
+    this.moveCursor(1);
+    this.writeKEYCODE(obj.first_keycode);
+    this.writeCARD8(obj.count);
+  }
+
+  reply_readGetKeyboardMapping() {
+    var obj = {};
+    obj.keysyms_per_keycode = this.readBYTE();
+    this.moveCursor(24);
+    var keysyms_length = obj.length;
+    obj.keysyms = [];
+
+    for (let i = 0; i < keysyms_length; i++) {
+      obj.keysyms.push(this.readKEYSYM());
+    }
+
     return obj;
   }
 
@@ -3128,8 +4501,33 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeChangeKeyboardControl(obj) {
+    this.moveCursor(1);
+  }
+
   request_readGetKeyboardControl() {
     return {};
+  }
+
+  request_writeGetKeyboardControl(obj) {}
+
+  reply_readGetKeyboardControl() {
+    var obj = {};
+    obj.global_auto_repeat = this.readBYTE();
+    obj.led_mask = this.readCARD32();
+    obj.key_click_percent = this.readCARD8();
+    obj.bell_percent = this.readCARD8();
+    obj.bell_pitch = this.readCARD16();
+    obj.bell_duration = this.readCARD16();
+    this.moveCursor(2);
+    var auto_repeats_length = 32;
+    obj.auto_repeats = [];
+
+    for (let i = 0; i < auto_repeats_length; i++) {
+      obj.auto_repeats.push(this.readCARD8());
+    }
+
+    return obj;
   }
 
   reply_writeGetKeyboardControl(obj) {
@@ -3154,6 +4552,10 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeBell(obj) {
+    this.writeINT8(obj.percent);
+  }
+
   request_readChangePointerControl() {
     var obj = {};
     this.moveCursor(1);
@@ -3165,8 +4567,29 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeChangePointerControl(obj) {
+    this.moveCursor(1);
+    this.writeINT16(obj.acceleration_numerator);
+    this.writeINT16(obj.acceleration_denominator);
+    this.writeINT16(obj.threshold);
+    this.writeBOOL(obj.do_acceleration);
+    this.writeBOOL(obj.do_threshold);
+  }
+
   request_readGetPointerControl() {
     return {};
+  }
+
+  request_writeGetPointerControl(obj) {}
+
+  reply_readGetPointerControl() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.acceleration_numerator = this.readCARD16();
+    obj.acceleration_denominator = this.readCARD16();
+    obj.threshold = this.readCARD16();
+    this.moveCursor(18);
+    return obj;
   }
 
   reply_writeGetPointerControl(obj) {
@@ -3187,8 +4610,29 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetScreenSaver(obj) {
+    this.moveCursor(1);
+    this.writeINT16(obj.timeout);
+    this.writeINT16(obj.interval);
+    this.writeCARD8(obj.prefer_blanking);
+    this.writeCARD8(obj.allow_exposures);
+  }
+
   request_readGetScreenSaver() {
     return {};
+  }
+
+  request_writeGetScreenSaver(obj) {}
+
+  reply_readGetScreenSaver() {
+    var obj = {};
+    this.moveCursor(1);
+    obj.timeout = this.readCARD16();
+    obj.interval = this.readCARD16();
+    obj.prefer_blanking = this.readBYTE();
+    obj.allow_exposures = this.readBYTE();
+    this.moveCursor(18);
+    return obj;
   }
 
   reply_writeGetScreenSaver(obj) {
@@ -3216,8 +4660,38 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeChangeHosts(obj) {
+    obj.address_len = obj.address.length;
+    this.writeCARD8(obj.mode);
+    this.writeCARD8(obj.family);
+    this.moveCursor(1);
+    this.writeCARD16(obj.address_len);
+    var address_length = obj.address_len;
+
+    for (let val of obj.address) {
+      this.writeBYTE(val);
+    }
+  }
+
   request_readListHosts() {
     return {};
+  }
+
+  request_writeListHosts(obj) {}
+
+  reply_readListHosts() {
+    var obj = {};
+    obj.mode = this.readBYTE();
+    obj.hosts_len = this.readCARD16();
+    this.moveCursor(22);
+    var hosts_length = obj.hosts_len;
+    obj.hosts = [];
+
+    for (let i = 0; i < hosts_length; i++) {
+      obj.hosts.push(this.readHOST());
+    }
+
+    return obj;
   }
 
   reply_writeListHosts(obj) {
@@ -3238,10 +4712,18 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetAccessControl(obj) {
+    this.writeCARD8(obj.mode);
+  }
+
   request_readSetCloseDownMode() {
     var obj = {};
     obj.mode = this.readCARD8();
     return obj;
+  }
+
+  request_writeSetCloseDownMode(obj) {
+    this.writeCARD8(obj.mode);
   }
 
   request_readKillClient() {
@@ -3249,6 +4731,11 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.resource = this.readCARD32();
     return obj;
+  }
+
+  request_writeKillClient(obj) {
+    this.moveCursor(1);
+    this.writeCARD32(obj.resource);
   }
 
   request_readRotateProperties() {
@@ -3267,10 +4754,27 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeRotateProperties(obj) {
+    obj.atoms_len = obj.atoms.length;
+    this.moveCursor(1);
+    this.writeWINDOW(obj.window);
+    this.writeCARD16(obj.atoms_len);
+    this.writeINT16(obj.delta);
+    var atoms_length = obj.atoms_len;
+
+    for (let val of obj.atoms) {
+      this.writeATOM(val);
+    }
+  }
+
   request_readForceScreenSaver() {
     var obj = {};
     obj.mode = this.readCARD8();
     return obj;
+  }
+
+  request_writeForceScreenSaver(obj) {
+    this.writeCARD8(obj.mode);
   }
 
   request_readSetPointerMapping() {
@@ -3286,12 +4790,44 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetPointerMapping(obj) {
+    obj.map_len = obj.map.length;
+    this.writeCARD8(obj.map_len);
+    var map_length = obj.map_len;
+
+    for (let val of obj.map) {
+      this.writeCARD8(val);
+    }
+  }
+
+  reply_readSetPointerMapping() {
+    var obj = {};
+    obj.status = this.readBYTE();
+    return obj;
+  }
+
   reply_writeSetPointerMapping(obj) {
     this.writeBYTE(obj.status);
   }
 
   request_readGetPointerMapping() {
     return {};
+  }
+
+  request_writeGetPointerMapping(obj) {}
+
+  reply_readGetPointerMapping() {
+    var obj = {};
+    obj.map_len = this.readCARD8();
+    this.moveCursor(24);
+    var map_length = obj.map_len;
+    obj.map = [];
+
+    for (let i = 0; i < map_length; i++) {
+      obj.map.push(this.readCARD8());
+    }
+
+    return obj;
   }
 
   reply_writeGetPointerMapping(obj) {
@@ -3318,12 +4854,44 @@ export class XTypeBuffer extends CursorBuffer {
     return obj;
   }
 
+  request_writeSetModifierMapping(obj) {
+    obj.keycodes_len = obj.keycodes.length;
+    this.writeCARD8(obj.keycodes_per_modifier);
+    var keycodes_length = (obj.keycodes_per_modifier * 8);
+
+    for (let val of obj.keycodes) {
+      this.writeKEYCODE(val);
+    }
+  }
+
+  reply_readSetModifierMapping() {
+    var obj = {};
+    obj.status = this.readBYTE();
+    return obj;
+  }
+
   reply_writeSetModifierMapping(obj) {
     this.writeBYTE(obj.status);
   }
 
   request_readGetModifierMapping() {
     return {};
+  }
+
+  request_writeGetModifierMapping(obj) {}
+
+  reply_readGetModifierMapping() {
+    var obj = {};
+    obj.keycodes_per_modifier = this.readCARD8();
+    this.moveCursor(24);
+    var keycodes_length = (obj.keycodes_per_modifier * 8);
+    obj.keycodes = [];
+
+    for (let i = 0; i < keycodes_length; i++) {
+      obj.keycodes.push(this.readKEYCODE());
+    }
+
+    return obj;
   }
 
   reply_writeGetModifierMapping(obj) {
@@ -3340,6 +4908,8 @@ export class XTypeBuffer extends CursorBuffer {
   request_readNoOperation() {
     return {};
   }
+
+  request_writeNoOperation(obj) {}
 
   static request_opcodes = new Map([
     [1, "CreateWindow"],

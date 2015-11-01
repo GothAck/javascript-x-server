@@ -12,15 +12,15 @@ function setOpt(obj, name, value) {
 }
 
 function parseOp(root, member, invert) {
+  // FIXME: Fix up case where this returns -1 (read from request.length)
   if (!root) return b.literal(-1);
   switch (root.name()) {
     case 'op':
       let children = root.find('*');
       return b.parenthesizedExpression(b.binaryExpression.apply(
           null,
-          [root.attr('op').value()].concat(
-          children.map((c) => parseOp(c, member, invert)))));
-      console.log(bin);
+          [root.attr('op').value()]
+            .concat(children.map((c) => parseOp(c, member, invert)))));
       return bin;
     case 'value':
       return b.literal(parseInt(root.text()));
@@ -35,7 +35,7 @@ function parseOp(root, member, invert) {
   }
 }
 
-module.exports = function parseBody(parent) {
+module.exports = function parseBody(parent, klasses) {
   let children = parent.find('*');
   let read_stmts = [];
   
@@ -183,11 +183,126 @@ module.exports = function parseBody(parent) {
           parseOp(child.get('*'), 'obj'))));
         break;
       case 'valueparam':
-        //TODO: depends on enum & op
-        console.warn(`TODO: ${child_tag}`);
+        if (!(
+          klasses.getClass('XTypeBuffer') &&
+          klasses.getClass('XTypeBuffer').enums
+        )) {
+          throw new Error(
+            "Shouldn't be able to get to valueparam before enums are parsed");
+        }
+        let enum_map = klasses.getClass('XTypeBuffer').enums;
+        let value_mask_type = child.attr('value-mask-type').value();
+        let value_mask_name = child.attr('value-mask-name').value();
+        let value_list_name = child.attr('value-list-name').value();
+        if (! enum_map.has(value_list_name)) {
+          console.error(`FIXME: The stupid cases for ${value_list_name}`);
+          continue;
+        }
+        let enum_class_name = enum_map.get(value_list_name).name;
+
+        read_stmts.push(b.expressionStatement(b.assignmentExpression(
+          '=',
+          b.memberExpression(
+            b.identifier('obj'), b.identifier(value_mask_name)),
+          b.callExpression(b.memberExpression(
+            b.parenthesizedExpression(b.newExpression(
+              b.identifier(enum_class_name),
+              [])),
+            b.identifier('decode')),
+            [b.callExpression(
+              b.memberExpression(
+                b.identifier('this'),
+                b.identifier(`read${value_mask_type}`)),
+              [])]
+          ))));
+
+        write_stmts.push(b.variableDeclaration(
+          'var',
+          [b.variableDeclarator(
+            b.identifier('value'),
+            b.memberExpression(b.identifier('obj'), b.identifier('value'))
+            )]));
+        write_stmts.push(b.variableDeclaration(
+          'var',
+          [b.variableDeclarator(
+            b.identifier('value_enum'),
+            b.newExpression(
+              b.identifier(enum_class_name),
+              [b.callExpression(b.memberExpression(
+                b.identifier('value'), b.identifier('keys')), [])]))]));
+        write_stmts.push(b.callStatement(
+          b.memberExpression(
+            b.identifier('this'), b.identifier(`write${value_mask_type}`)),
+          [b.callExpression(b.memberExpression(
+            b.identifier('value_enum'),
+            b.identifier('encode')), [])]));
+
+        if (value_mask_type === 'CARD16') {
+          read_stmts.push(
+            b.expressionStatement(b.callExpression(
+              b.memberExpression(
+                b.identifier('this'),
+                b.identifier('moveCursor')),
+              [b.literal(2)])));
+          write_stmts.push(
+            b.expressionStatement(b.callExpression(
+              b.memberExpression(
+                b.identifier('this'),
+                b.identifier('moveCursor')),
+              [b.literal(2)])));
+        }
+
+        read_stmts.push(
+          b.variableDeclaration(
+            'var',
+            [b.variableDeclarator(
+              b.identifier('value'),
+              b.newExpression(b.identifier('Map'), []))]));
+
+        read_stmts.push(b.expressionStatement(
+          b.assignmentExpression(
+            '=',
+            b.memberExpression(
+              b.identifier('obj'), b.identifier('value')),
+            b.identifier('value'))));
+
+        read_stmts.push(b.forOfStatement(
+          b.variableDeclaration(
+            'let',
+            [b.identifier('field')]),
+          b.memberExpression(
+            b.identifier('obj'), b.identifier(value_mask_name)),
+          b.blockStatement([
+            b.callStatement(
+              b.memberExpression(
+                b.identifier('value'), b.identifier('set')),
+              [
+                b.identifier('field'),
+                b.callExpression(
+                  b.memberExpression(
+                    b.identifier('this'), b.identifier('readCARD32')),
+                  [])
+              ])
+            ])));
+
+        write_stmts.push(b.forOfStatement(
+          b.variableDeclaration(
+            'let',
+            [b.identifier('field')]),
+          b.identifier('value_enum'),
+          b.blockStatement([
+            b.callStatement(
+              b.memberExpression(
+                b.identifier('this'), b.identifier('writeCARD32')),
+              [b.callExpression(
+                b.memberExpression(
+                  b.identifier('value'), b.identifier('get')),
+                [b.identifier('field')])])
+            ])));
       case 'reply':
-      case 'doc':
         // Don't handle replies here, just ignore them
+      case 'doc':
+        // Don't handle docs
         break;
       default:
         throw new Error(`Unknown tag ${child_tag}`);

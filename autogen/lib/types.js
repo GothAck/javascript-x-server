@@ -2,7 +2,7 @@
 var b = require('ast-types').builders;
 var parseBody = require('./statement_body');
 
-module.exports = function genTypes(doc, klass) {
+module.exports = function genTypes(doc, klass, klasses) {
   var types = new Map([
     ['BOOL', 'UInt8'],
     ['BYTE', 'UInt8'],
@@ -49,7 +49,7 @@ module.exports = function genTypes(doc, klass) {
 
   for (let struct of doc.find('struct')) {
     let name = struct.attr('name').value();
-    let [read_stmts, write_stmts] = parseBody(struct);
+    let [read_stmts, write_stmts] = parseBody(struct, klasses);
     klass.addMethod(`read${name}`, [], read_stmts);
     klass.addMethod(`write${name}`, [b.identifier('obj')], write_stmts);
   }

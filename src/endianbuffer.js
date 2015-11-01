@@ -156,12 +156,11 @@ export class CursorBuffer extends EndianBuffer {
   });
 })(CursorBuffer);
 
-type EnumIterable = Array<number> | Set<number>;
-
 class Enum extends Set {
   static _values: Map<number, string> = new Map();
+  _decoded: boolean = false;
 
-  constructor(values?: ?EnumIterable) {
+  constructor(values?: ?Iterable<Map | Set | Array>) {
     super();
     if (values) {
       for (val of values) {
@@ -179,12 +178,12 @@ class Enum extends Set {
     return out;
   }
 
-  decode(value: number): boolean {
+  decode(value: number): self {
     if (this._values.has(value)) {
       this.add(this._values.get(value));
-      return true;
+      this._decoded = true;
     }
-    return false;
+    return this;
   }
 
   encode(): ?number {
@@ -210,15 +209,16 @@ export class ValueEnum extends Enum {}
 export class BitEnum extends Enum {
   static _bits: Map<number, string> = new Map()
 
-  decode(value: number): boolean {
-    if (super.decode(value)) {
-      return true;
-    }
-    for (let [bit, bit_value] of this._bits) {
-      if (value & Math.pow(bit, 2)) {
-        this.add(bit_value);
+  decode(value: number): self {
+    super.decode(value)
+    if (!this._decoded) {
+      for (let [bit, bit_value] of this._bits) {
+        if (value & Math.pow(bit, 2)) {
+          this.add(bit_value);
+        }
       }
     }
+    return this;
   }
 
   encode(): ?number {

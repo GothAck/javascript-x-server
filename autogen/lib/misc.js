@@ -102,12 +102,20 @@ class Class {
   }
 
   addProperty(name, value, is_static) {
-    value = _convertValToAST(value);
     this.body.push(b.classProperty(
       b.identifier(name),
-      value,
+      _convertValToAST(value),
       null,
       is_static));
+    // Add the property here so we can reference it later
+    // (e.g. enums from statement_body)
+    this[name] = value;
+    if (value instanceof Map) {
+      let inv = this[`${name}_inv`] = new Map();
+      for (let [k, v] of value) {
+        inv.set(v, k);
+      }
+    }
   }
 
   gen() {

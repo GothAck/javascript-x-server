@@ -12,8 +12,9 @@ function setOpt(obj, name, value) {
 }
 
 function parseOp(root, member, invert) {
-  // FIXME: Fix up case where this returns -1 (read from request.length)
-  if (!root) return b.literal(-1);
+  if (!root) {
+    return null;
+  }
   switch (root.name()) {
     case 'op':
       let children = root.find('*');
@@ -104,12 +105,13 @@ module.exports = function parseBody(parent, klasses) {
           let child_type = child.attr('type').value();
 
           let fieldref = parseOp(child.get('*'), 'obj');
-          // let fieldref = child.get('fieldref').text();
-          read_stmts.push(b.variableDeclaration(
-            'var',
-            [b.variableDeclarator(
-              b.identifier(`${child_name}_length`),
-              fieldref)]));
+          if (fieldref !== null) {
+            read_stmts.push(b.variableDeclaration(
+              'var',
+              [b.variableDeclarator(
+                b.identifier(`${child_name}_length`),
+                fieldref)]));
+          }
           write_stmts.push(b.variableDeclaration(
             'var',
             [b.variableDeclarator(
@@ -119,33 +121,45 @@ module.exports = function parseBody(parent, klasses) {
             '=',
             b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
             b.arrayExpression([]))));
-          read_stmts.push(
-            b.forStatement(
-              b.variableDeclaration(
-                'let',
-                [b.variableDeclarator(
-                    b.identifier('i'),
-                    b.literal(0))]),
-              b.binaryExpression(
-                '<',
-                b.identifier('i'),
-                b.identifier(`${child_name}_length`)),
-              b.updateExpression(
-                '++',
-                b.identifier('i'),
-                false),
-              b.blockStatement([
-                b.expressionStatement(b.callExpression(
+
+          let read_stmt = b.expressionStatement(b.callExpression(
+            b.memberExpression(
+              b.memberExpression(
+                b.identifier('obj'), b.identifier(child_name)),
+              b.identifier('push')),
+            [b.callExpression(
+              b.memberExpression(
+                b.thisExpression(), b.identifier(`read${child_type}`)),
+              [])]));
+          if (fieldref === null) {
+            read_stmts.push(
+              b.whileStatement(
+                b.binaryExpression(
+                  '<',
                   b.memberExpression(
-                    b.memberExpression(
-                      b.identifier('obj'), b.identifier(child_name)),
-                    b.identifier('push')),
-                  [b.callExpression(
-                    b.memberExpression(
-                      b.identifier('this'), b.identifier(`read${child_type}`)),
-                    [])])),
-              ])
-          ));
+                    b.thisExpression(), b.identifier('cursor')),
+                  b.memberExpression(
+                    b.thisExpression(), b.identifier('length'))),
+                b.blockStatement([read_stmt])));
+          } else {
+            read_stmts.push(
+              b.forStatement(
+                b.variableDeclaration(
+                  'let',
+                  [b.variableDeclarator(
+                      b.identifier('i'),
+                      b.literal(0))]),
+                b.binaryExpression(
+                  '<',
+                  b.identifier('i'),
+                  b.identifier(`${child_name}_length`)),
+                b.updateExpression(
+                  '++',
+                  b.identifier('i'),
+                  false),
+                b.blockStatement([read_stmt])
+            ));
+          }
           write_stmts.push(
             b.forOfStatement(
               b.variableDeclaration(

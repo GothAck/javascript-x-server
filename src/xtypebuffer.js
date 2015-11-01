@@ -374,6 +374,7 @@ export class XTypeBuffer extends CursorBuffer {
   readSetupRequest() {
     var obj = {};
     obj.byte_order = this.readCARD8();
+    this.endian = obj.byte_order !== 66;
     this.moveCursor(1);
     obj.protocol_major_version = this.readCARD16();
     obj.protocol_minor_version = this.readCARD16();
@@ -2814,10 +2815,9 @@ export class XTypeBuffer extends CursorBuffer {
     var obj = {};
     obj.odd_length = this.readBOOL();
     obj.font = this.readFONTABLE();
-    var string_length = -1;
     obj.string = [];
 
-    for (let i = 0; i < string_length; i++) {
+    while (this.cursor < this.length) {
       obj.string.push(this.readCHAR2B());
     }
 
@@ -2828,7 +2828,7 @@ export class XTypeBuffer extends CursorBuffer {
     obj.string_len = obj.string.length;
     obj.odd_length = (obj.string_len & 1);
     this.writeFONTABLE(obj.font);
-    var string_length = -1;
+    var string_length;
 
     for (let val of obj.string) {
       this.writeCHAR2B(val);
@@ -3102,6 +3102,14 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.cid = this.readGCONTEXT();
     obj.drawable = this.readDRAWABLE();
+    obj.value_mask = (new GCEnum()).decode(this.readCARD32());
+    var value = new Map();
+    obj.value = value;
+
+    for (let field of obj.value_mask) {
+      value.set(field, this.readCARD32());
+    }
+
     return obj;
   }
 
@@ -3109,18 +3117,40 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     this.writeGCONTEXT(obj.cid);
     this.writeDRAWABLE(obj.drawable);
+    var value = obj.value;
+    var value_enum = new GCEnum(value.keys());
+    this.writeCARD32(value_enum.encode());
+
+    for (let field of value_enum) {
+      this.writeCARD32(value.get(field));
+    }
   }
 
   request_readChangeGC() {
     var obj = {};
     this.moveCursor(1);
     obj.gc = this.readGCONTEXT();
+    obj.value_mask = (new GCEnum()).decode(this.readCARD32());
+    var value = new Map();
+    obj.value = value;
+
+    for (let field of obj.value_mask) {
+      value.set(field, this.readCARD32());
+    }
+
     return obj;
   }
 
   request_writeChangeGC(obj) {
     this.moveCursor(1);
     this.writeGCONTEXT(obj.gc);
+    var value = obj.value;
+    var value_enum = new GCEnum(value.keys());
+    this.writeCARD32(value_enum.encode());
+
+    for (let field of value_enum) {
+      this.writeCARD32(value.get(field));
+    }
   }
 
   request_readCopyGC() {
@@ -3174,10 +3204,9 @@ export class XTypeBuffer extends CursorBuffer {
     obj.gc = this.readGCONTEXT();
     obj.clip_x_origin = this.readINT16();
     obj.clip_y_origin = this.readINT16();
-    var rectangles_length = -1;
     obj.rectangles = [];
 
-    for (let i = 0; i < rectangles_length; i++) {
+    while (this.cursor < this.length) {
       obj.rectangles.push(this.readRECTANGLE());
     }
 
@@ -3190,7 +3219,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.clip_x_origin);
     this.writeINT16(obj.clip_y_origin);
-    var rectangles_length = -1;
+    var rectangles_length;
 
     for (let val of obj.rectangles) {
       this.writeRECTANGLE(val);
@@ -3292,10 +3321,9 @@ export class XTypeBuffer extends CursorBuffer {
     obj.coordinate_mode = this.readBYTE();
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
-    var points_length = -1;
     obj.points = [];
 
-    for (let i = 0; i < points_length; i++) {
+    while (this.cursor < this.length) {
       obj.points.push(this.readPOINT());
     }
 
@@ -3307,7 +3335,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeBYTE(obj.coordinate_mode);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
-    var points_length = -1;
+    var points_length;
 
     for (let val of obj.points) {
       this.writePOINT(val);
@@ -3319,10 +3347,9 @@ export class XTypeBuffer extends CursorBuffer {
     obj.coordinate_mode = this.readBYTE();
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
-    var points_length = -1;
     obj.points = [];
 
-    for (let i = 0; i < points_length; i++) {
+    while (this.cursor < this.length) {
       obj.points.push(this.readPOINT());
     }
 
@@ -3334,7 +3361,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeBYTE(obj.coordinate_mode);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
-    var points_length = -1;
+    var points_length;
 
     for (let val of obj.points) {
       this.writePOINT(val);
@@ -3346,10 +3373,9 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
-    var segments_length = -1;
     obj.segments = [];
 
-    for (let i = 0; i < segments_length; i++) {
+    while (this.cursor < this.length) {
       obj.segments.push(this.readSEGMENT());
     }
 
@@ -3361,7 +3387,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
-    var segments_length = -1;
+    var segments_length;
 
     for (let val of obj.segments) {
       this.writeSEGMENT(val);
@@ -3373,10 +3399,9 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
-    var rectangles_length = -1;
     obj.rectangles = [];
 
-    for (let i = 0; i < rectangles_length; i++) {
+    while (this.cursor < this.length) {
       obj.rectangles.push(this.readRECTANGLE());
     }
 
@@ -3388,7 +3413,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
-    var rectangles_length = -1;
+    var rectangles_length;
 
     for (let val of obj.rectangles) {
       this.writeRECTANGLE(val);
@@ -3400,10 +3425,9 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
-    var arcs_length = -1;
     obj.arcs = [];
 
-    for (let i = 0; i < arcs_length; i++) {
+    while (this.cursor < this.length) {
       obj.arcs.push(this.readARC());
     }
 
@@ -3415,7 +3439,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
-    var arcs_length = -1;
+    var arcs_length;
 
     for (let val of obj.arcs) {
       this.writeARC(val);
@@ -3430,10 +3454,9 @@ export class XTypeBuffer extends CursorBuffer {
     obj.shape = this.readCARD8();
     obj.coordinate_mode = this.readCARD8();
     this.moveCursor(2);
-    var points_length = -1;
     obj.points = [];
 
-    for (let i = 0; i < points_length; i++) {
+    while (this.cursor < this.length) {
       obj.points.push(this.readPOINT());
     }
 
@@ -3448,7 +3471,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeCARD8(obj.shape);
     this.writeCARD8(obj.coordinate_mode);
     this.moveCursor(2);
-    var points_length = -1;
+    var points_length;
 
     for (let val of obj.points) {
       this.writePOINT(val);
@@ -3460,10 +3483,9 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
-    var rectangles_length = -1;
     obj.rectangles = [];
 
-    for (let i = 0; i < rectangles_length; i++) {
+    while (this.cursor < this.length) {
       obj.rectangles.push(this.readRECTANGLE());
     }
 
@@ -3475,7 +3497,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
-    var rectangles_length = -1;
+    var rectangles_length;
 
     for (let val of obj.rectangles) {
       this.writeRECTANGLE(val);
@@ -3487,10 +3509,9 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
-    var arcs_length = -1;
     obj.arcs = [];
 
-    for (let i = 0; i < arcs_length; i++) {
+    while (this.cursor < this.length) {
       obj.arcs.push(this.readARC());
     }
 
@@ -3502,7 +3523,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
-    var arcs_length = -1;
+    var arcs_length;
 
     for (let val of obj.arcs) {
       this.writeARC(val);
@@ -3521,10 +3542,9 @@ export class XTypeBuffer extends CursorBuffer {
     obj.left_pad = this.readCARD8();
     obj.depth = this.readCARD8();
     this.moveCursor(2);
-    var data_length = -1;
     obj.data = [];
 
-    for (let i = 0; i < data_length; i++) {
+    while (this.cursor < this.length) {
       obj.data.push(this.readBYTE());
     }
 
@@ -3543,7 +3563,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeCARD8(obj.left_pad);
     this.writeCARD8(obj.depth);
     this.moveCursor(2);
-    var data_length = -1;
+    var data_length;
 
     for (let val of obj.data) {
       this.writeBYTE(val);
@@ -3606,10 +3626,9 @@ export class XTypeBuffer extends CursorBuffer {
     obj.gc = this.readGCONTEXT();
     obj.x = this.readINT16();
     obj.y = this.readINT16();
-    var items_length = -1;
     obj.items = [];
 
-    for (let i = 0; i < items_length; i++) {
+    while (this.cursor < this.length) {
       obj.items.push(this.readBYTE());
     }
 
@@ -3623,7 +3642,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.x);
     this.writeINT16(obj.y);
-    var items_length = -1;
+    var items_length;
 
     for (let val of obj.items) {
       this.writeBYTE(val);
@@ -3637,10 +3656,9 @@ export class XTypeBuffer extends CursorBuffer {
     obj.gc = this.readGCONTEXT();
     obj.x = this.readINT16();
     obj.y = this.readINT16();
-    var items_length = -1;
     obj.items = [];
 
-    for (let i = 0; i < items_length; i++) {
+    while (this.cursor < this.length) {
       obj.items.push(this.readBYTE());
     }
 
@@ -3654,7 +3672,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.x);
     this.writeINT16(obj.y);
-    var items_length = -1;
+    var items_length;
 
     for (let val of obj.items) {
       this.writeBYTE(val);
@@ -4040,10 +4058,9 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     obj.cmap = this.readCOLORMAP();
     obj.plane_mask = this.readCARD32();
-    var pixels_length = -1;
     obj.pixels = [];
 
-    for (let i = 0; i < pixels_length; i++) {
+    while (this.cursor < this.length) {
       obj.pixels.push(this.readCARD32());
     }
 
@@ -4055,7 +4072,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(1);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD32(obj.plane_mask);
-    var pixels_length = -1;
+    var pixels_length;
 
     for (let val of obj.pixels) {
       this.writeCARD32(val);
@@ -4066,10 +4083,9 @@ export class XTypeBuffer extends CursorBuffer {
     var obj = {};
     this.moveCursor(1);
     obj.cmap = this.readCOLORMAP();
-    var items_length = -1;
     obj.items = [];
 
-    for (let i = 0; i < items_length; i++) {
+    while (this.cursor < this.length) {
       obj.items.push(this.readCOLORITEM());
     }
 
@@ -4080,7 +4096,7 @@ export class XTypeBuffer extends CursorBuffer {
     obj.items_len = obj.items.length;
     this.moveCursor(1);
     this.writeCOLORMAP(obj.cmap);
-    var items_length = -1;
+    var items_length;
 
     for (let val of obj.items) {
       this.writeCOLORITEM(val);
@@ -4122,10 +4138,9 @@ export class XTypeBuffer extends CursorBuffer {
     var obj = {};
     this.moveCursor(1);
     obj.cmap = this.readCOLORMAP();
-    var pixels_length = -1;
     obj.pixels = [];
 
-    for (let i = 0; i < pixels_length; i++) {
+    while (this.cursor < this.length) {
       obj.pixels.push(this.readCARD32());
     }
 
@@ -4136,7 +4151,7 @@ export class XTypeBuffer extends CursorBuffer {
     obj.pixels_len = obj.pixels.length;
     this.moveCursor(1);
     this.writeCOLORMAP(obj.cmap);
-    var pixels_length = -1;
+    var pixels_length;
 
     for (let val of obj.pixels) {
       this.writeCARD32(val);
@@ -4498,11 +4513,26 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeKeyboardControl() {
     var obj = {};
     this.moveCursor(1);
+    obj.value_mask = (new KBEnum()).decode(this.readCARD32());
+    var value = new Map();
+    obj.value = value;
+
+    for (let field of obj.value_mask) {
+      value.set(field, this.readCARD32());
+    }
+
     return obj;
   }
 
   request_writeChangeKeyboardControl(obj) {
     this.moveCursor(1);
+    var value = obj.value;
+    var value_enum = new KBEnum(value.keys());
+    this.writeCARD32(value_enum.encode());
+
+    for (let field of value_enum) {
+      this.writeCARD32(value.get(field));
+    }
   }
 
   request_readGetKeyboardControl() {

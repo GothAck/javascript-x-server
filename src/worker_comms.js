@@ -2,6 +2,12 @@ import * as x_protocol from './x_protocol';
 import * as x_protocol_new from './x_protocol_new';
 import * as EndianBuffer from './endianbuffer';
 
+var XProtocolServer = x_protocol.XProtocolServer;
+
+if (1) {
+  XProtocolServer = x_protocol_new.XProtocolServer;
+}
+
 var string_split = /(\w+)(\s\w+){0,1}$/
 self.console = console;
 var buffer = null
@@ -16,7 +22,7 @@ self.addEventListener('message', function (event) {
         return postMessage({ cmd: 'error', message: 'Server exists!' });
       var socket = new WebSocket('ws://' + event.data.address, 'x11-proxy');
       socket.binaryType = 'arraybuffer';
-      server = new x_protocol.XProtocolServer(socket, function () {
+      server = new XProtocolServer(socket, function () {
         postMessage({ cmd: 'close' })
         server = null;
       });

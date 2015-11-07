@@ -36,10 +36,11 @@ function parseOp(root, member, invert) {
   }
 }
 
-module.exports = function parseBody(parent, klasses) {
+module.exports = function parseBody(parent, klasses, type) {
   let children = parent.find('*');
   let parent_name = parent.attr('name') && parent.attr('name').value();
   let read_stmts = [];
+  let fields = new Map();
   
   let lists = parent.find('list');
   let write_stmts = [];
@@ -58,7 +59,7 @@ module.exports = function parseBody(parent, klasses) {
     }
   }
 
-  for (let child of children) {
+  for (let [i, child] of children.entries()) {
     let child_tag = child.name();
     switch (child_tag) {
       case 'pad':
@@ -80,6 +81,7 @@ module.exports = function parseBody(parent, klasses) {
         {
           let child_name = child.attr('name').value();
           let child_type = child.attr('type').value();
+          fields.set(child_name, child_type);
           read_stmts.push(
             b.expressionStatement(b.assignmentExpression(
               '=',
@@ -94,14 +96,20 @@ module.exports = function parseBody(parent, klasses) {
             read_stmts.push(
               b.expressionStatement(b.assignmentExpression(
                 '=',
-                b.memberExpression(
-                  b.thisExpression(), b.identifier('endian')),
+                b.memberExpression(b.identifier('obj'), b.identifier('endian')),
                 b.binaryExpression(
                   '!==',
                   b.memberExpression(
                     b.identifier('obj'), b.identifier(child_name)),
                   b.literal(66))
-                )));
+              )));
+            read_stmts.push(
+              b.expressionStatement(b.assignmentExpression(
+                '=',
+                b.memberExpression(
+                  b.thisExpression(), b.identifier('endian')),
+                b.memberExpression(b.identifier('obj'), b.identifier('endian'))
+              )));
             // data.readUInt8(0) !== 66
           }
           write_stmts.push(
@@ -118,6 +126,7 @@ module.exports = function parseBody(parent, klasses) {
         {
           let child_name = child.attr('name').value();
           let child_type = child.attr('type').value();
+          fields.set(child_name, [child_type]);
 
           let fieldref = parseOp(child.get('*'), 'obj');
           if (fieldref !== null) {
@@ -175,6 +184,18 @@ module.exports = function parseBody(parent, klasses) {
                 b.blockStatement([read_stmt])
             ));
           }
+          if (child_type === 'char') {
+            read_stmts.push(b.assignmentStatement(
+              '=',
+              b.memberExpression(
+                b.identifier('obj'), b.identifier(child_name)),
+              b.callExpression(
+                b.memberExpression(
+                  b.memberExpression(
+                    b.identifier('obj'), b.identifier(child_name)),
+                  b.identifier('join')),
+                [b.literal('')])));
+          }
           write_stmts.push(
             b.forOfStatement(
               b.variableDeclaration(
@@ -223,11 +244,14 @@ module.exports = function parseBody(parent, klasses) {
         let value_mask_type = child.attr('value-mask-type').value();
         let value_mask_name = child.attr('value-mask-name').value();
         let value_list_name = child.attr('value-list-name').value();
+
         if (! enum_map.has(value_list_name)) {
           console.error(`FIXME: The stupid cases for ${value_list_name}`);
           continue;
         }
         let enum_class_name = enum_map.get(value_list_name).name;
+
+        fields.set('value', new Map([[enum_class_name, 'CARD32']]));
 
         read_stmts.push(b.expressionStatement(b.assignmentExpression(
           '=',
@@ -336,6 +360,60 @@ module.exports = function parseBody(parent, klasses) {
       default:
         throw new Error(`Unknown tag ${child_tag}`);
     }
+    if (i === 0) {
+      switch(type) {
+        case 'request':
+          read_stmts.push(
+            b.expressionStatement(b.callExpression(
+              b.memberExpression(
+                b.thisExpression(),
+                b.identifier('moveCursor')),
+              [b.literal(2)])));
+          write_stmts.push(
+            b.expressionStatement(b.callExpression(
+              b.memberExpression(
+                b.thisExpression(),
+                b.identifier('moveCursor')),
+              [b.literal(2)])));
+          break;
+        case 'reply':
+          read_stmts.push(
+            b.expressionStatement(b.assignmentExpression(
+              '=',
+              b.memberExpression(
+                b.identifier('obj'), b.identifier('sequence')),
+              b.callExpression(
+                b.memberExpression(
+                  b.thisExpression(),
+                  b.identifier('readCARD16')),
+                []))));
+          read_stmts.push(
+            b.expressionStatement(b.assignmentExpression(
+              '=',
+              b.memberExpression(
+                b.identifier('obj'), b.identifier('length')),
+              b.callExpression(
+                b.memberExpression(
+                  b.thisExpression(),
+                  b.identifier('readCARD32')),
+                []))));
+          write_stmts.push(
+            b.expressionStatement(b.callExpression(
+              b.memberExpression(
+                b.thisExpression(),
+                b.identifier('writeCARD16')),
+              [b.memberExpression(
+                b.identifier('obj'),
+                b.identifier('sequence'))])));
+          write_stmts.push(
+            b.expressionStatement(b.callExpression(
+              b.memberExpression(
+                b.thisExpression(),
+                b.identifier('moveCursor')),
+              [b.literal(4)])));
+          break;
+      }
+    }
   }
   if (read_stmts.length) {
     read_stmts.unshift(
@@ -348,7 +426,7 @@ module.exports = function parseBody(parent, klasses) {
   } else {
     read_stmts.push(b.returnStatement(b.objectExpression([])));
   }
-  return [read_stmts, write_stmts];
+  return [read_stmts, write_stmts, fields];
 }
 
 module.exports.parseOp = parseOp;

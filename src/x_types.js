@@ -5,6 +5,7 @@
 import { GCVField, WinVField, WinConfigureField, yieldAll } from './common';
 import * as fs from './fs';
 import EndianBuffer from './endianbuffer';
+import { XTypeBuffer } from './xtypebuffer';
 import * as events from './event_types';
 import * as v6 from 'ip-address';
 export * from './x_types_font';
@@ -324,6 +325,30 @@ export class WorkReply {
   constructor(request) {
     this.opcode = request.opcode;
     this.sequence = request.sequence;
+  }
+}
+
+export class XTypeBufferReply {
+  constructor(req, endian) {
+    Object.defineProperties(this, {
+      req: {value: req, enumerable: false, writable: false},
+      _fields: {value: XTypeBuffer.reply_fields.get(req.opname), enumerable: false, writable: false},
+      sequence: {value: req.sequence, enumerable: true, writable: false},
+      opcode: {value: req.opcode, enumerable: true, writable: false},
+      opname: {value: req.opname, enumerable: true, writable: false},
+      endian: {value: req.endian, enumerable: true, writable: false},
+    });
+    for (let [fname, ftype] of this._fields) {
+      let fvalue = null;
+      if (ftype instanceof Map) {
+        fvalue = new Map();
+      } else if (ftype instanceof Set) {
+        fvalue = new Set();
+      } else if (Array.isArray(ftype)) {
+        fvalue = [];
+      }
+      this[fname] = fvalue;
+    }
   }
 }
 

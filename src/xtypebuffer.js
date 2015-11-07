@@ -374,7 +374,8 @@ export class XTypeBuffer extends CursorBuffer {
   readSetupRequest() {
     var obj = {};
     obj.byte_order = this.readCARD8();
-    this.endian = obj.byte_order !== 66;
+    obj.endian = obj.byte_order !== 66;
+    this.endian = obj.endian;
     this.moveCursor(1);
     obj.protocol_major_version = this.readCARD16();
     obj.protocol_minor_version = this.readCARD16();
@@ -388,6 +389,7 @@ export class XTypeBuffer extends CursorBuffer {
       obj.authorization_protocol_name.push(this.readchar());
     }
 
+    obj.authorization_protocol_name = obj.authorization_protocol_name.join("");
     var authorization_protocol_data_length = obj.authorization_protocol_data_len;
     obj.authorization_protocol_data = [];
 
@@ -395,6 +397,7 @@ export class XTypeBuffer extends CursorBuffer {
       obj.authorization_protocol_data.push(this.readchar());
     }
 
+    obj.authorization_protocol_data = obj.authorization_protocol_data.join("");
     return obj;
   }
 
@@ -435,6 +438,7 @@ export class XTypeBuffer extends CursorBuffer {
       obj.reason.push(this.readchar());
     }
 
+    obj.reason = obj.reason.join("");
     return obj;
   }
 
@@ -464,6 +468,7 @@ export class XTypeBuffer extends CursorBuffer {
       obj.reason.push(this.readchar());
     }
 
+    obj.reason = obj.reason.join("");
     return obj;
   }
 
@@ -508,6 +513,7 @@ export class XTypeBuffer extends CursorBuffer {
       obj.vendor.push(this.readchar());
     }
 
+    obj.vendor = obj.vendor.join("");
     var pixmap_formats_length = obj.pixmap_formats_len;
     obj.pixmap_formats = [];
 
@@ -624,6 +630,7 @@ export class XTypeBuffer extends CursorBuffer {
       obj.name.push(this.readchar());
     }
 
+    obj.name = obj.name.join("");
     return obj;
   }
 
@@ -1650,6 +1657,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCreateWindow() {
     var obj = {};
     obj.depth = this.readCARD8();
+    this.moveCursor(2);
     obj.wid = this.readWINDOW();
     obj.parent = this.readWINDOW();
     obj.x = this.readINT16();
@@ -1672,6 +1680,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCreateWindow(obj) {
     this.writeCARD8(obj.depth);
+    this.moveCursor(2);
     this.writeWINDOW(obj.wid);
     this.writeWINDOW(obj.parent);
     this.writeINT16(obj.x);
@@ -1693,6 +1702,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeWindowAttributes() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.value_mask = (new CWEnum()).decode(this.readCARD32());
     var value = new Map();
@@ -1707,6 +1717,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeChangeWindowAttributes(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     var value = obj.value;
     var value_enum = new CWEnum(value.keys());
@@ -1720,18 +1731,22 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGetWindowAttributes() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeGetWindowAttributes(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   reply_readGetWindowAttributes() {
     var obj = {};
     obj.backing_store = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.visual = this.readVISUALID();
     obj.class = this.readCARD16();
     obj.bit_gravity = this.readCARD8();
@@ -1752,6 +1767,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeGetWindowAttributes(obj) {
     this.writeCARD8(obj.backing_store);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeVISUALID(obj.visual);
     this.writeCARD16(obj.class);
     this.writeCARD8(obj.bit_gravity);
@@ -1772,42 +1789,49 @@ export class XTypeBuffer extends CursorBuffer {
   request_readDestroyWindow() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeDestroyWindow(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readDestroySubwindows() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeDestroySubwindows(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readChangeSaveSet() {
     var obj = {};
     obj.mode = this.readBYTE();
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeChangeSaveSet(obj) {
     this.writeBYTE(obj.mode);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readReparentWindow() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.parent = this.readWINDOW();
     obj.x = this.readINT16();
@@ -1817,6 +1841,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeReparentWindow(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeWINDOW(obj.parent);
     this.writeINT16(obj.x);
@@ -1826,54 +1851,63 @@ export class XTypeBuffer extends CursorBuffer {
   request_readMapWindow() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeMapWindow(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readMapSubwindows() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeMapSubwindows(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readUnmapWindow() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeUnmapWindow(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readUnmapSubwindows() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeUnmapSubwindows(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readConfigureWindow() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.value_mask = this.readCARD16();
     this.moveCursor(2);
@@ -1891,6 +1925,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeConfigureWindow(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeCARD16(obj.value_mask);
     this.moveCursor(2);
@@ -1907,30 +1942,36 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCirculateWindow() {
     var obj = {};
     obj.direction = this.readCARD8();
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeCirculateWindow(obj) {
     this.writeCARD8(obj.direction);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   request_readGetGeometry() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     return obj;
   }
 
   request_writeGetGeometry(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
   }
 
   reply_readGetGeometry() {
     var obj = {};
     obj.depth = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.root = this.readWINDOW();
     obj.x = this.readINT16();
     obj.y = this.readINT16();
@@ -1943,6 +1984,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeGetGeometry(obj) {
     this.writeCARD8(obj.depth);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeWINDOW(obj.root);
     this.writeINT16(obj.x);
     this.writeINT16(obj.y);
@@ -1955,18 +1998,22 @@ export class XTypeBuffer extends CursorBuffer {
   request_readQueryTree() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeQueryTree(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   reply_readQueryTree() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.root = this.readWINDOW();
     obj.parent = this.readWINDOW();
     obj.children_len = this.readCARD16();
@@ -1984,6 +2031,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeQueryTree(obj) {
     obj.children_len = obj.children.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeWINDOW(obj.root);
     this.writeWINDOW(obj.parent);
     this.writeCARD16(obj.children_len);
@@ -1998,6 +2047,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readInternAtom() {
     var obj = {};
     obj.only_if_exists = this.readBOOL();
+    this.moveCursor(2);
     obj.name_len = this.readCARD16();
     this.moveCursor(2);
     obj.name = this.readSTRING8();
@@ -2006,6 +2056,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeInternAtom(obj) {
     this.writeBOOL(obj.only_if_exists);
+    this.moveCursor(2);
     this.writeCARD16(obj.name_len);
     this.moveCursor(2);
     this.writeSTRING8(obj.name);
@@ -2014,30 +2065,38 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readInternAtom() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.atom = this.readATOM();
     return obj;
   }
 
   reply_writeInternAtom(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeATOM(obj.atom);
   }
 
   request_readGetAtomName() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.atom = this.readATOM();
     return obj;
   }
 
   request_writeGetAtomName(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeATOM(obj.atom);
   }
 
   reply_readGetAtomName() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.name_len = this.readCARD16();
     this.moveCursor(22);
     obj.name = this.readSTRING8();
@@ -2046,6 +2105,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeGetAtomName(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.name_len);
     this.moveCursor(22);
     this.writeSTRING8(obj.name);
@@ -2054,6 +2115,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeProperty() {
     var obj = {};
     obj.mode = this.readCARD8();
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.property = this.readATOM();
     obj.type = this.readATOM();
@@ -2073,6 +2135,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeChangeProperty(obj) {
     obj.data_len = obj.data.length;
     this.writeCARD8(obj.mode);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeATOM(obj.property);
     this.writeATOM(obj.type);
@@ -2089,6 +2152,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readDeleteProperty() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.property = this.readATOM();
     return obj;
@@ -2096,6 +2160,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeDeleteProperty(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeATOM(obj.property);
   }
@@ -2103,6 +2168,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGetProperty() {
     var obj = {};
     obj.delete = this.readBOOL();
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.property = this.readATOM();
     obj.type = this.readATOM();
@@ -2113,6 +2179,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGetProperty(obj) {
     this.writeBOOL(obj.delete);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeATOM(obj.property);
     this.writeATOM(obj.type);
@@ -2123,6 +2190,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readGetProperty() {
     var obj = {};
     obj.format = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.type = this.readATOM();
     obj.bytes_after = this.readCARD32();
     obj.value_len = this.readCARD32();
@@ -2140,6 +2209,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetProperty(obj) {
     obj.value_len = obj.value.length;
     this.writeCARD8(obj.format);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeATOM(obj.type);
     this.writeCARD32(obj.bytes_after);
     this.writeCARD32(obj.value_len);
@@ -2154,18 +2225,22 @@ export class XTypeBuffer extends CursorBuffer {
   request_readListProperties() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeListProperties(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   reply_readListProperties() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.atoms_len = this.readCARD16();
     this.moveCursor(22);
     var atoms_length = obj.atoms_len;
@@ -2181,6 +2256,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeListProperties(obj) {
     obj.atoms_len = obj.atoms.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.atoms_len);
     this.moveCursor(22);
     var atoms_length = obj.atoms_len;
@@ -2193,6 +2270,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetSelectionOwner() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.owner = this.readWINDOW();
     obj.selection = this.readATOM();
     obj.time = this.readTIMESTAMP();
@@ -2201,6 +2279,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeSetSelectionOwner(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.owner);
     this.writeATOM(obj.selection);
     this.writeTIMESTAMP(obj.time);
@@ -2209,30 +2288,37 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGetSelectionOwner() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.selection = this.readATOM();
     return obj;
   }
 
   request_writeGetSelectionOwner(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeATOM(obj.selection);
   }
 
   reply_readGetSelectionOwner() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.owner = this.readWINDOW();
     return obj;
   }
 
   reply_writeGetSelectionOwner(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeWINDOW(obj.owner);
   }
 
   request_readConvertSelection() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.requestor = this.readWINDOW();
     obj.selection = this.readATOM();
     obj.target = this.readATOM();
@@ -2243,6 +2329,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeConvertSelection(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.requestor);
     this.writeATOM(obj.selection);
     this.writeATOM(obj.target);
@@ -2253,6 +2340,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSendEvent() {
     var obj = {};
     obj.propagate = this.readBOOL();
+    this.moveCursor(2);
     obj.destination = this.readWINDOW();
     obj.event_mask = this.readCARD32();
     var event_length = 32;
@@ -2262,12 +2350,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.event.push(this.readchar());
     }
 
+    obj.event = obj.event.join("");
     return obj;
   }
 
   request_writeSendEvent(obj) {
     obj.event_len = obj.event.length;
     this.writeBOOL(obj.propagate);
+    this.moveCursor(2);
     this.writeWINDOW(obj.destination);
     this.writeCARD32(obj.event_mask);
     var event_length = 32;
@@ -2280,6 +2370,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGrabPointer() {
     var obj = {};
     obj.owner_events = this.readBOOL();
+    this.moveCursor(2);
     obj.grab_window = this.readWINDOW();
     obj.event_mask = this.readCARD16();
     obj.pointer_mode = this.readBYTE();
@@ -2292,6 +2383,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGrabPointer(obj) {
     this.writeBOOL(obj.owner_events);
+    this.moveCursor(2);
     this.writeWINDOW(obj.grab_window);
     this.writeCARD16(obj.event_mask);
     this.writeBYTE(obj.pointer_mode);
@@ -2304,28 +2396,35 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readGrabPointer() {
     var obj = {};
     obj.status = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     return obj;
   }
 
   reply_writeGrabPointer(obj) {
     this.writeBYTE(obj.status);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
   }
 
   request_readUngrabPointer() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.time = this.readTIMESTAMP();
     return obj;
   }
 
   request_writeUngrabPointer(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeTIMESTAMP(obj.time);
   }
 
   request_readGrabButton() {
     var obj = {};
     obj.owner_events = this.readBOOL();
+    this.moveCursor(2);
     obj.grab_window = this.readWINDOW();
     obj.event_mask = this.readCARD16();
     obj.pointer_mode = this.readCARD8();
@@ -2340,6 +2439,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGrabButton(obj) {
     this.writeBOOL(obj.owner_events);
+    this.moveCursor(2);
     this.writeWINDOW(obj.grab_window);
     this.writeCARD16(obj.event_mask);
     this.writeCARD8(obj.pointer_mode);
@@ -2354,6 +2454,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readUngrabButton() {
     var obj = {};
     obj.button = this.readCARD8();
+    this.moveCursor(2);
     obj.grab_window = this.readWINDOW();
     obj.modifiers = this.readCARD16();
     this.moveCursor(2);
@@ -2362,6 +2463,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeUngrabButton(obj) {
     this.writeCARD8(obj.button);
+    this.moveCursor(2);
     this.writeWINDOW(obj.grab_window);
     this.writeCARD16(obj.modifiers);
     this.moveCursor(2);
@@ -2370,6 +2472,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeActivePointerGrab() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cursor = this.readCURSOR();
     obj.time = this.readTIMESTAMP();
     obj.event_mask = this.readCARD16();
@@ -2379,6 +2482,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeChangeActivePointerGrab(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCURSOR(obj.cursor);
     this.writeTIMESTAMP(obj.time);
     this.writeCARD16(obj.event_mask);
@@ -2388,6 +2492,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGrabKeyboard() {
     var obj = {};
     obj.owner_events = this.readBOOL();
+    this.moveCursor(2);
     obj.grab_window = this.readWINDOW();
     obj.time = this.readTIMESTAMP();
     obj.pointer_mode = this.readBYTE();
@@ -2398,6 +2503,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGrabKeyboard(obj) {
     this.writeBOOL(obj.owner_events);
+    this.moveCursor(2);
     this.writeWINDOW(obj.grab_window);
     this.writeTIMESTAMP(obj.time);
     this.writeBYTE(obj.pointer_mode);
@@ -2408,28 +2514,35 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readGrabKeyboard() {
     var obj = {};
     obj.status = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     return obj;
   }
 
   reply_writeGrabKeyboard(obj) {
     this.writeBYTE(obj.status);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
   }
 
   request_readUngrabKeyboard() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.time = this.readTIMESTAMP();
     return obj;
   }
 
   request_writeUngrabKeyboard(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeTIMESTAMP(obj.time);
   }
 
   request_readGrabKey() {
     var obj = {};
     obj.owner_events = this.readBOOL();
+    this.moveCursor(2);
     obj.grab_window = this.readWINDOW();
     obj.modifiers = this.readCARD16();
     obj.key = this.readKEYCODE();
@@ -2441,6 +2554,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGrabKey(obj) {
     this.writeBOOL(obj.owner_events);
+    this.moveCursor(2);
     this.writeWINDOW(obj.grab_window);
     this.writeCARD16(obj.modifiers);
     this.writeKEYCODE(obj.key);
@@ -2452,6 +2566,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readUngrabKey() {
     var obj = {};
     obj.key = this.readKEYCODE();
+    this.moveCursor(2);
     obj.grab_window = this.readWINDOW();
     obj.modifiers = this.readCARD16();
     this.moveCursor(2);
@@ -2460,6 +2575,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeUngrabKey(obj) {
     this.writeKEYCODE(obj.key);
+    this.moveCursor(2);
     this.writeWINDOW(obj.grab_window);
     this.writeCARD16(obj.modifiers);
     this.moveCursor(2);
@@ -2468,12 +2584,14 @@ export class XTypeBuffer extends CursorBuffer {
   request_readAllowEvents() {
     var obj = {};
     obj.mode = this.readCARD8();
+    this.moveCursor(2);
     obj.time = this.readTIMESTAMP();
     return obj;
   }
 
   request_writeAllowEvents(obj) {
     this.writeCARD8(obj.mode);
+    this.moveCursor(2);
     this.writeTIMESTAMP(obj.time);
   }
 
@@ -2492,18 +2610,22 @@ export class XTypeBuffer extends CursorBuffer {
   request_readQueryPointer() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeQueryPointer(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   reply_readQueryPointer() {
     var obj = {};
     obj.same_screen = this.readBOOL();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.root = this.readWINDOW();
     obj.child = this.readWINDOW();
     obj.root_x = this.readINT16();
@@ -2517,6 +2639,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeQueryPointer(obj) {
     this.writeBOOL(obj.same_screen);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeWINDOW(obj.root);
     this.writeWINDOW(obj.child);
     this.writeINT16(obj.root_x);
@@ -2530,6 +2654,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGetMotionEvents() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.start = this.readTIMESTAMP();
     obj.stop = this.readTIMESTAMP();
@@ -2538,6 +2663,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGetMotionEvents(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeTIMESTAMP(obj.start);
     this.writeTIMESTAMP(obj.stop);
@@ -2546,6 +2672,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readGetMotionEvents() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.events_len = this.readCARD32();
     this.moveCursor(20);
     var events_length = obj.events_len;
@@ -2561,6 +2689,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetMotionEvents(obj) {
     obj.events_len = obj.events.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD32(obj.events_len);
     this.moveCursor(20);
     var events_length = obj.events_len;
@@ -2573,6 +2703,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readTranslateCoordinates() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.src_window = this.readWINDOW();
     obj.dst_window = this.readWINDOW();
     obj.src_x = this.readINT16();
@@ -2582,6 +2713,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeTranslateCoordinates(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.src_window);
     this.writeWINDOW(obj.dst_window);
     this.writeINT16(obj.src_x);
@@ -2591,6 +2723,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readTranslateCoordinates() {
     var obj = {};
     obj.same_screen = this.readBOOL();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.child = this.readWINDOW();
     obj.dst_x = this.readINT16();
     obj.dst_y = this.readINT16();
@@ -2599,6 +2733,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeTranslateCoordinates(obj) {
     this.writeBOOL(obj.same_screen);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeWINDOW(obj.child);
     this.writeINT16(obj.dst_x);
     this.writeINT16(obj.dst_y);
@@ -2607,6 +2743,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readWarpPointer() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.src_window = this.readWINDOW();
     obj.dst_window = this.readWINDOW();
     obj.src_x = this.readINT16();
@@ -2620,6 +2757,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeWarpPointer(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.src_window);
     this.writeWINDOW(obj.dst_window);
     this.writeINT16(obj.src_x);
@@ -2633,6 +2771,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetInputFocus() {
     var obj = {};
     obj.revert_to = this.readCARD8();
+    this.moveCursor(2);
     obj.focus = this.readWINDOW();
     obj.time = this.readTIMESTAMP();
     return obj;
@@ -2640,37 +2779,52 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeSetInputFocus(obj) {
     this.writeCARD8(obj.revert_to);
+    this.moveCursor(2);
     this.writeWINDOW(obj.focus);
     this.writeTIMESTAMP(obj.time);
   }
 
   request_readGetInputFocus() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeGetInputFocus(obj) {}
+  request_writeGetInputFocus(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readGetInputFocus() {
     var obj = {};
     obj.revert_to = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.focus = this.readWINDOW();
     return obj;
   }
 
   reply_writeGetInputFocus(obj) {
     this.writeCARD8(obj.revert_to);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeWINDOW(obj.focus);
   }
 
   request_readQueryKeymap() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeQueryKeymap(obj) {}
+  request_writeQueryKeymap(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readQueryKeymap() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     var keys_length = 32;
     obj.keys = [];
 
@@ -2684,6 +2838,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeQueryKeymap(obj) {
     obj.keys_len = obj.keys.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     var keys_length = 32;
 
     for (let val of obj.keys) {
@@ -2694,6 +2850,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readOpenFont() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.fid = this.readFONT();
     obj.name_len = this.readCARD16();
     this.moveCursor(2);
@@ -2704,12 +2861,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.name.push(this.readchar());
     }
 
+    obj.name = obj.name.join("");
     return obj;
   }
 
   request_writeOpenFont(obj) {
     obj.name_len = obj.name.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeFONT(obj.fid);
     this.writeCARD16(obj.name_len);
     this.moveCursor(2);
@@ -2723,30 +2882,36 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCloseFont() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.font = this.readFONT();
     return obj;
   }
 
   request_writeCloseFont(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeFONT(obj.font);
   }
 
   request_readQueryFont() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.font = this.readFONTABLE();
     return obj;
   }
 
   request_writeQueryFont(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeFONTABLE(obj.font);
   }
 
   reply_readQueryFont() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.min_bounds = this.readCHARINFO();
     this.moveCursor(4);
     obj.max_bounds = this.readCHARINFO();
@@ -2783,6 +2948,8 @@ export class XTypeBuffer extends CursorBuffer {
     obj.properties_len = obj.properties.length;
     obj.char_infos_len = obj.char_infos.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCHARINFO(obj.min_bounds);
     this.moveCursor(4);
     this.writeCHARINFO(obj.max_bounds);
@@ -2814,6 +2981,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readQueryTextExtents() {
     var obj = {};
     obj.odd_length = this.readBOOL();
+    this.moveCursor(2);
     obj.font = this.readFONTABLE();
     obj.string = [];
 
@@ -2827,6 +2995,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeQueryTextExtents(obj) {
     obj.string_len = obj.string.length;
     obj.odd_length = (obj.string_len & 1);
+    this.moveCursor(2);
     this.writeFONTABLE(obj.font);
     var string_length;
 
@@ -2838,6 +3007,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readQueryTextExtents() {
     var obj = {};
     obj.draw_direction = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.font_ascent = this.readINT16();
     obj.font_descent = this.readINT16();
     obj.overall_ascent = this.readINT16();
@@ -2850,6 +3021,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeQueryTextExtents(obj) {
     this.writeBYTE(obj.draw_direction);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeINT16(obj.font_ascent);
     this.writeINT16(obj.font_descent);
     this.writeINT16(obj.overall_ascent);
@@ -2862,6 +3035,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readListFonts() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.max_names = this.readCARD16();
     obj.pattern_len = this.readCARD16();
     var pattern_length = obj.pattern_len;
@@ -2871,12 +3045,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.pattern.push(this.readchar());
     }
 
+    obj.pattern = obj.pattern.join("");
     return obj;
   }
 
   request_writeListFonts(obj) {
     obj.pattern_len = obj.pattern.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCARD16(obj.max_names);
     this.writeCARD16(obj.pattern_len);
     var pattern_length = obj.pattern_len;
@@ -2889,6 +3065,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readListFonts() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.names_len = this.readCARD16();
     this.moveCursor(22);
     var names_length = obj.names_len;
@@ -2904,6 +3082,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeListFonts(obj) {
     obj.names_len = obj.names.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.names_len);
     this.moveCursor(22);
     var names_length = obj.names_len;
@@ -2916,6 +3096,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readListFontsWithInfo() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.max_names = this.readCARD16();
     obj.pattern_len = this.readCARD16();
     var pattern_length = obj.pattern_len;
@@ -2925,12 +3106,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.pattern.push(this.readchar());
     }
 
+    obj.pattern = obj.pattern.join("");
     return obj;
   }
 
   request_writeListFontsWithInfo(obj) {
     obj.pattern_len = obj.pattern.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCARD16(obj.max_names);
     this.writeCARD16(obj.pattern_len);
     var pattern_length = obj.pattern_len;
@@ -2943,6 +3126,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readListFontsWithInfo() {
     var obj = {};
     obj.name_len = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.min_bounds = this.readCHARINFO();
     this.moveCursor(4);
     obj.max_bounds = this.readCHARINFO();
@@ -2972,6 +3157,7 @@ export class XTypeBuffer extends CursorBuffer {
       obj.name.push(this.readchar());
     }
 
+    obj.name = obj.name.join("");
     return obj;
   }
 
@@ -2979,6 +3165,8 @@ export class XTypeBuffer extends CursorBuffer {
     obj.properties_len = obj.properties.length;
     obj.name_len = obj.name.length;
     this.writeCARD8(obj.name_len);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCHARINFO(obj.min_bounds);
     this.moveCursor(4);
     this.writeCHARINFO(obj.max_bounds);
@@ -3010,6 +3198,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetFontPath() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.font_qty = this.readCARD16();
     this.moveCursor(2);
     var font_length = obj.font_qty;
@@ -3025,6 +3214,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeSetFontPath(obj) {
     obj.font_len = obj.font.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCARD16(obj.font_qty);
     this.moveCursor(2);
     var font_length = obj.font_qty;
@@ -3035,14 +3225,20 @@ export class XTypeBuffer extends CursorBuffer {
   }
 
   request_readGetFontPath() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeGetFontPath(obj) {}
+  request_writeGetFontPath(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readGetFontPath() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.path_len = this.readCARD16();
     this.moveCursor(22);
     var path_length = obj.path_len;
@@ -3058,6 +3254,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetFontPath(obj) {
     obj.path_len = obj.path.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.path_len);
     this.moveCursor(22);
     var path_length = obj.path_len;
@@ -3070,6 +3268,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCreatePixmap() {
     var obj = {};
     obj.depth = this.readCARD8();
+    this.moveCursor(2);
     obj.pid = this.readPIXMAP();
     obj.drawable = this.readDRAWABLE();
     obj.width = this.readCARD16();
@@ -3079,6 +3278,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCreatePixmap(obj) {
     this.writeCARD8(obj.depth);
+    this.moveCursor(2);
     this.writePIXMAP(obj.pid);
     this.writeDRAWABLE(obj.drawable);
     this.writeCARD16(obj.width);
@@ -3088,18 +3288,21 @@ export class XTypeBuffer extends CursorBuffer {
   request_readFreePixmap() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.pixmap = this.readPIXMAP();
     return obj;
   }
 
   request_writeFreePixmap(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writePIXMAP(obj.pixmap);
   }
 
   request_readCreateGC() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cid = this.readGCONTEXT();
     obj.drawable = this.readDRAWABLE();
     obj.value_mask = (new GCEnum()).decode(this.readCARD32());
@@ -3115,6 +3318,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCreateGC(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeGCONTEXT(obj.cid);
     this.writeDRAWABLE(obj.drawable);
     var value = obj.value;
@@ -3129,6 +3333,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeGC() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.gc = this.readGCONTEXT();
     obj.value_mask = (new GCEnum()).decode(this.readCARD32());
     var value = new Map();
@@ -3143,6 +3348,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeChangeGC(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeGCONTEXT(obj.gc);
     var value = obj.value;
     var value_enum = new GCEnum(value.keys());
@@ -3156,6 +3362,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCopyGC() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.src_gc = this.readGCONTEXT();
     obj.dst_gc = this.readGCONTEXT();
     obj.value_mask = this.readCARD32();
@@ -3164,6 +3371,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCopyGC(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeGCONTEXT(obj.src_gc);
     this.writeGCONTEXT(obj.dst_gc);
     this.writeCARD32(obj.value_mask);
@@ -3172,6 +3380,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetDashes() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.gc = this.readGCONTEXT();
     obj.dash_offset = this.readCARD16();
     obj.dashes_len = this.readCARD16();
@@ -3188,6 +3397,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeSetDashes(obj) {
     obj.dashes_len = obj.dashes.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeGCONTEXT(obj.gc);
     this.writeCARD16(obj.dash_offset);
     this.writeCARD16(obj.dashes_len);
@@ -3201,6 +3411,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetClipRectangles() {
     var obj = {};
     obj.ordering = this.readBYTE();
+    this.moveCursor(2);
     obj.gc = this.readGCONTEXT();
     obj.clip_x_origin = this.readINT16();
     obj.clip_y_origin = this.readINT16();
@@ -3216,6 +3427,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeSetClipRectangles(obj) {
     obj.rectangles_len = obj.rectangles.length;
     this.writeBYTE(obj.ordering);
+    this.moveCursor(2);
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.clip_x_origin);
     this.writeINT16(obj.clip_y_origin);
@@ -3229,18 +3441,21 @@ export class XTypeBuffer extends CursorBuffer {
   request_readFreeGC() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.gc = this.readGCONTEXT();
     return obj;
   }
 
   request_writeFreeGC(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeGCONTEXT(obj.gc);
   }
 
   request_readClearArea() {
     var obj = {};
     obj.exposures = this.readBOOL();
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.x = this.readINT16();
     obj.y = this.readINT16();
@@ -3251,6 +3466,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeClearArea(obj) {
     this.writeBOOL(obj.exposures);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeINT16(obj.x);
     this.writeINT16(obj.y);
@@ -3261,6 +3477,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCopyArea() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.src_drawable = this.readDRAWABLE();
     obj.dst_drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
@@ -3275,6 +3492,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCopyArea(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.src_drawable);
     this.writeDRAWABLE(obj.dst_drawable);
     this.writeGCONTEXT(obj.gc);
@@ -3289,6 +3507,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCopyPlane() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.src_drawable = this.readDRAWABLE();
     obj.dst_drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
@@ -3304,6 +3523,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCopyPlane(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.src_drawable);
     this.writeDRAWABLE(obj.dst_drawable);
     this.writeGCONTEXT(obj.gc);
@@ -3319,6 +3539,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyPoint() {
     var obj = {};
     obj.coordinate_mode = this.readBYTE();
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.points = [];
@@ -3333,6 +3554,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyPoint(obj) {
     obj.points_len = obj.points.length;
     this.writeBYTE(obj.coordinate_mode);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     var points_length;
@@ -3345,6 +3567,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyLine() {
     var obj = {};
     obj.coordinate_mode = this.readBYTE();
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.points = [];
@@ -3359,6 +3582,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyLine(obj) {
     obj.points_len = obj.points.length;
     this.writeBYTE(obj.coordinate_mode);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     var points_length;
@@ -3371,6 +3595,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolySegment() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.segments = [];
@@ -3385,6 +3610,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolySegment(obj) {
     obj.segments_len = obj.segments.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     var segments_length;
@@ -3397,6 +3623,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyRectangle() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.rectangles = [];
@@ -3411,6 +3638,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyRectangle(obj) {
     obj.rectangles_len = obj.rectangles.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     var rectangles_length;
@@ -3423,6 +3651,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyArc() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.arcs = [];
@@ -3437,6 +3666,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyArc(obj) {
     obj.arcs_len = obj.arcs.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     var arcs_length;
@@ -3449,6 +3679,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readFillPoly() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.shape = this.readCARD8();
@@ -3466,6 +3697,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeFillPoly(obj) {
     obj.points_len = obj.points.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     this.writeCARD8(obj.shape);
@@ -3481,6 +3713,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyFillRectangle() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.rectangles = [];
@@ -3495,6 +3728,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyFillRectangle(obj) {
     obj.rectangles_len = obj.rectangles.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     var rectangles_length;
@@ -3507,6 +3741,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyFillArc() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.arcs = [];
@@ -3521,6 +3756,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyFillArc(obj) {
     obj.arcs_len = obj.arcs.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     var arcs_length;
@@ -3533,6 +3769,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPutImage() {
     var obj = {};
     obj.format = this.readCARD8();
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.width = this.readCARD16();
@@ -3554,6 +3791,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePutImage(obj) {
     obj.data_len = obj.data.length;
     this.writeCARD8(obj.format);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     this.writeCARD16(obj.width);
@@ -3573,6 +3811,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGetImage() {
     var obj = {};
     obj.format = this.readCARD8();
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.x = this.readINT16();
     obj.y = this.readINT16();
@@ -3584,6 +3823,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGetImage(obj) {
     this.writeCARD8(obj.format);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeINT16(obj.x);
     this.writeINT16(obj.y);
@@ -3595,6 +3835,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readGetImage() {
     var obj = {};
     obj.depth = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.visual = this.readVISUALID();
     this.moveCursor(20);
     var data_length = (obj.length * 4);
@@ -3610,6 +3852,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetImage(obj) {
     obj.data_len = obj.data.length;
     this.writeCARD8(obj.depth);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeVISUALID(obj.visual);
     this.moveCursor(20);
     var data_length = (obj.length * 4);
@@ -3622,6 +3866,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyText8() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.x = this.readINT16();
@@ -3638,6 +3883,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyText8(obj) {
     obj.items_len = obj.items.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.x);
@@ -3652,6 +3898,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readPolyText16() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.x = this.readINT16();
@@ -3668,6 +3915,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writePolyText16(obj) {
     obj.items_len = obj.items.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.x);
@@ -3682,6 +3930,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readImageText8() {
     var obj = {};
     obj.string_len = this.readBYTE();
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.x = this.readINT16();
@@ -3693,12 +3942,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.string.push(this.readchar());
     }
 
+    obj.string = obj.string.join("");
     return obj;
   }
 
   request_writeImageText8(obj) {
     obj.string_len = obj.string.length;
     this.writeBYTE(obj.string_len);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.x);
@@ -3713,6 +3964,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readImageText16() {
     var obj = {};
     obj.string_len = this.readBYTE();
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.gc = this.readGCONTEXT();
     obj.x = this.readINT16();
@@ -3730,6 +3982,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeImageText16(obj) {
     obj.string_len = obj.string.length;
     this.writeBYTE(obj.string_len);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeGCONTEXT(obj.gc);
     this.writeINT16(obj.x);
@@ -3744,6 +3997,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCreateColormap() {
     var obj = {};
     obj.alloc = this.readBYTE();
+    this.moveCursor(2);
     obj.mid = this.readCOLORMAP();
     obj.window = this.readWINDOW();
     obj.visual = this.readVISUALID();
@@ -3752,6 +4006,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCreateColormap(obj) {
     this.writeBYTE(obj.alloc);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.mid);
     this.writeWINDOW(obj.window);
     this.writeVISUALID(obj.visual);
@@ -3760,18 +4015,21 @@ export class XTypeBuffer extends CursorBuffer {
   request_readFreeColormap() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     return obj;
   }
 
   request_writeFreeColormap(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
   }
 
   request_readCopyColormapAndFree() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.mid = this.readCOLORMAP();
     obj.src_cmap = this.readCOLORMAP();
     return obj;
@@ -3779,6 +4037,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCopyColormapAndFree(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.mid);
     this.writeCOLORMAP(obj.src_cmap);
   }
@@ -3786,42 +4045,50 @@ export class XTypeBuffer extends CursorBuffer {
   request_readInstallColormap() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     return obj;
   }
 
   request_writeInstallColormap(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
   }
 
   request_readUninstallColormap() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     return obj;
   }
 
   request_writeUninstallColormap(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
   }
 
   request_readListInstalledColormaps() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     return obj;
   }
 
   request_writeListInstalledColormaps(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
   }
 
   reply_readListInstalledColormaps() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.cmaps_len = this.readCARD16();
     this.moveCursor(22);
     var cmaps_length = obj.cmaps_len;
@@ -3837,6 +4104,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeListInstalledColormaps(obj) {
     obj.cmaps_len = obj.cmaps.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.cmaps_len);
     this.moveCursor(22);
     var cmaps_length = obj.cmaps_len;
@@ -3849,6 +4118,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readAllocColor() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.red = this.readCARD16();
     obj.green = this.readCARD16();
@@ -3859,6 +4129,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeAllocColor(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD16(obj.red);
     this.writeCARD16(obj.green);
@@ -3869,6 +4140,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readAllocColor() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.red = this.readCARD16();
     obj.green = this.readCARD16();
     obj.blue = this.readCARD16();
@@ -3879,6 +4152,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeAllocColor(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.red);
     this.writeCARD16(obj.green);
     this.writeCARD16(obj.blue);
@@ -3889,6 +4164,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readAllocNamedColor() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.name_len = this.readCARD16();
     this.moveCursor(2);
@@ -3899,12 +4175,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.name.push(this.readchar());
     }
 
+    obj.name = obj.name.join("");
     return obj;
   }
 
   request_writeAllocNamedColor(obj) {
     obj.name_len = obj.name.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD16(obj.name_len);
     this.moveCursor(2);
@@ -3918,6 +4196,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readAllocNamedColor() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.pixel = this.readCARD32();
     obj.exact_red = this.readCARD16();
     obj.exact_green = this.readCARD16();
@@ -3930,6 +4210,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeAllocNamedColor(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD32(obj.pixel);
     this.writeCARD16(obj.exact_red);
     this.writeCARD16(obj.exact_green);
@@ -3942,6 +4224,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readAllocColorCells() {
     var obj = {};
     obj.contiguous = this.readBOOL();
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.colors = this.readCARD16();
     obj.planes = this.readCARD16();
@@ -3950,6 +4233,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeAllocColorCells(obj) {
     this.writeBOOL(obj.contiguous);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD16(obj.colors);
     this.writeCARD16(obj.planes);
@@ -3958,6 +4242,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readAllocColorCells() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.pixels_len = this.readCARD16();
     obj.masks_len = this.readCARD16();
     this.moveCursor(20);
@@ -3982,6 +4268,8 @@ export class XTypeBuffer extends CursorBuffer {
     obj.pixels_len = obj.pixels.length;
     obj.masks_len = obj.masks.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.pixels_len);
     this.writeCARD16(obj.masks_len);
     this.moveCursor(20);
@@ -4001,6 +4289,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readAllocColorPlanes() {
     var obj = {};
     obj.contiguous = this.readBOOL();
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.colors = this.readCARD16();
     obj.reds = this.readCARD16();
@@ -4011,6 +4300,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeAllocColorPlanes(obj) {
     this.writeBOOL(obj.contiguous);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD16(obj.colors);
     this.writeCARD16(obj.reds);
@@ -4021,6 +4311,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readAllocColorPlanes() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.pixels_len = this.readCARD16();
     this.moveCursor(2);
     obj.red_mask = this.readCARD32();
@@ -4040,6 +4332,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeAllocColorPlanes(obj) {
     obj.pixels_len = obj.pixels.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.pixels_len);
     this.moveCursor(2);
     this.writeCARD32(obj.red_mask);
@@ -4056,6 +4350,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readFreeColors() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.plane_mask = this.readCARD32();
     obj.pixels = [];
@@ -4070,6 +4365,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeFreeColors(obj) {
     obj.pixels_len = obj.pixels.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD32(obj.plane_mask);
     var pixels_length;
@@ -4082,6 +4378,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readStoreColors() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.items = [];
 
@@ -4095,6 +4392,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeStoreColors(obj) {
     obj.items_len = obj.items.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     var items_length;
 
@@ -4106,6 +4404,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readStoreNamedColor() {
     var obj = {};
     obj.flags = this.readCARD8();
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.pixel = this.readCARD32();
     obj.name_len = this.readCARD16();
@@ -4117,12 +4416,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.name.push(this.readchar());
     }
 
+    obj.name = obj.name.join("");
     return obj;
   }
 
   request_writeStoreNamedColor(obj) {
     obj.name_len = obj.name.length;
     this.writeCARD8(obj.flags);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD32(obj.pixel);
     this.writeCARD16(obj.name_len);
@@ -4137,6 +4438,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readQueryColors() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.pixels = [];
 
@@ -4150,6 +4452,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeQueryColors(obj) {
     obj.pixels_len = obj.pixels.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     var pixels_length;
 
@@ -4161,6 +4464,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readQueryColors() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.colors_len = this.readCARD16();
     this.moveCursor(22);
     var colors_length = obj.colors_len;
@@ -4176,6 +4481,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeQueryColors(obj) {
     obj.colors_len = obj.colors.length;
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.colors_len);
     this.moveCursor(22);
     var colors_length = obj.colors_len;
@@ -4188,6 +4495,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readLookupColor() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cmap = this.readCOLORMAP();
     obj.name_len = this.readCARD16();
     this.moveCursor(2);
@@ -4198,12 +4506,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.name.push(this.readchar());
     }
 
+    obj.name = obj.name.join("");
     return obj;
   }
 
   request_writeLookupColor(obj) {
     obj.name_len = obj.name.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCOLORMAP(obj.cmap);
     this.writeCARD16(obj.name_len);
     this.moveCursor(2);
@@ -4217,6 +4527,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readLookupColor() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.exact_red = this.readCARD16();
     obj.exact_green = this.readCARD16();
     obj.exact_blue = this.readCARD16();
@@ -4228,6 +4540,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeLookupColor(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.exact_red);
     this.writeCARD16(obj.exact_green);
     this.writeCARD16(obj.exact_blue);
@@ -4239,6 +4553,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCreateCursor() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cid = this.readCURSOR();
     obj.source = this.readPIXMAP();
     obj.mask = this.readPIXMAP();
@@ -4255,6 +4570,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCreateCursor(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCURSOR(obj.cid);
     this.writePIXMAP(obj.source);
     this.writePIXMAP(obj.mask);
@@ -4271,6 +4587,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readCreateGlyphCursor() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cid = this.readCURSOR();
     obj.source_font = this.readFONT();
     obj.mask_font = this.readFONT();
@@ -4287,6 +4604,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeCreateGlyphCursor(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCURSOR(obj.cid);
     this.writeFONT(obj.source_font);
     this.writeFONT(obj.mask_font);
@@ -4303,18 +4621,21 @@ export class XTypeBuffer extends CursorBuffer {
   request_readFreeCursor() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cursor = this.readCURSOR();
     return obj;
   }
 
   request_writeFreeCursor(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCURSOR(obj.cursor);
   }
 
   request_readRecolorCursor() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.cursor = this.readCURSOR();
     obj.fore_red = this.readCARD16();
     obj.fore_green = this.readCARD16();
@@ -4327,6 +4648,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeRecolorCursor(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCURSOR(obj.cursor);
     this.writeCARD16(obj.fore_red);
     this.writeCARD16(obj.fore_green);
@@ -4339,6 +4661,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readQueryBestSize() {
     var obj = {};
     obj.class = this.readCARD8();
+    this.moveCursor(2);
     obj.drawable = this.readDRAWABLE();
     obj.width = this.readCARD16();
     obj.height = this.readCARD16();
@@ -4347,6 +4670,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeQueryBestSize(obj) {
     this.writeCARD8(obj.class);
+    this.moveCursor(2);
     this.writeDRAWABLE(obj.drawable);
     this.writeCARD16(obj.width);
     this.writeCARD16(obj.height);
@@ -4355,6 +4679,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readQueryBestSize() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.width = this.readCARD16();
     obj.height = this.readCARD16();
     return obj;
@@ -4362,6 +4688,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeQueryBestSize(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.width);
     this.writeCARD16(obj.height);
   }
@@ -4369,6 +4697,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readQueryExtension() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.name_len = this.readCARD16();
     this.moveCursor(2);
     var name_length = obj.name_len;
@@ -4378,12 +4707,14 @@ export class XTypeBuffer extends CursorBuffer {
       obj.name.push(this.readchar());
     }
 
+    obj.name = obj.name.join("");
     return obj;
   }
 
   request_writeQueryExtension(obj) {
     obj.name_len = obj.name.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCARD16(obj.name_len);
     this.moveCursor(2);
     var name_length = obj.name_len;
@@ -4396,6 +4727,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readQueryExtension() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.present = this.readBOOL();
     obj.major_opcode = this.readCARD8();
     obj.first_event = this.readCARD8();
@@ -4405,6 +4738,9 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeQueryExtension(obj) {
     this.moveCursor(1);
+    console.log(obj.sequence);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeBOOL(obj.present);
     this.writeCARD8(obj.major_opcode);
     this.writeCARD8(obj.first_event);
@@ -4412,14 +4748,20 @@ export class XTypeBuffer extends CursorBuffer {
   }
 
   request_readListExtensions() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeListExtensions(obj) {}
+  request_writeListExtensions(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readListExtensions() {
     var obj = {};
     obj.names_len = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     this.moveCursor(24);
     var names_length = obj.names_len;
     obj.names = [];
@@ -4434,6 +4776,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeListExtensions(obj) {
     obj.names_len = obj.names.length;
     this.writeCARD8(obj.names_len);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.moveCursor(24);
     var names_length = obj.names_len;
 
@@ -4445,6 +4789,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeKeyboardMapping() {
     var obj = {};
     obj.keycode_count = this.readCARD8();
+    this.moveCursor(2);
     obj.first_keycode = this.readKEYCODE();
     obj.keysyms_per_keycode = this.readCARD8();
     this.moveCursor(2);
@@ -4461,6 +4806,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeChangeKeyboardMapping(obj) {
     obj.keysyms_len = obj.keysyms.length;
     this.writeCARD8(obj.keycode_count);
+    this.moveCursor(2);
     this.writeKEYCODE(obj.first_keycode);
     this.writeCARD8(obj.keysyms_per_keycode);
     this.moveCursor(2);
@@ -4474,6 +4820,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readGetKeyboardMapping() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.first_keycode = this.readKEYCODE();
     obj.count = this.readCARD8();
     return obj;
@@ -4481,6 +4828,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeGetKeyboardMapping(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeKEYCODE(obj.first_keycode);
     this.writeCARD8(obj.count);
   }
@@ -4488,6 +4836,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readGetKeyboardMapping() {
     var obj = {};
     obj.keysyms_per_keycode = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     this.moveCursor(24);
     var keysyms_length = obj.length;
     obj.keysyms = [];
@@ -4502,6 +4852,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetKeyboardMapping(obj) {
     obj.keysyms_len = obj.keysyms.length;
     this.writeBYTE(obj.keysyms_per_keycode);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.moveCursor(24);
     var keysyms_length = obj.length;
 
@@ -4513,6 +4865,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeKeyboardControl() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.value_mask = (new KBEnum()).decode(this.readCARD32());
     var value = new Map();
     obj.value = value;
@@ -4526,6 +4879,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeChangeKeyboardControl(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     var value = obj.value;
     var value_enum = new KBEnum(value.keys());
     this.writeCARD32(value_enum.encode());
@@ -4536,14 +4890,20 @@ export class XTypeBuffer extends CursorBuffer {
   }
 
   request_readGetKeyboardControl() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeGetKeyboardControl(obj) {}
+  request_writeGetKeyboardControl(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readGetKeyboardControl() {
     var obj = {};
     obj.global_auto_repeat = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.led_mask = this.readCARD32();
     obj.key_click_percent = this.readCARD8();
     obj.bell_percent = this.readCARD8();
@@ -4563,6 +4923,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetKeyboardControl(obj) {
     obj.auto_repeats_len = obj.auto_repeats.length;
     this.writeBYTE(obj.global_auto_repeat);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD32(obj.led_mask);
     this.writeCARD8(obj.key_click_percent);
     this.writeCARD8(obj.bell_percent);
@@ -4579,16 +4941,19 @@ export class XTypeBuffer extends CursorBuffer {
   request_readBell() {
     var obj = {};
     obj.percent = this.readINT8();
+    this.moveCursor(2);
     return obj;
   }
 
   request_writeBell(obj) {
     this.writeINT8(obj.percent);
+    this.moveCursor(2);
   }
 
   request_readChangePointerControl() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.acceleration_numerator = this.readINT16();
     obj.acceleration_denominator = this.readINT16();
     obj.threshold = this.readINT16();
@@ -4599,6 +4964,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeChangePointerControl(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeINT16(obj.acceleration_numerator);
     this.writeINT16(obj.acceleration_denominator);
     this.writeINT16(obj.threshold);
@@ -4607,14 +4973,20 @@ export class XTypeBuffer extends CursorBuffer {
   }
 
   request_readGetPointerControl() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeGetPointerControl(obj) {}
+  request_writeGetPointerControl(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readGetPointerControl() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.acceleration_numerator = this.readCARD16();
     obj.acceleration_denominator = this.readCARD16();
     obj.threshold = this.readCARD16();
@@ -4624,6 +4996,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeGetPointerControl(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.acceleration_numerator);
     this.writeCARD16(obj.acceleration_denominator);
     this.writeCARD16(obj.threshold);
@@ -4633,6 +5007,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetScreenSaver() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.timeout = this.readINT16();
     obj.interval = this.readINT16();
     obj.prefer_blanking = this.readCARD8();
@@ -4642,6 +5017,7 @@ export class XTypeBuffer extends CursorBuffer {
 
   request_writeSetScreenSaver(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeINT16(obj.timeout);
     this.writeINT16(obj.interval);
     this.writeCARD8(obj.prefer_blanking);
@@ -4649,14 +5025,20 @@ export class XTypeBuffer extends CursorBuffer {
   }
 
   request_readGetScreenSaver() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeGetScreenSaver(obj) {}
+  request_writeGetScreenSaver(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readGetScreenSaver() {
     var obj = {};
     this.moveCursor(1);
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.timeout = this.readCARD16();
     obj.interval = this.readCARD16();
     obj.prefer_blanking = this.readBYTE();
@@ -4667,6 +5049,8 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeGetScreenSaver(obj) {
     this.moveCursor(1);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.timeout);
     this.writeCARD16(obj.interval);
     this.writeBYTE(obj.prefer_blanking);
@@ -4677,6 +5061,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readChangeHosts() {
     var obj = {};
     obj.mode = this.readCARD8();
+    this.moveCursor(2);
     obj.family = this.readCARD8();
     this.moveCursor(1);
     obj.address_len = this.readCARD16();
@@ -4693,6 +5078,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeChangeHosts(obj) {
     obj.address_len = obj.address.length;
     this.writeCARD8(obj.mode);
+    this.moveCursor(2);
     this.writeCARD8(obj.family);
     this.moveCursor(1);
     this.writeCARD16(obj.address_len);
@@ -4704,14 +5090,20 @@ export class XTypeBuffer extends CursorBuffer {
   }
 
   request_readListHosts() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeListHosts(obj) {}
+  request_writeListHosts(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readListHosts() {
     var obj = {};
     obj.mode = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     obj.hosts_len = this.readCARD16();
     this.moveCursor(22);
     var hosts_length = obj.hosts_len;
@@ -4727,6 +5119,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeListHosts(obj) {
     obj.hosts_len = obj.hosts.length;
     this.writeBYTE(obj.mode);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.writeCARD16(obj.hosts_len);
     this.moveCursor(22);
     var hosts_length = obj.hosts_len;
@@ -4739,38 +5133,45 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetAccessControl() {
     var obj = {};
     obj.mode = this.readCARD8();
+    this.moveCursor(2);
     return obj;
   }
 
   request_writeSetAccessControl(obj) {
     this.writeCARD8(obj.mode);
+    this.moveCursor(2);
   }
 
   request_readSetCloseDownMode() {
     var obj = {};
     obj.mode = this.readCARD8();
+    this.moveCursor(2);
     return obj;
   }
 
   request_writeSetCloseDownMode(obj) {
     this.writeCARD8(obj.mode);
+    this.moveCursor(2);
   }
 
   request_readKillClient() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.resource = this.readCARD32();
     return obj;
   }
 
   request_writeKillClient(obj) {
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeCARD32(obj.resource);
   }
 
   request_readRotateProperties() {
     var obj = {};
     this.moveCursor(1);
+    this.moveCursor(2);
     obj.window = this.readWINDOW();
     obj.atoms_len = this.readCARD16();
     obj.delta = this.readINT16();
@@ -4787,6 +5188,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeRotateProperties(obj) {
     obj.atoms_len = obj.atoms.length;
     this.moveCursor(1);
+    this.moveCursor(2);
     this.writeWINDOW(obj.window);
     this.writeCARD16(obj.atoms_len);
     this.writeINT16(obj.delta);
@@ -4800,16 +5202,19 @@ export class XTypeBuffer extends CursorBuffer {
   request_readForceScreenSaver() {
     var obj = {};
     obj.mode = this.readCARD8();
+    this.moveCursor(2);
     return obj;
   }
 
   request_writeForceScreenSaver(obj) {
     this.writeCARD8(obj.mode);
+    this.moveCursor(2);
   }
 
   request_readSetPointerMapping() {
     var obj = {};
     obj.map_len = this.readCARD8();
+    this.moveCursor(2);
     var map_length = obj.map_len;
     obj.map = [];
 
@@ -4823,6 +5228,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeSetPointerMapping(obj) {
     obj.map_len = obj.map.length;
     this.writeCARD8(obj.map_len);
+    this.moveCursor(2);
     var map_length = obj.map_len;
 
     for (let val of obj.map) {
@@ -4833,22 +5239,32 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readSetPointerMapping() {
     var obj = {};
     obj.status = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     return obj;
   }
 
   reply_writeSetPointerMapping(obj) {
     this.writeBYTE(obj.status);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
   }
 
   request_readGetPointerMapping() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeGetPointerMapping(obj) {}
+  request_writeGetPointerMapping(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readGetPointerMapping() {
     var obj = {};
     obj.map_len = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     this.moveCursor(24);
     var map_length = obj.map_len;
     obj.map = [];
@@ -4863,6 +5279,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetPointerMapping(obj) {
     obj.map_len = obj.map.length;
     this.writeCARD8(obj.map_len);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.moveCursor(24);
     var map_length = obj.map_len;
 
@@ -4874,6 +5292,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_readSetModifierMapping() {
     var obj = {};
     obj.keycodes_per_modifier = this.readCARD8();
+    this.moveCursor(2);
     var keycodes_length = (obj.keycodes_per_modifier * 8);
     obj.keycodes = [];
 
@@ -4887,6 +5306,7 @@ export class XTypeBuffer extends CursorBuffer {
   request_writeSetModifierMapping(obj) {
     obj.keycodes_len = obj.keycodes.length;
     this.writeCARD8(obj.keycodes_per_modifier);
+    this.moveCursor(2);
     var keycodes_length = (obj.keycodes_per_modifier * 8);
 
     for (let val of obj.keycodes) {
@@ -4897,22 +5317,32 @@ export class XTypeBuffer extends CursorBuffer {
   reply_readSetModifierMapping() {
     var obj = {};
     obj.status = this.readBYTE();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     return obj;
   }
 
   reply_writeSetModifierMapping(obj) {
     this.writeBYTE(obj.status);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
   }
 
   request_readGetModifierMapping() {
-    return {};
+    var obj = {};
+    this.moveCursor(2);
+    return obj;
   }
 
-  request_writeGetModifierMapping(obj) {}
+  request_writeGetModifierMapping(obj) {
+    this.moveCursor(2);
+  }
 
   reply_readGetModifierMapping() {
     var obj = {};
     obj.keycodes_per_modifier = this.readCARD8();
+    obj.sequence = this.readCARD16();
+    obj.length = this.readCARD32();
     this.moveCursor(24);
     var keycodes_length = (obj.keycodes_per_modifier * 8);
     obj.keycodes = [];
@@ -4927,6 +5357,8 @@ export class XTypeBuffer extends CursorBuffer {
   reply_writeGetModifierMapping(obj) {
     obj.keycodes_len = obj.keycodes.length;
     this.writeCARD8(obj.keycodes_per_modifier);
+    this.writeCARD16(obj.sequence);
+    this.moveCursor(4);
     this.moveCursor(24);
     var keycodes_length = (obj.keycodes_per_modifier * 8);
 
@@ -5063,6 +5495,541 @@ export class XTypeBuffer extends CursorBuffer {
     [119, "GetModifierMapping"],
     [127, "NoOperation"]
   ]);
+
+  static request_fields = new Map([["CreateWindow", new Map([
+    ["depth", "CARD8"],
+    ["wid", "WINDOW"],
+    ["parent", "WINDOW"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["width", "CARD16"],
+    ["height", "CARD16"],
+    ["border_width", "CARD16"],
+    ["class", "CARD16"],
+    ["visual", "VISUALID"],
+    ["value", new Map([["CWEnum", "CARD32"]])]
+  ])], [
+    "ChangeWindowAttributes",
+    new Map([["window", "WINDOW"], ["value", new Map([["CWEnum", "CARD32"]])]])
+  ], ["GetWindowAttributes", new Map([["window", "WINDOW"]])], ["DestroyWindow", new Map([["window", "WINDOW"]])], ["DestroySubwindows", new Map([["window", "WINDOW"]])], ["ChangeSaveSet", new Map([["mode", "BYTE"], ["window", "WINDOW"]])], ["ReparentWindow", new Map(
+    [["window", "WINDOW"], ["parent", "WINDOW"], ["x", "INT16"], ["y", "INT16"]]
+  )], ["MapWindow", new Map([["window", "WINDOW"]])], ["MapSubwindows", new Map([["window", "WINDOW"]])], ["UnmapWindow", new Map([["window", "WINDOW"]])], ["UnmapSubwindows", new Map([["window", "WINDOW"]])], ["ConfigureWindow", new Map([
+    ["window", "WINDOW"],
+    ["value_mask", "CARD16"],
+    ["value", new Map([["ConfigWindowEnum", "CARD32"]])]
+  ])], ["CirculateWindow", new Map([["direction", "CARD8"], ["window", "WINDOW"]])], ["GetGeometry", new Map([["drawable", "DRAWABLE"]])], ["QueryTree", new Map([["window", "WINDOW"]])], [
+    "InternAtom",
+    new Map([["only_if_exists", "BOOL"], ["name_len", "CARD16"], ["name", "STRING8"]])
+  ], ["GetAtomName", new Map([["atom", "ATOM"]])], ["ChangeProperty", new Map([
+    ["mode", "CARD8"],
+    ["window", "WINDOW"],
+    ["property", "ATOM"],
+    ["type", "ATOM"],
+    ["format", "CARD8"],
+    ["data_len", "CARD32"],
+    ["data", ["void"]]
+  ])], ["DeleteProperty", new Map([["window", "WINDOW"], ["property", "ATOM"]])], ["GetProperty", new Map([
+    ["delete", "BOOL"],
+    ["window", "WINDOW"],
+    ["property", "ATOM"],
+    ["type", "ATOM"],
+    ["long_offset", "CARD32"],
+    ["long_length", "CARD32"]
+  ])], ["ListProperties", new Map([["window", "WINDOW"]])], [
+    "SetSelectionOwner",
+    new Map([["owner", "WINDOW"], ["selection", "ATOM"], ["time", "TIMESTAMP"]])
+  ], ["GetSelectionOwner", new Map([["selection", "ATOM"]])], ["ConvertSelection", new Map([
+    ["requestor", "WINDOW"],
+    ["selection", "ATOM"],
+    ["target", "ATOM"],
+    ["property", "ATOM"],
+    ["time", "TIMESTAMP"]
+  ])], ["SendEvent", new Map([
+    ["propagate", "BOOL"],
+    ["destination", "WINDOW"],
+    ["event_mask", "CARD32"],
+    ["event", ["char"]]
+  ])], ["GrabPointer", new Map([
+    ["owner_events", "BOOL"],
+    ["grab_window", "WINDOW"],
+    ["event_mask", "CARD16"],
+    ["pointer_mode", "BYTE"],
+    ["keyboard_mode", "BYTE"],
+    ["confine_to", "WINDOW"],
+    ["cursor", "CURSOR"],
+    ["time", "TIMESTAMP"]
+  ])], ["UngrabPointer", new Map([["time", "TIMESTAMP"]])], ["GrabButton", new Map([
+    ["owner_events", "BOOL"],
+    ["grab_window", "WINDOW"],
+    ["event_mask", "CARD16"],
+    ["pointer_mode", "CARD8"],
+    ["keyboard_mode", "CARD8"],
+    ["confine_to", "WINDOW"],
+    ["cursor", "CURSOR"],
+    ["button", "CARD8"],
+    ["modifiers", "CARD16"]
+  ])], [
+    "UngrabButton",
+    new Map([["button", "CARD8"], ["grab_window", "WINDOW"], ["modifiers", "CARD16"]])
+  ], [
+    "ChangeActivePointerGrab",
+    new Map([["cursor", "CURSOR"], ["time", "TIMESTAMP"], ["event_mask", "CARD16"]])
+  ], ["GrabKeyboard", new Map([
+    ["owner_events", "BOOL"],
+    ["grab_window", "WINDOW"],
+    ["time", "TIMESTAMP"],
+    ["pointer_mode", "BYTE"],
+    ["keyboard_mode", "BYTE"]
+  ])], ["UngrabKeyboard", new Map([["time", "TIMESTAMP"]])], ["GrabKey", new Map([
+    ["owner_events", "BOOL"],
+    ["grab_window", "WINDOW"],
+    ["modifiers", "CARD16"],
+    ["key", "KEYCODE"],
+    ["pointer_mode", "CARD8"],
+    ["keyboard_mode", "CARD8"]
+  ])], [
+    "UngrabKey",
+    new Map([["key", "KEYCODE"], ["grab_window", "WINDOW"], ["modifiers", "CARD16"]])
+  ], ["AllowEvents", new Map([["mode", "CARD8"], ["time", "TIMESTAMP"]])], ["GrabServer", new Map([])], ["UngrabServer", new Map([])], ["QueryPointer", new Map([["window", "WINDOW"]])], [
+    "GetMotionEvents",
+    new Map([["window", "WINDOW"], ["start", "TIMESTAMP"], ["stop", "TIMESTAMP"]])
+  ], ["TranslateCoordinates", new Map([
+    ["src_window", "WINDOW"],
+    ["dst_window", "WINDOW"],
+    ["src_x", "INT16"],
+    ["src_y", "INT16"]
+  ])], ["WarpPointer", new Map([
+    ["src_window", "WINDOW"],
+    ["dst_window", "WINDOW"],
+    ["src_x", "INT16"],
+    ["src_y", "INT16"],
+    ["src_width", "CARD16"],
+    ["src_height", "CARD16"],
+    ["dst_x", "INT16"],
+    ["dst_y", "INT16"]
+  ])], [
+    "SetInputFocus",
+    new Map([["revert_to", "CARD8"], ["focus", "WINDOW"], ["time", "TIMESTAMP"]])
+  ], ["GetInputFocus", new Map([])], ["QueryKeymap", new Map([])], [
+    "OpenFont",
+    new Map([["fid", "FONT"], ["name_len", "CARD16"], ["name", ["char"]]])
+  ], ["CloseFont", new Map([["font", "FONT"]])], ["QueryFont", new Map([["font", "FONTABLE"]])], [
+    "QueryTextExtents",
+    new Map([["font", "FONTABLE"], ["string", ["CHAR2B"]]])
+  ], ["ListFonts", new Map(
+    [["max_names", "CARD16"], ["pattern_len", "CARD16"], ["pattern", ["char"]]]
+  )], ["ListFontsWithInfo", new Map(
+    [["max_names", "CARD16"], ["pattern_len", "CARD16"], ["pattern", ["char"]]]
+  )], ["SetFontPath", new Map([["font_qty", "CARD16"], ["font", ["STR"]]])], ["GetFontPath", new Map([])], ["CreatePixmap", new Map([
+    ["depth", "CARD8"],
+    ["pid", "PIXMAP"],
+    ["drawable", "DRAWABLE"],
+    ["width", "CARD16"],
+    ["height", "CARD16"]
+  ])], ["FreePixmap", new Map([["pixmap", "PIXMAP"]])], ["CreateGC", new Map([
+    ["cid", "GCONTEXT"],
+    ["drawable", "DRAWABLE"],
+    ["value", new Map([["GCEnum", "CARD32"]])]
+  ])], [
+    "ChangeGC",
+    new Map([["gc", "GCONTEXT"], ["value", new Map([["GCEnum", "CARD32"]])]])
+  ], [
+    "CopyGC",
+    new Map([["src_gc", "GCONTEXT"], ["dst_gc", "GCONTEXT"], ["value_mask", "CARD32"]])
+  ], ["SetDashes", new Map([
+    ["gc", "GCONTEXT"],
+    ["dash_offset", "CARD16"],
+    ["dashes_len", "CARD16"],
+    ["dashes", ["CARD8"]]
+  ])], ["SetClipRectangles", new Map([
+    ["ordering", "BYTE"],
+    ["gc", "GCONTEXT"],
+    ["clip_x_origin", "INT16"],
+    ["clip_y_origin", "INT16"],
+    ["rectangles", ["RECTANGLE"]]
+  ])], ["FreeGC", new Map([["gc", "GCONTEXT"]])], ["ClearArea", new Map([
+    ["exposures", "BOOL"],
+    ["window", "WINDOW"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["width", "CARD16"],
+    ["height", "CARD16"]
+  ])], ["CopyArea", new Map([
+    ["src_drawable", "DRAWABLE"],
+    ["dst_drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["src_x", "INT16"],
+    ["src_y", "INT16"],
+    ["dst_x", "INT16"],
+    ["dst_y", "INT16"],
+    ["width", "CARD16"],
+    ["height", "CARD16"]
+  ])], ["CopyPlane", new Map([
+    ["src_drawable", "DRAWABLE"],
+    ["dst_drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["src_x", "INT16"],
+    ["src_y", "INT16"],
+    ["dst_x", "INT16"],
+    ["dst_y", "INT16"],
+    ["width", "CARD16"],
+    ["height", "CARD16"],
+    ["bit_plane", "CARD32"]
+  ])], ["PolyPoint", new Map([
+    ["coordinate_mode", "BYTE"],
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["points", ["POINT"]]
+  ])], ["PolyLine", new Map([
+    ["coordinate_mode", "BYTE"],
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["points", ["POINT"]]
+  ])], [
+    "PolySegment",
+    new Map([["drawable", "DRAWABLE"], ["gc", "GCONTEXT"], ["segments", ["SEGMENT"]]])
+  ], ["PolyRectangle", new Map([
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["rectangles", ["RECTANGLE"]]
+  ])], [
+    "PolyArc",
+    new Map([["drawable", "DRAWABLE"], ["gc", "GCONTEXT"], ["arcs", ["ARC"]]])
+  ], ["FillPoly", new Map([
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["shape", "CARD8"],
+    ["coordinate_mode", "CARD8"],
+    ["points", ["POINT"]]
+  ])], ["PolyFillRectangle", new Map([
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["rectangles", ["RECTANGLE"]]
+  ])], [
+    "PolyFillArc",
+    new Map([["drawable", "DRAWABLE"], ["gc", "GCONTEXT"], ["arcs", ["ARC"]]])
+  ], ["PutImage", new Map([
+    ["format", "CARD8"],
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["width", "CARD16"],
+    ["height", "CARD16"],
+    ["dst_x", "INT16"],
+    ["dst_y", "INT16"],
+    ["left_pad", "CARD8"],
+    ["depth", "CARD8"],
+    ["data", ["BYTE"]]
+  ])], ["GetImage", new Map([
+    ["format", "CARD8"],
+    ["drawable", "DRAWABLE"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["width", "CARD16"],
+    ["height", "CARD16"],
+    ["plane_mask", "CARD32"]
+  ])], ["PolyText8", new Map([
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["items", ["BYTE"]]
+  ])], ["PolyText16", new Map([
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["items", ["BYTE"]]
+  ])], ["ImageText8", new Map([
+    ["string_len", "BYTE"],
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["string", ["char"]]
+  ])], ["ImageText16", new Map([
+    ["string_len", "BYTE"],
+    ["drawable", "DRAWABLE"],
+    ["gc", "GCONTEXT"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["string", ["CHAR2B"]]
+  ])], ["CreateColormap", new Map([
+    ["alloc", "BYTE"],
+    ["mid", "COLORMAP"],
+    ["window", "WINDOW"],
+    ["visual", "VISUALID"]
+  ])], ["FreeColormap", new Map([["cmap", "COLORMAP"]])], [
+    "CopyColormapAndFree",
+    new Map([["mid", "COLORMAP"], ["src_cmap", "COLORMAP"]])
+  ], ["InstallColormap", new Map([["cmap", "COLORMAP"]])], ["UninstallColormap", new Map([["cmap", "COLORMAP"]])], ["ListInstalledColormaps", new Map([["window", "WINDOW"]])], ["AllocColor", new Map([
+    ["cmap", "COLORMAP"],
+    ["red", "CARD16"],
+    ["green", "CARD16"],
+    ["blue", "CARD16"]
+  ])], [
+    "AllocNamedColor",
+    new Map([["cmap", "COLORMAP"], ["name_len", "CARD16"], ["name", ["char"]]])
+  ], ["AllocColorCells", new Map([
+    ["contiguous", "BOOL"],
+    ["cmap", "COLORMAP"],
+    ["colors", "CARD16"],
+    ["planes", "CARD16"]
+  ])], ["AllocColorPlanes", new Map([
+    ["contiguous", "BOOL"],
+    ["cmap", "COLORMAP"],
+    ["colors", "CARD16"],
+    ["reds", "CARD16"],
+    ["greens", "CARD16"],
+    ["blues", "CARD16"]
+  ])], [
+    "FreeColors",
+    new Map([["cmap", "COLORMAP"], ["plane_mask", "CARD32"], ["pixels", ["CARD32"]]])
+  ], ["StoreColors", new Map([["cmap", "COLORMAP"], ["items", ["COLORITEM"]]])], ["StoreNamedColor", new Map([
+    ["flags", "CARD8"],
+    ["cmap", "COLORMAP"],
+    ["pixel", "CARD32"],
+    ["name_len", "CARD16"],
+    ["name", ["char"]]
+  ])], ["QueryColors", new Map([["cmap", "COLORMAP"], ["pixels", ["CARD32"]]])], [
+    "LookupColor",
+    new Map([["cmap", "COLORMAP"], ["name_len", "CARD16"], ["name", ["char"]]])
+  ], ["CreateCursor", new Map([
+    ["cid", "CURSOR"],
+    ["source", "PIXMAP"],
+    ["mask", "PIXMAP"],
+    ["fore_red", "CARD16"],
+    ["fore_green", "CARD16"],
+    ["fore_blue", "CARD16"],
+    ["back_red", "CARD16"],
+    ["back_green", "CARD16"],
+    ["back_blue", "CARD16"],
+    ["x", "CARD16"],
+    ["y", "CARD16"]
+  ])], ["CreateGlyphCursor", new Map([
+    ["cid", "CURSOR"],
+    ["source_font", "FONT"],
+    ["mask_font", "FONT"],
+    ["source_char", "CARD16"],
+    ["mask_char", "CARD16"],
+    ["fore_red", "CARD16"],
+    ["fore_green", "CARD16"],
+    ["fore_blue", "CARD16"],
+    ["back_red", "CARD16"],
+    ["back_green", "CARD16"],
+    ["back_blue", "CARD16"]
+  ])], ["FreeCursor", new Map([["cursor", "CURSOR"]])], ["RecolorCursor", new Map([
+    ["cursor", "CURSOR"],
+    ["fore_red", "CARD16"],
+    ["fore_green", "CARD16"],
+    ["fore_blue", "CARD16"],
+    ["back_red", "CARD16"],
+    ["back_green", "CARD16"],
+    ["back_blue", "CARD16"]
+  ])], ["QueryBestSize", new Map([
+    ["class", "CARD8"],
+    ["drawable", "DRAWABLE"],
+    ["width", "CARD16"],
+    ["height", "CARD16"]
+  ])], ["QueryExtension", new Map([["name_len", "CARD16"], ["name", ["char"]]])], ["ListExtensions", new Map([])], ["ChangeKeyboardMapping", new Map([
+    ["keycode_count", "CARD8"],
+    ["first_keycode", "KEYCODE"],
+    ["keysyms_per_keycode", "CARD8"],
+    ["keysyms", ["KEYSYM"]]
+  ])], [
+    "GetKeyboardMapping",
+    new Map([["first_keycode", "KEYCODE"], ["count", "CARD8"]])
+  ], [
+    "ChangeKeyboardControl",
+    new Map([["value", new Map([["KBEnum", "CARD32"]])]])
+  ], ["GetKeyboardControl", new Map([])], ["Bell", new Map([["percent", "INT8"]])], ["ChangePointerControl", new Map([
+    ["acceleration_numerator", "INT16"],
+    ["acceleration_denominator", "INT16"],
+    ["threshold", "INT16"],
+    ["do_acceleration", "BOOL"],
+    ["do_threshold", "BOOL"]
+  ])], ["GetPointerControl", new Map([])], ["SetScreenSaver", new Map([
+    ["timeout", "INT16"],
+    ["interval", "INT16"],
+    ["prefer_blanking", "CARD8"],
+    ["allow_exposures", "CARD8"]
+  ])], ["GetScreenSaver", new Map([])], ["ChangeHosts", new Map([
+    ["mode", "CARD8"],
+    ["family", "CARD8"],
+    ["address_len", "CARD16"],
+    ["address", ["BYTE"]]
+  ])], ["ListHosts", new Map([])], ["SetAccessControl", new Map([["mode", "CARD8"]])], ["SetCloseDownMode", new Map([["mode", "CARD8"]])], ["KillClient", new Map([["resource", "CARD32"]])], ["RotateProperties", new Map([
+    ["window", "WINDOW"],
+    ["atoms_len", "CARD16"],
+    ["delta", "INT16"],
+    ["atoms", ["ATOM"]]
+  ])], ["ForceScreenSaver", new Map([["mode", "CARD8"]])], ["SetPointerMapping", new Map([["map_len", "CARD8"], ["map", ["CARD8"]]])], ["GetPointerMapping", new Map([])], [
+    "SetModifierMapping",
+    new Map([["keycodes_per_modifier", "CARD8"], ["keycodes", ["KEYCODE"]]])
+  ], ["GetModifierMapping", new Map([])], ["NoOperation", new Map([])]]);
+
+  static reply_fields = new Map([["GetWindowAttributes", new Map([
+    ["backing_store", "CARD8"],
+    ["visual", "VISUALID"],
+    ["class", "CARD16"],
+    ["bit_gravity", "CARD8"],
+    ["win_gravity", "CARD8"],
+    ["backing_planes", "CARD32"],
+    ["backing_pixel", "CARD32"],
+    ["save_under", "BOOL"],
+    ["map_is_installed", "BOOL"],
+    ["map_state", "CARD8"],
+    ["override_redirect", "BOOL"],
+    ["colormap", "COLORMAP"],
+    ["all_event_masks", "CARD32"],
+    ["your_event_mask", "CARD32"],
+    ["do_not_propagate_mask", "CARD16"]
+  ])], ["GetGeometry", new Map([
+    ["depth", "CARD8"],
+    ["root", "WINDOW"],
+    ["x", "INT16"],
+    ["y", "INT16"],
+    ["width", "CARD16"],
+    ["height", "CARD16"],
+    ["border_width", "CARD16"]
+  ])], ["QueryTree", new Map([
+    ["root", "WINDOW"],
+    ["parent", "WINDOW"],
+    ["children_len", "CARD16"],
+    ["children", ["WINDOW"]]
+  ])], ["InternAtom", new Map([["atom", "ATOM"]])], ["GetAtomName", new Map([["name_len", "CARD16"], ["name", "STRING8"]])], ["GetProperty", new Map([
+    ["format", "CARD8"],
+    ["type", "ATOM"],
+    ["bytes_after", "CARD32"],
+    ["value_len", "CARD32"],
+    ["value", ["void"]]
+  ])], ["ListProperties", new Map([["atoms_len", "CARD16"], ["atoms", ["ATOM"]]])], ["GetSelectionOwner", new Map([["owner", "WINDOW"]])], ["GrabPointer", new Map([["status", "BYTE"]])], ["GrabKeyboard", new Map([["status", "BYTE"]])], ["QueryPointer", new Map([
+    ["same_screen", "BOOL"],
+    ["root", "WINDOW"],
+    ["child", "WINDOW"],
+    ["root_x", "INT16"],
+    ["root_y", "INT16"],
+    ["win_x", "INT16"],
+    ["win_y", "INT16"],
+    ["mask", "CARD16"]
+  ])], [
+    "GetMotionEvents",
+    new Map([["events_len", "CARD32"], ["events", ["TIMECOORD"]]])
+  ], ["TranslateCoordinates", new Map([
+    ["same_screen", "BOOL"],
+    ["child", "WINDOW"],
+    ["dst_x", "INT16"],
+    ["dst_y", "INT16"]
+  ])], ["GetInputFocus", new Map([["revert_to", "CARD8"], ["focus", "WINDOW"]])], ["QueryKeymap", new Map([["keys", ["CARD8"]]])], ["QueryFont", new Map([
+    ["min_bounds", "CHARINFO"],
+    ["max_bounds", "CHARINFO"],
+    ["min_char_or_byte2", "CARD16"],
+    ["max_char_or_byte2", "CARD16"],
+    ["default_char", "CARD16"],
+    ["properties_len", "CARD16"],
+    ["draw_direction", "BYTE"],
+    ["min_byte1", "CARD8"],
+    ["max_byte1", "CARD8"],
+    ["all_chars_exist", "BOOL"],
+    ["font_ascent", "INT16"],
+    ["font_descent", "INT16"],
+    ["char_infos_len", "CARD32"],
+    ["properties", ["FONTPROP"]],
+    ["char_infos", ["CHARINFO"]]
+  ])], ["QueryTextExtents", new Map([
+    ["draw_direction", "BYTE"],
+    ["font_ascent", "INT16"],
+    ["font_descent", "INT16"],
+    ["overall_ascent", "INT16"],
+    ["overall_descent", "INT16"],
+    ["overall_width", "INT32"],
+    ["overall_left", "INT32"],
+    ["overall_right", "INT32"]
+  ])], ["ListFonts", new Map([["names_len", "CARD16"], ["names", ["STR"]]])], ["ListFontsWithInfo", new Map([
+    ["name_len", "CARD8"],
+    ["min_bounds", "CHARINFO"],
+    ["max_bounds", "CHARINFO"],
+    ["min_char_or_byte2", "CARD16"],
+    ["max_char_or_byte2", "CARD16"],
+    ["default_char", "CARD16"],
+    ["properties_len", "CARD16"],
+    ["draw_direction", "BYTE"],
+    ["min_byte1", "CARD8"],
+    ["max_byte1", "CARD8"],
+    ["all_chars_exist", "BOOL"],
+    ["font_ascent", "INT16"],
+    ["font_descent", "INT16"],
+    ["replies_hint", "CARD32"],
+    ["properties", ["FONTPROP"]],
+    ["name", ["char"]]
+  ])], ["GetFontPath", new Map([["path_len", "CARD16"], ["path", ["STR"]]])], [
+    "GetImage",
+    new Map([["depth", "CARD8"], ["visual", "VISUALID"], ["data", ["BYTE"]]])
+  ], [
+    "ListInstalledColormaps",
+    new Map([["cmaps_len", "CARD16"], ["cmaps", ["COLORMAP"]]])
+  ], ["AllocColor", new Map([
+    ["red", "CARD16"],
+    ["green", "CARD16"],
+    ["blue", "CARD16"],
+    ["pixel", "CARD32"]
+  ])], ["AllocNamedColor", new Map([
+    ["pixel", "CARD32"],
+    ["exact_red", "CARD16"],
+    ["exact_green", "CARD16"],
+    ["exact_blue", "CARD16"],
+    ["visual_red", "CARD16"],
+    ["visual_green", "CARD16"],
+    ["visual_blue", "CARD16"]
+  ])], ["AllocColorCells", new Map([
+    ["pixels_len", "CARD16"],
+    ["masks_len", "CARD16"],
+    ["pixels", ["CARD32"]],
+    ["masks", ["CARD32"]]
+  ])], ["AllocColorPlanes", new Map([
+    ["pixels_len", "CARD16"],
+    ["red_mask", "CARD32"],
+    ["green_mask", "CARD32"],
+    ["blue_mask", "CARD32"],
+    ["pixels", ["CARD32"]]
+  ])], ["QueryColors", new Map([["colors_len", "CARD16"], ["colors", ["RGB"]]])], ["LookupColor", new Map([
+    ["exact_red", "CARD16"],
+    ["exact_green", "CARD16"],
+    ["exact_blue", "CARD16"],
+    ["visual_red", "CARD16"],
+    ["visual_green", "CARD16"],
+    ["visual_blue", "CARD16"]
+  ])], ["QueryBestSize", new Map([["width", "CARD16"], ["height", "CARD16"]])], ["QueryExtension", new Map([
+    ["present", "BOOL"],
+    ["major_opcode", "CARD8"],
+    ["first_event", "CARD8"],
+    ["first_error", "CARD8"]
+  ])], ["ListExtensions", new Map([["names_len", "CARD8"], ["names", ["STR"]]])], [
+    "GetKeyboardMapping",
+    new Map([["keysyms_per_keycode", "BYTE"], ["keysyms", ["KEYSYM"]]])
+  ], ["GetKeyboardControl", new Map([
+    ["global_auto_repeat", "BYTE"],
+    ["led_mask", "CARD32"],
+    ["key_click_percent", "CARD8"],
+    ["bell_percent", "CARD8"],
+    ["bell_pitch", "CARD16"],
+    ["bell_duration", "CARD16"],
+    ["auto_repeats", ["CARD8"]]
+  ])], ["GetPointerControl", new Map([
+    ["acceleration_numerator", "CARD16"],
+    ["acceleration_denominator", "CARD16"],
+    ["threshold", "CARD16"]
+  ])], ["GetScreenSaver", new Map([
+    ["timeout", "CARD16"],
+    ["interval", "CARD16"],
+    ["prefer_blanking", "BYTE"],
+    ["allow_exposures", "BYTE"]
+  ])], [
+    "ListHosts",
+    new Map([["mode", "BYTE"], ["hosts_len", "CARD16"], ["hosts", ["HOST"]]])
+  ], ["SetPointerMapping", new Map([["status", "BYTE"]])], ["GetPointerMapping", new Map([["map_len", "CARD8"], ["map", ["CARD8"]]])], ["SetModifierMapping", new Map([["status", "BYTE"]])], [
+    "GetModifierMapping",
+    new Map([["keycodes_per_modifier", "CARD8"], ["keycodes", ["KEYCODE"]]])
+  ]]);
 };
 
 export class VisualClassEnum extends ValueEnum {

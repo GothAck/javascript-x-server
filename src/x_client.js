@@ -2,6 +2,7 @@ import EndianBuffer from './endianbuffer';
 import rgb_colors from './rgb_colors';
 
 import * as x_types from './x_types';
+import { XTypeBuffer } from './xtypebuffer';
 import { GCVField, WinVField, WinConfigureField } from './common';
 
 var _image_formats = ['Bitmap', 'XYPixmap', 'ZPixmap'];
@@ -33,19 +34,25 @@ export default class XServerClient {
   }
 
   async processRequest(message) {
-    var req = message.request
-      , req_str = `> Request ${req.sequence} (${this.idLog}) ${message.type}`;
+    var req = message.request;
+    var req_str = `> Request ${req.sequence} (${this.idLog}) ${message.type}`;
     var rep;
+
     if (message.type === 'SetupRequest') {
       if (this.state !== 0)
         throw new Error('SetupRequest received at the wrong time?!');
       this.setup(req)
     } else {
       var func = this[message.type];
-
+      var rep_new;
+      if (XTypeBuffer.reply_fields.has(req.opname)) {
+        rep_new = new x_types.XTypeBufferReply(req, this.endian);
+      }
       console.time(req_str);
       try {
-        rep = func && await this::func(req);
+        rep = func && await this::func(
+          req,
+          rep_new);
         console.timeEnd(req_str);
         if (rep) {
           if (Array.isArray(rep)) {
@@ -456,7 +463,7 @@ export default class XServerClient {
 
   async GetProperty(req) {
     var window = this.server.getResource(req.window, x_types.Window)
-      , property = this.server.getAtom(req.atom)
+      , property = this.server.getAtom(req.property)
       , type = req.type
       , long_off = req.long_off
       , long_len = req.long_len
@@ -753,7 +760,7 @@ export default class XServerClient {
 
   async CreateGC(req) {
     var drawable = this.server.getResource(req.drawable, x_types.Drawable)
-    console.log('CreateGC', drawable, req.cid, req.fields)
+    console.log('CreateGC', drawable, req.cid, req.fields);
     this.server.putResource(new x_types.GraphicsContext(this, req.cid, drawable, req.fields));
   }
 
@@ -1101,13 +1108,9 @@ export default class XServerClient {
     return rep;
   }
 
-  async QueryExtension(req) {
-    console.log('QueryExtension - Incomplete');
-    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
-    rep.data.writeUInt8(0, 0);
-    rep.data.writeUInt8(req.opcode, 1);
-    rep.data.writeUInt8(0, 2);
-    rep.data.writeUInt8(0, 3);
+  async QueryExtension(req, rep) {
+    console.log('QueryExtension - Incomplete', req, rep);
+    rep.present = false;
     return rep;
   }
 

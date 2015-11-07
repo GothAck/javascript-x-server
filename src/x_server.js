@@ -320,7 +320,7 @@ export default class XServer {
     if (! data) {
       return console.warn('Empty data');
     }
-    if (data instanceof x_types.WorkReply) {
+    if (data instanceof x_types.XTypeBufferReply) {
       return this.sendBuffer(data, client, true);
     }
     if (! (data instanceof EndianBuffer)) {

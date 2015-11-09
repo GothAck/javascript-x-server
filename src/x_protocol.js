@@ -8,13 +8,13 @@ export class XProtocolServer  {
     console.log('new XProtocolServer')
     this.socket = socket;
     this.onClose = onClose;
-    this.clients = {};
+    this.clients = new Map();
     socket.addEventListener('message', this.socketMessage.bind(this));
     socket.addEventListener('close', this.socketClose.bind(this));
     socket.addEventListener('open', this.socketOpen.bind(this));
   }
   serverMessage(message) {
-    var client = this.clients[message.id];
+    var client = this.clients.get(message.id);
     if (! client)
       postMessage({ cmd: 'error', message: 'not connected?' });
     client.state = message.state;
@@ -27,7 +27,7 @@ export class XProtocolServer  {
   }
   serverReply(message) {
     try {
-      var client = this.clients[message.id]
+      var client = this.clients.get(message.id)
         , ReqObj = Request[Request.opcodes[message.data.opcode]]
         , Rep = ReqObj.Rep;
       var rep = new Rep(message.data, client)
@@ -52,7 +52,8 @@ export class XProtocolServer  {
           });
         break
         case 'NEW':
-          var client = this.clients[data[1]] = new XProtocolClient(data[1]);
+          var client = new XProtocolClient(data[1]);
+          this.clients.set(data[1], client);
           postMessage({
               cmd: 'new'
             , id: data[1]
@@ -62,8 +63,8 @@ export class XProtocolServer  {
           });
         break;
         case 'END':
-          this.clients[data[1]].end();
-          delete this.clients[data[1]]
+          this.clients.get(data[1]).end();
+          this.clients.delete(data[1]);
         break;
         case 'PING':
           this.socket.send('PONG');
@@ -75,9 +76,10 @@ export class XProtocolServer  {
       var data = new EndianBuffer(event.data)
         , idBuf = data.slice(0,19)
         , idStr = idBuf.toString('hex');
-      if (! this.clients[idStr])
+      if (! this.clients.has(idStr)) {
         throw new Error('Invalid client! Disconnected?');
-      this.clients[idStr].processData(data.slice(19));
+      }
+      this.clients.get(idStr).processData(data.slice(19));
     }
   }
   socketClose(event) {

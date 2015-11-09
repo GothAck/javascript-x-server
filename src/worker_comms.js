@@ -11,7 +11,6 @@ if (1) {
 var string_split = /(\w+)(\s\w+){0,1}$/
 self.console = console;
 var buffer = null
-  , clients = {}
   , server = null;
 
 var socket = null;
@@ -35,14 +34,14 @@ self.addEventListener('message', function (event) {
     case 'message':
       if (! server)
         return postMessage({ cmd: 'error', message: 'not connected' })
-      if (! server.clients[event.data.id])
+      if (! server.clients.has(event.data.id))
         throw new Error('Invalid client! Disconnected?');
       server.serverMessage(event.data);
     break;
     case 'reply':
       if (! server)
         return postMessage({ cmd: 'error', message: 'not connected' })
-      if (! server.clients[event.data.id])
+      if (! server.clients.has(event.data.id))
         throw new Error('Invalid client! Disconnected?');
       server.serverReply(event.data);
     break;

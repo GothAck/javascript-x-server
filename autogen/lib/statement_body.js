@@ -136,81 +136,96 @@ module.exports = function parseBody(parent, klasses, type) {
                 b.identifier(`${child_name}_length`),
                 fieldref)]));
           }
-          write_stmts.push(b.variableDeclaration(
-            'var',
-            [b.variableDeclarator(
-              b.identifier(`${child_name}_length`),
-              fieldref)]));
-          read_stmts.push(b.expressionStatement(b.assignmentExpression(
-            '=',
-            b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
-            b.arrayExpression([]))));
-
-          let read_stmt = b.expressionStatement(b.callExpression(
-            b.memberExpression(
-              b.memberExpression(
-                b.identifier('obj'), b.identifier(child_name)),
-              b.identifier('push')),
-            [b.callExpression(
-              b.memberExpression(
-                b.thisExpression(), b.identifier(`read${child_type}`)),
-              [])]));
-          if (fieldref === null) {
-            read_stmts.push(
-              b.whileStatement(
-                b.binaryExpression(
-                  '<',
-                  b.memberExpression(
-                    b.thisExpression(), b.identifier('cursor')),
-                  b.memberExpression(
-                    b.thisExpression(), b.identifier('length'))),
-                b.blockStatement([read_stmt])));
-          } else {
-            read_stmts.push(
-              b.forStatement(
-                b.variableDeclaration(
-                  'let',
-                  [b.variableDeclarator(
-                      b.identifier('i'),
-                      b.literal(0))]),
-                b.binaryExpression(
-                  '<',
-                  b.identifier('i'),
-                  b.identifier(`${child_name}_length`)),
-                b.updateExpression(
-                  '++',
-                  b.identifier('i'),
-                  false),
-                b.blockStatement([read_stmt])
-            ));
-          }
-          if (child_type === 'char') {
+          if (child_type === 'void') {
             read_stmts.push(b.assignmentStatement(
               '=',
-              b.memberExpression(
-                b.identifier('obj'), b.identifier(child_name)),
+              b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
               b.callExpression(
                 b.memberExpression(
-                  b.memberExpression(
-                    b.identifier('obj'), b.identifier(child_name)),
-                  b.identifier('join')),
-                [b.literal('')])));
-          }
-          write_stmts.push(
-            b.forOfStatement(
-              b.variableDeclaration(
-                'let',
-                [b.identifier('val')]),
+                  b.thisExpression(), b.identifier('cursorSlice')),
+                [b.identifier(`${child_name}_length`)])));
+            write_stmts.push(b.callStatement(
               b.memberExpression(
-                b.identifier('obj'),
-                b.identifier(child_name)),
-              b.blockStatement([
-                b.expressionStatement(b.callExpression(
+                b.thisExpression(), b.identifier('cursorWriteBuffer')),
+              [b.memberExpression(
+                b.identifier('obj'), b.identifier(child_name))]));
+          } else {
+            write_stmts.push(b.variableDeclaration(
+              'var',
+              [b.variableDeclarator(
+                b.identifier(`${child_name}_length`),
+                fieldref)]));
+            read_stmts.push(b.expressionStatement(b.assignmentExpression(
+              '=',
+              b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
+              b.arrayExpression([]))));
+
+            let read_stmt = b.expressionStatement(b.callExpression(
+              b.memberExpression(
+                b.memberExpression(
+                  b.identifier('obj'), b.identifier(child_name)),
+                b.identifier('push')),
+              [b.callExpression(
+                b.memberExpression(
+                  b.thisExpression(), b.identifier(`read${child_type}`)),
+                [])]));
+            if (fieldref === null) {
+              read_stmts.push(
+                b.whileStatement(
+                  b.binaryExpression(
+                    '<',
+                    b.memberExpression(
+                      b.thisExpression(), b.identifier('cursor')),
+                    b.memberExpression(
+                      b.thisExpression(), b.identifier('length'))),
+                  b.blockStatement([read_stmt])));
+            } else {
+              read_stmts.push(
+                b.forStatement(
+                  b.variableDeclaration(
+                    'let',
+                    [b.variableDeclarator(
+                        b.identifier('i'),
+                        b.literal(0))]),
+                  b.binaryExpression(
+                    '<',
+                    b.identifier('i'),
+                    b.identifier(`${child_name}_length`)),
+                  b.updateExpression(
+                    '++',
+                    b.identifier('i'),
+                    false),
+                  b.blockStatement([read_stmt])
+              ));
+            }
+            if (child_type === 'char') {
+              read_stmts.push(b.assignmentStatement(
+                '=',
+                b.memberExpression(
+                  b.identifier('obj'), b.identifier(child_name)),
+                b.callExpression(
                   b.memberExpression(
-                    b.thisExpression(), b.identifier(`write${child_type}`)),
-                  [b.identifier('val')])),
-              ])
-          ));
+                    b.memberExpression(
+                      b.identifier('obj'), b.identifier(child_name)),
+                    b.identifier('join')),
+                  [b.literal('')])));
+            }
+            write_stmts.push(
+              b.forOfStatement(
+                b.variableDeclaration(
+                  'let',
+                  [b.identifier('val')]),
+                b.memberExpression(
+                  b.identifier('obj'),
+                  b.identifier(child_name)),
+                b.blockStatement([
+                  b.expressionStatement(b.callExpression(
+                    b.memberExpression(
+                      b.thisExpression(), b.identifier(`write${child_type}`)),
+                    [b.identifier('val')])),
+                ])
+            ));
+          }
         }
         break;
       case 'exprfield':

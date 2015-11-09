@@ -450,7 +450,13 @@ export default class XServerClient {
   async ChangeProperty(req) {
     var window = this.server.getResource(req.window, x_types.Window)
     console.log('ChangeProperty', window, window.id, this.server.getAtom(req.atom));
-    window.changeProperty(req.atom, this.server.getAtom(req.atom), req.format, req.type, req.value, req.mode);
+    window.changeProperty(
+      req.atom,
+      this.server.getAtom(req.atom),
+      req.format,
+      req.type,
+      req.value,
+      req.mode);
     //console.log('ChangeProperty', window.id, property, format, data, mode);
   }
 
@@ -461,13 +467,12 @@ export default class XServerClient {
   }
 
 
-  async GetProperty(req) {
-    var window = this.server.getResource(req.window, x_types.Window)
-      , property = this.server.getAtom(req.property)
-      , type = req.type
-      , long_off = req.long_off
-      , long_len = req.long_len
-      , rep = new x_types.WorkReply(req);
+  async GetProperty(req, rep) {
+    var window = this.server.getResource(req.window, x_types.Window);
+    var property = this.server.getAtom(req.property);
+    var type = req.type;
+    var long_off = req.long_offset;
+    var long_len = req.long_length;
 
     //console.log('Get Property', window.id, property);
 
@@ -477,8 +482,24 @@ export default class XServerClient {
 
     rep.format = value.format;
     rep.type = value.type;
-    rep.length = value.length;
-    rep.value = value.buffer;
+
+    if (value.type === type || !type) {
+      let N = value.length;
+      let I = 4 * long_off;
+      let T = N - I;
+      let L = Math.min(T, 4 * long_len);
+      if (L < 0) {
+        throw new x_types.Error({}, 1);
+      }
+      let A = N - (I + L);
+      rep.value = value.slice(I, I + L);
+      rep.bytes_after = A;
+      if (req.delete && A === 0) {
+        window.deleteProperty(property);
+      }
+    } else {
+      rep.bytes_after = value.length;
+    }
     return rep;
   }
 

@@ -167,6 +167,12 @@ export class CursorBuffer extends EndianBuffer {
     return this.slice(this.cursor, length + this.cursor);
   }
 
+  cursorWriteBuffer(buffer) {
+    for (let i = 0; i < buffer.length; i++) {
+      this.writeUInt8(buffer.readUInt8(i));
+    }
+  }
+
   readchar() {
     return String.fromCharCode(this.readUInt8());
   }
@@ -184,6 +190,7 @@ export class CursorBuffer extends EndianBuffer {
     this.moveCursor(-3);
     var length = length_quad * 4;
     var req = this[`request_read${opname}`](length);
+    req.endian = this.endian;
     req.opcode = opcode;
     req.opname = opname;
     req.length = length;

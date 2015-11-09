@@ -2123,12 +2123,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(3);
     obj.data_len = this.readCARD32();
     var data_length = ((obj.data_len * obj.format) / 8);
-    obj.data = [];
-
-    for (let i = 0; i < data_length; i++) {
-      obj.data.push(this.readvoid());
-    }
-
+    obj.data = this.cursorSlice(data_length);
     return obj;
   }
 
@@ -2142,11 +2137,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeCARD8(obj.format);
     this.moveCursor(3);
     this.writeCARD32(obj.data_len);
-    var data_length = ((obj.data_len * obj.format) / 8);
-
-    for (let val of obj.data) {
-      this.writevoid(val);
-    }
+    this.cursorWriteBuffer(obj.data);
   }
 
   request_readDeleteProperty() {
@@ -2197,12 +2188,7 @@ export class XTypeBuffer extends CursorBuffer {
     obj.value_len = this.readCARD32();
     this.moveCursor(12);
     var value_length = (obj.value_len * (obj.format / 8));
-    obj.value = [];
-
-    for (let i = 0; i < value_length; i++) {
-      obj.value.push(this.readvoid());
-    }
-
+    obj.value = this.cursorSlice(value_length);
     return obj;
   }
 
@@ -2215,11 +2201,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.writeCARD32(obj.bytes_after);
     this.writeCARD32(obj.value_len);
     this.moveCursor(12);
-    var value_length = (obj.value_len * (obj.format / 8));
-
-    for (let val of obj.value) {
-      this.writevoid(val);
-    }
+    this.cursorWriteBuffer(obj.value);
   }
 
   request_readListProperties() {
@@ -4738,7 +4720,6 @@ export class XTypeBuffer extends CursorBuffer {
 
   reply_writeQueryExtension(obj) {
     this.moveCursor(1);
-    console.log(obj.sequence);
     this.writeCARD16(obj.sequence);
     this.moveCursor(4);
     this.writeBOOL(obj.present);

@@ -2050,7 +2050,13 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(2);
     obj.name_len = this.readCARD16();
     this.moveCursor(2);
-    obj.name = this.readSTRING8();
+    obj.name = [];
+
+    for (let i = 0; i < name_length; i++) {
+      obj.name.push(this.readchar());
+    }
+
+    obj.name = obj.name.join("");
     return obj;
   }
 
@@ -2059,7 +2065,11 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(2);
     this.writeCARD16(obj.name_len);
     this.moveCursor(2);
-    this.writeSTRING8(obj.name);
+    var name_length = obj.name_len;
+
+    for (let val of obj.name) {
+      this.writechar(val);
+    }
   }
 
   reply_readInternAtom() {
@@ -2099,7 +2109,13 @@ export class XTypeBuffer extends CursorBuffer {
     obj.length = this.readCARD32();
     obj.name_len = this.readCARD16();
     this.moveCursor(22);
-    obj.name = this.readSTRING8();
+    obj.name = [];
+
+    for (let i = 0; i < name_length; i++) {
+      obj.name.push(this.readchar());
+    }
+
+    obj.name = obj.name.join("");
     return obj;
   }
 
@@ -2109,7 +2125,11 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(4);
     this.writeCARD16(obj.name_len);
     this.moveCursor(22);
-    this.writeSTRING8(obj.name);
+    var name_length = obj.name_len;
+
+    for (let val of obj.name) {
+      this.writechar(val);
+    }
   }
 
   request_readChangeProperty() {

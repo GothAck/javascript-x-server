@@ -36,18 +36,11 @@ function parseOp(root, member, invert) {
   }
 }
 
-module.exports = function parseBody(parent, klasses, type) {
-  let children = parent.find('*');
-  let parent_name = parent.attr('name') && parent.attr('name').value();
-  let read_stmts = [];
-  let fields = new Map();
-  
-  let lists = parent.find('list');
-  let write_stmts = [];
-  if (lists && lists.length) {
+function createListPreprocess(rs, ws, lists) {
+  if (lists) {
     for (let list of lists) {
       let name = list.attr('name').value();
-      write_stmts.push(b.expressionStatement(b.assignmentExpression(
+      ws.push(b.expressionStatement(b.assignmentExpression(
         '=',
         b.memberExpression(
           b.identifier('obj'), b.identifier(`${name}_len`)),
@@ -58,315 +51,369 @@ module.exports = function parseBody(parent, klasses, type) {
       )));
     }
   }
+}
+
+function createPad(rs, ws, bytes) {
+  rs.push(
+    b.expressionStatement(b.callExpression(
+      b.memberExpression(
+        b.thisExpression(),
+        b.identifier('moveCursor')),
+      [b.literal(bytes)])));
+  ws.push(
+    b.expressionStatement(b.callExpression(
+      b.memberExpression(
+        b.thisExpression(),
+        b.identifier('moveCursor')),
+      [b.literal(bytes)])));
+}
+
+function createFieldSetupReqByteOrder(rs, ws, child_name) {
+  rs.push(
+    b.expressionStatement(b.assignmentExpression(
+      '=',
+      b.memberExpression(b.identifier('obj'), b.identifier('endian')),
+      b.binaryExpression(
+        '!==',
+        b.memberExpression(
+          b.identifier('obj'), b.identifier('byte_order')),
+        b.literal(66))
+    )));
+  rs.push(
+    b.expressionStatement(b.assignmentExpression(
+      '=',
+      b.memberExpression(
+        b.thisExpression(), b.identifier('endian')),
+      b.memberExpression(b.identifier('obj'), b.identifier('endian'))
+    )));
+}
+
+function createField(rs, ws, child_name, child_type, parent_name) {
+  if (child_type !== 'STRING8') {
+    rs.push(
+      b.expressionStatement(b.assignmentExpression(
+        '=',
+        b.memberExpression(
+          b.identifier('obj'), b.identifier(child_name)),
+        b.callExpression(
+          b.memberExpression(
+            b.thisExpression(),
+            b.identifier(`read${child_type}`)),
+          []))));
+    ws.push(
+      b.expressionStatement(b.callExpression(
+        b.memberExpression(
+          b.thisExpression(),
+          b.identifier(`write${child_type}`)),
+        [b.memberExpression(
+          b.identifier('obj'),
+          b.identifier(child_name))])));
+  } else {
+    createListNormal(rs, ws, child_name, 'char', b.memberExpression(b.identifier('obj'), b.identifier(`${child_name}_len`)));
+  }
+  if (parent_name === 'SetupRequest' && child_name === 'byte_order') {
+    createFieldSetupReqByteOrder(rs, ws, child_name);
+  }
+}
+
+function createListVoid(rs, ws, child_name) {
+  rs.push(b.assignmentStatement(
+    '=',
+    b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
+    b.callExpression(
+      b.memberExpression(
+        b.thisExpression(), b.identifier('cursorSlice')),
+      [b.identifier(`${child_name}_length`)])));
+  ws.push(b.callStatement(
+    b.memberExpression(
+      b.thisExpression(), b.identifier('cursorWriteBuffer')),
+    [b.memberExpression(
+      b.identifier('obj'), b.identifier(child_name))]));
+}
+
+function createListNormal(rs, ws, child_name, child_type, fieldref) {
+  ws.push(b.variableDeclaration(
+    'var',
+    [b.variableDeclarator(
+      b.identifier(`${child_name}_length`),
+      fieldref)]));
+  rs.push(b.expressionStatement(b.assignmentExpression(
+    '=',
+    b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
+    b.arrayExpression([]))));
+
+  let read_stmt = b.expressionStatement(b.callExpression(
+    b.memberExpression(
+      b.memberExpression(
+        b.identifier('obj'), b.identifier(child_name)),
+      b.identifier('push')),
+    [b.callExpression(
+      b.memberExpression(
+        b.thisExpression(), b.identifier(`read${child_type}`)),
+      [])]));
+  if (fieldref === null) {
+    rs.push(
+      b.whileStatement(
+        b.binaryExpression(
+          '<',
+          b.memberExpression(
+            b.thisExpression(), b.identifier('cursor')),
+          b.memberExpression(
+            b.thisExpression(), b.identifier('length'))),
+        b.blockStatement([read_stmt])));
+  } else {
+    rs.push(
+      b.forStatement(
+        b.variableDeclaration(
+          'let',
+          [b.variableDeclarator(
+              b.identifier('i'),
+              b.literal(0))]),
+        b.binaryExpression(
+          '<',
+          b.identifier('i'),
+          b.identifier(`${child_name}_length`)),
+        b.updateExpression(
+          '++',
+          b.identifier('i'),
+          false),
+        b.blockStatement([read_stmt])
+    ));
+  }
+  if (child_type === 'char') {
+    rs.push(b.assignmentStatement(
+      '=',
+      b.memberExpression(
+        b.identifier('obj'), b.identifier(child_name)),
+      b.callExpression(
+        b.memberExpression(
+          b.memberExpression(
+            b.identifier('obj'), b.identifier(child_name)),
+          b.identifier('join')),
+        [b.literal('')])));
+  }
+  ws.push(
+    b.forOfStatement(
+      b.variableDeclaration(
+        'let',
+        [b.identifier('val')]),
+      b.memberExpression(
+        b.identifier('obj'),
+        b.identifier(child_name)),
+      b.blockStatement([
+        b.expressionStatement(b.callExpression(
+          b.memberExpression(
+            b.thisExpression(), b.identifier(`write${child_type}`)),
+          [b.identifier('val')])),
+      ])
+  ));
+}
+
+function createList(rs, ws, child_name, child_type, fieldref) {
+  if (fieldref !== null) {
+    rs.push(b.variableDeclaration(
+      'var',
+      [b.variableDeclarator(
+        b.identifier(`${child_name}_length`),
+        fieldref)]));
+  }
+  if (child_type === 'void') {
+    createListVoid(rs, ws, child_name);
+  } else {
+    createListNormal(rs, ws, child_name, child_type, fieldref);
+  }
+}
+
+function createExprField(rs, ws, child_name, child_type, fieldref) {
+  rs.push(
+    b.expressionStatement(b.assignmentExpression(
+      '=',
+      b.memberExpression(
+        b.identifier('obj'), b.identifier(child_name)),
+      b.callExpression(
+        b.memberExpression(
+          b.thisExpression(),
+          b.identifier(`read${child_type}`)),
+        []))));
+  ws.push(b.expressionStatement(b.assignmentExpression(
+    '=',
+    b.memberExpression(
+      b.identifier('obj'), b.identifier(child_name)),
+    fieldref)));
+}
+
+function createValueParam(
+  rs, ws,
+  enum_map,
+  value_list_name,
+  value_mask_name,
+  value_mask_type,
+  enum_class_name
+) {
+  rs.push(b.expressionStatement(b.assignmentExpression(
+    '=',
+    b.memberExpression(
+      b.identifier('obj'), b.identifier(value_mask_name)),
+    b.callExpression(b.memberExpression(
+      b.parenthesizedExpression(b.newExpression(
+        b.identifier(enum_class_name),
+        [])),
+      b.identifier('decode')),
+      [b.callExpression(
+        b.memberExpression(
+          b.thisExpression(),
+          b.identifier(`read${value_mask_type}`)),
+        [])]
+    ))));
+
+  ws.push(b.variableDeclaration(
+    'var',
+    [b.variableDeclarator(
+      b.identifier('value'),
+      b.memberExpression(b.identifier('obj'), b.identifier('value'))
+      )]));
+  ws.push(b.variableDeclaration(
+    'var',
+    [b.variableDeclarator(
+      b.identifier('value_enum'),
+      b.newExpression(
+        b.identifier(enum_class_name),
+        [b.callExpression(b.memberExpression(
+          b.identifier('value'), b.identifier('keys')), [])]))]));
+  ws.push(b.callStatement(
+    b.memberExpression(
+      b.thisExpression(), b.identifier(`write${value_mask_type}`)),
+    [b.callExpression(b.memberExpression(
+      b.identifier('value_enum'),
+      b.identifier('encode')), [])]));
+
+  if (value_mask_type === 'CARD16') {
+    createPad(rs, ws, 2);
+  }
+
+  rs.push(
+    b.variableDeclaration(
+      'var',
+      [b.variableDeclarator(
+        b.identifier('value'),
+        b.newExpression(b.identifier('Map'), []))]));
+
+  rs.push(b.expressionStatement(
+    b.assignmentExpression(
+      '=',
+      b.memberExpression(
+        b.identifier('obj'), b.identifier('value')),
+      b.identifier('value'))));
+
+  rs.push(b.forOfStatement(
+    b.variableDeclaration(
+      'let',
+      [b.identifier('field')]),
+    b.memberExpression(
+      b.identifier('obj'), b.identifier(value_mask_name)),
+    b.blockStatement([
+      b.callStatement(
+        b.memberExpression(
+          b.identifier('value'), b.identifier('set')),
+        [
+          b.identifier('field'),
+          b.callExpression(
+            b.memberExpression(
+              b.thisExpression(), b.identifier('readCARD32')),
+            [])
+        ])
+      ])));
+
+  ws.push(b.forOfStatement(
+    b.variableDeclaration(
+      'let',
+      [b.identifier('field')]),
+    b.identifier('value_enum'),
+    b.blockStatement([
+      b.callStatement(
+        b.memberExpression(
+          b.thisExpression(), b.identifier('writeCARD32')),
+        [b.callExpression(
+          b.memberExpression(
+            b.identifier('value'), b.identifier('get')),
+          [b.identifier('field')])])
+      ])));
+}
+
+module.exports = function parseBody(parent, klasses, type) {
+  let children = parent.find('*');
+  let parent_name = parent.attr('name') && parent.attr('name').value();
+  let rs = [];
+  let ws = [];
+  let fields = new Map();
+  
+  let lists = parent.find('list');
+
+  createListPreprocess(rs, ws, lists);
 
   for (let [i, child] of children.entries()) {
     let child_tag = child.name();
     switch (child_tag) {
       case 'pad':
         let bytes = parseInt(child.attr('bytes').value());
-        read_stmts.push(
-          b.expressionStatement(b.callExpression(
-            b.memberExpression(
-              b.thisExpression(),
-              b.identifier('moveCursor')),
-            [b.literal(bytes)])));
-        write_stmts.push(
-          b.expressionStatement(b.callExpression(
-            b.memberExpression(
-              b.thisExpression(),
-              b.identifier('moveCursor')),
-            [b.literal(bytes)])));
+        createPad(rs, ws, bytes);
         break;
       case 'field':
         {
           let child_name = child.attr('name').value();
           let child_type = child.attr('type').value();
           fields.set(child_name, child_type);
-          read_stmts.push(
-            b.expressionStatement(b.assignmentExpression(
-              '=',
-              b.memberExpression(
-                b.identifier('obj'), b.identifier(child_name)),
-              b.callExpression(
-                b.memberExpression(
-                  b.thisExpression(),
-                  b.identifier(`read${child_type}`)),
-                []))));
-          if (parent_name === 'SetupRequest' && child_name === 'byte_order') {
-            read_stmts.push(
-              b.expressionStatement(b.assignmentExpression(
-                '=',
-                b.memberExpression(b.identifier('obj'), b.identifier('endian')),
-                b.binaryExpression(
-                  '!==',
-                  b.memberExpression(
-                    b.identifier('obj'), b.identifier(child_name)),
-                  b.literal(66))
-              )));
-            read_stmts.push(
-              b.expressionStatement(b.assignmentExpression(
-                '=',
-                b.memberExpression(
-                  b.thisExpression(), b.identifier('endian')),
-                b.memberExpression(b.identifier('obj'), b.identifier('endian'))
-              )));
-            // data.readUInt8(0) !== 66
-          }
-          write_stmts.push(
-            b.expressionStatement(b.callExpression(
-              b.memberExpression(
-                b.thisExpression(),
-                b.identifier(`write${child_type}`)),
-              [b.memberExpression(
-                b.identifier('obj'),
-                b.identifier(child_name))])));
+          createField(rs, ws, child_name, child_type, parent_name);
         }
         break;
       case 'list':
         {
           let child_name = child.attr('name').value();
           let child_type = child.attr('type').value();
-          fields.set(child_name, [child_type]);
-
           let fieldref = parseOp(child.get('*'), 'obj');
-          if (fieldref !== null) {
-            read_stmts.push(b.variableDeclaration(
-              'var',
-              [b.variableDeclarator(
-                b.identifier(`${child_name}_length`),
-                fieldref)]));
-          }
-          if (child_type === 'void') {
-            read_stmts.push(b.assignmentStatement(
-              '=',
-              b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
-              b.callExpression(
-                b.memberExpression(
-                  b.thisExpression(), b.identifier('cursorSlice')),
-                [b.identifier(`${child_name}_length`)])));
-            write_stmts.push(b.callStatement(
-              b.memberExpression(
-                b.thisExpression(), b.identifier('cursorWriteBuffer')),
-              [b.memberExpression(
-                b.identifier('obj'), b.identifier(child_name))]));
-          } else {
-            write_stmts.push(b.variableDeclaration(
-              'var',
-              [b.variableDeclarator(
-                b.identifier(`${child_name}_length`),
-                fieldref)]));
-            read_stmts.push(b.expressionStatement(b.assignmentExpression(
-              '=',
-              b.memberExpression(b.identifier('obj'), b.identifier(child_name)),
-              b.arrayExpression([]))));
-
-            let read_stmt = b.expressionStatement(b.callExpression(
-              b.memberExpression(
-                b.memberExpression(
-                  b.identifier('obj'), b.identifier(child_name)),
-                b.identifier('push')),
-              [b.callExpression(
-                b.memberExpression(
-                  b.thisExpression(), b.identifier(`read${child_type}`)),
-                [])]));
-            if (fieldref === null) {
-              read_stmts.push(
-                b.whileStatement(
-                  b.binaryExpression(
-                    '<',
-                    b.memberExpression(
-                      b.thisExpression(), b.identifier('cursor')),
-                    b.memberExpression(
-                      b.thisExpression(), b.identifier('length'))),
-                  b.blockStatement([read_stmt])));
-            } else {
-              read_stmts.push(
-                b.forStatement(
-                  b.variableDeclaration(
-                    'let',
-                    [b.variableDeclarator(
-                        b.identifier('i'),
-                        b.literal(0))]),
-                  b.binaryExpression(
-                    '<',
-                    b.identifier('i'),
-                    b.identifier(`${child_name}_length`)),
-                  b.updateExpression(
-                    '++',
-                    b.identifier('i'),
-                    false),
-                  b.blockStatement([read_stmt])
-              ));
-            }
-            if (child_type === 'char') {
-              read_stmts.push(b.assignmentStatement(
-                '=',
-                b.memberExpression(
-                  b.identifier('obj'), b.identifier(child_name)),
-                b.callExpression(
-                  b.memberExpression(
-                    b.memberExpression(
-                      b.identifier('obj'), b.identifier(child_name)),
-                    b.identifier('join')),
-                  [b.literal('')])));
-            }
-            write_stmts.push(
-              b.forOfStatement(
-                b.variableDeclaration(
-                  'let',
-                  [b.identifier('val')]),
-                b.memberExpression(
-                  b.identifier('obj'),
-                  b.identifier(child_name)),
-                b.blockStatement([
-                  b.expressionStatement(b.callExpression(
-                    b.memberExpression(
-                      b.thisExpression(), b.identifier(`write${child_type}`)),
-                    [b.identifier('val')])),
-                ])
-            ));
-          }
+          fields.set(child_name, [child_type]);
+          createList(rs, ws, child_name, child_type, fieldref);
         }
         break;
       case 'exprfield':
-        let child_name = child.attr('name').value();
-        let child_type = child.attr('type').value();
-        read_stmts.push(
-          b.expressionStatement(b.assignmentExpression(
-            '=',
-            b.memberExpression(
-              b.identifier('obj'), b.identifier(child_name)),
-            b.callExpression(
-              b.memberExpression(
-                b.thisExpression(),
-                b.identifier(`read${child_type}`)),
-              []))));
-        write_stmts.push(b.expressionStatement(b.assignmentExpression(
-          '=',
-          b.memberExpression(
-            b.identifier('obj'), b.identifier(child_name)),
-          parseOp(child.get('*'), 'obj'))));
+        {
+          let child_name = child.attr('name').value();
+          let child_type = child.attr('type').value();
+          let fieldref = parseOp(child.get('*'), 'obj');
+          createExprField(rs, ws, child_name, child_type, fieldref);
+        }
         break;
       case 'valueparam':
-        if (!(
-          klasses.getClass('XTypeBuffer') &&
-          klasses.getClass('XTypeBuffer').enums
-        )) {
-          throw new Error(
-            "Shouldn't be able to get to valueparam before enums are parsed");
+        {
+          if (!(
+            klasses.getClass('XTypeBuffer') &&
+            klasses.getClass('XTypeBuffer').enums
+          )) {
+            throw new Error(
+              "Shouldn't be able to get to valueparam before enums are parsed");
+          }
+          let enum_map = klasses.getClass('XTypeBuffer').enums;
+          let value_mask_type = child.attr('value-mask-type').value();
+          let value_mask_name = child.attr('value-mask-name').value();
+          let value_list_name = child.attr('value-list-name').value();
+
+          if (! enum_map.has(value_list_name)) {
+            console.error(`FIXME: The stupid cases for ${value_list_name}`);
+            continue;
+          }
+          let enum_class_name = enum_map.get(value_list_name).name;
+
+          fields.set('value', new Map([[enum_class_name, 'CARD32']]));
+
+          createValueParam(
+            rs, ws,
+            enum_map,
+            value_list_name,
+            value_mask_name,
+            value_mask_type,
+            enum_class_name);
         }
-        let enum_map = klasses.getClass('XTypeBuffer').enums;
-        let value_mask_type = child.attr('value-mask-type').value();
-        let value_mask_name = child.attr('value-mask-name').value();
-        let value_list_name = child.attr('value-list-name').value();
-
-        if (! enum_map.has(value_list_name)) {
-          console.error(`FIXME: The stupid cases for ${value_list_name}`);
-          continue;
-        }
-        let enum_class_name = enum_map.get(value_list_name).name;
-
-        fields.set('value', new Map([[enum_class_name, 'CARD32']]));
-
-        read_stmts.push(b.expressionStatement(b.assignmentExpression(
-          '=',
-          b.memberExpression(
-            b.identifier('obj'), b.identifier(value_mask_name)),
-          b.callExpression(b.memberExpression(
-            b.parenthesizedExpression(b.newExpression(
-              b.identifier(enum_class_name),
-              [])),
-            b.identifier('decode')),
-            [b.callExpression(
-              b.memberExpression(
-                b.thisExpression(),
-                b.identifier(`read${value_mask_type}`)),
-              [])]
-          ))));
-
-        write_stmts.push(b.variableDeclaration(
-          'var',
-          [b.variableDeclarator(
-            b.identifier('value'),
-            b.memberExpression(b.identifier('obj'), b.identifier('value'))
-            )]));
-        write_stmts.push(b.variableDeclaration(
-          'var',
-          [b.variableDeclarator(
-            b.identifier('value_enum'),
-            b.newExpression(
-              b.identifier(enum_class_name),
-              [b.callExpression(b.memberExpression(
-                b.identifier('value'), b.identifier('keys')), [])]))]));
-        write_stmts.push(b.callStatement(
-          b.memberExpression(
-            b.thisExpression(), b.identifier(`write${value_mask_type}`)),
-          [b.callExpression(b.memberExpression(
-            b.identifier('value_enum'),
-            b.identifier('encode')), [])]));
-
-        if (value_mask_type === 'CARD16') {
-          read_stmts.push(
-            b.expressionStatement(b.callExpression(
-              b.memberExpression(
-                b.thisExpression(),
-                b.identifier('moveCursor')),
-              [b.literal(2)])));
-          write_stmts.push(
-            b.expressionStatement(b.callExpression(
-              b.memberExpression(
-                b.thisExpression(),
-                b.identifier('moveCursor')),
-              [b.literal(2)])));
-        }
-
-        read_stmts.push(
-          b.variableDeclaration(
-            'var',
-            [b.variableDeclarator(
-              b.identifier('value'),
-              b.newExpression(b.identifier('Map'), []))]));
-
-        read_stmts.push(b.expressionStatement(
-          b.assignmentExpression(
-            '=',
-            b.memberExpression(
-              b.identifier('obj'), b.identifier('value')),
-            b.identifier('value'))));
-
-        read_stmts.push(b.forOfStatement(
-          b.variableDeclaration(
-            'let',
-            [b.identifier('field')]),
-          b.memberExpression(
-            b.identifier('obj'), b.identifier(value_mask_name)),
-          b.blockStatement([
-            b.callStatement(
-              b.memberExpression(
-                b.identifier('value'), b.identifier('set')),
-              [
-                b.identifier('field'),
-                b.callExpression(
-                  b.memberExpression(
-                    b.thisExpression(), b.identifier('readCARD32')),
-                  [])
-              ])
-            ])));
-
-        write_stmts.push(b.forOfStatement(
-          b.variableDeclaration(
-            'let',
-            [b.identifier('field')]),
-          b.identifier('value_enum'),
-          b.blockStatement([
-            b.callStatement(
-              b.memberExpression(
-                b.thisExpression(), b.identifier('writeCARD32')),
-              [b.callExpression(
-                b.memberExpression(
-                  b.identifier('value'), b.identifier('get')),
-                [b.identifier('field')])])
-            ])));
+        break;
       case 'reply':
         // Don't handle replies here, just ignore them
       case 'doc':
@@ -378,21 +425,10 @@ module.exports = function parseBody(parent, klasses, type) {
     if (i === 0) {
       switch(type) {
         case 'request':
-          read_stmts.push(
-            b.expressionStatement(b.callExpression(
-              b.memberExpression(
-                b.thisExpression(),
-                b.identifier('moveCursor')),
-              [b.literal(2)])));
-          write_stmts.push(
-            b.expressionStatement(b.callExpression(
-              b.memberExpression(
-                b.thisExpression(),
-                b.identifier('moveCursor')),
-              [b.literal(2)])));
+          createPad(rs, ws, 2);
           break;
         case 'reply':
-          read_stmts.push(
+          rs.push(
             b.expressionStatement(b.assignmentExpression(
               '=',
               b.memberExpression(
@@ -402,7 +438,7 @@ module.exports = function parseBody(parent, klasses, type) {
                   b.thisExpression(),
                   b.identifier('readCARD16')),
                 []))));
-          read_stmts.push(
+          rs.push(
             b.expressionStatement(b.assignmentExpression(
               '=',
               b.memberExpression(
@@ -412,7 +448,7 @@ module.exports = function parseBody(parent, klasses, type) {
                   b.thisExpression(),
                   b.identifier('readCARD32')),
                 []))));
-          write_stmts.push(
+          ws.push(
             b.expressionStatement(b.callExpression(
               b.memberExpression(
                 b.thisExpression(),
@@ -420,7 +456,7 @@ module.exports = function parseBody(parent, klasses, type) {
               [b.memberExpression(
                 b.identifier('obj'),
                 b.identifier('sequence'))])));
-          write_stmts.push(
+          ws.push(
             b.expressionStatement(b.callExpression(
               b.memberExpression(
                 b.thisExpression(),
@@ -430,18 +466,18 @@ module.exports = function parseBody(parent, klasses, type) {
       }
     }
   }
-  if (read_stmts.length) {
-    read_stmts.unshift(
+  if (rs.length) {
+    rs.unshift(
       b.variableDeclaration(
         'var',
         [b.variableDeclarator(
           b.identifier('obj'),
           b.objectExpression([]))]));
-    read_stmts.push(b.returnStatement(b.identifier('obj')));
+    rs.push(b.returnStatement(b.identifier('obj')));
   } else {
-    read_stmts.push(b.returnStatement(b.objectExpression([])));
+    rs.push(b.returnStatement(b.objectExpression([])));
   }
-  return [read_stmts, write_stmts, fields];
+  return [rs, ws, fields];
 }
 
 module.exports.parseOp = parseOp;

@@ -5,6 +5,7 @@ var sourcemaps = require('gulp-sourcemaps');
 var buffer = require('vinyl-buffer');
 var factor = require('factor-bundle');
 var insert = require('gulp-insert');
+var notify = require('gulp-notify');
 
 var browserify = require('browserify');
 var babelify = require('babelify');
@@ -59,7 +60,8 @@ gulp.task('js', function () {
     .pipe(buffer())
     .pipe(sourcemaps.init({loadMaps: true}))
     .pipe(sourcemaps.write('./'))
-    .pipe(gulp.dest('./public/'));
+    .pipe(gulp.dest('./public/'))
+    .pipe(notify('JS build complete'));;
 });
 
 gulp.task('watcher', function () {

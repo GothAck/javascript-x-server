@@ -23,7 +23,16 @@ Vagrant.configure(2) do |config|
 	config.vm.synced_folder ".", "/mnt/server"
 
 	config.vm.provision "shell", inline: <<-SCRIPT
-		apt-get install -y build-essential x11-apps x11-utils blackbox blackbox-themes menu git
+		apt-get install -y build-essential x11-apps x11-utils blackbox blackbox-themes menu git wireshark expect
+
+		expect <<-EOF
+			spawn dpkg-reconfigure wireshark-common  -f readline
+			expect "Should non-superusers be able to capture packets?"
+			send "y\r"
+			expect eof
+		EOF
+
+		adduser vagrant wireshark
 
 		sudo -iu vagrant /bin/bash - <<-EOF
 			cd ~

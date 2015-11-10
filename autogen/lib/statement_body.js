@@ -132,6 +132,13 @@ function createListVoid(rs, ws, child_name) {
 }
 
 function createListNormal(rs, ws, child_name, child_type, fieldref) {
+  if (fieldref !== null) {
+    rs.push(b.variableDeclaration(
+      'var',
+      [b.variableDeclarator(
+        b.identifier(`${child_name}_length`),
+        fieldref)]));
+  }
   ws.push(b.variableDeclaration(
     'var',
     [b.variableDeclarator(
@@ -210,13 +217,6 @@ function createListNormal(rs, ws, child_name, child_type, fieldref) {
 }
 
 function createList(rs, ws, child_name, child_type, fieldref) {
-  if (fieldref !== null) {
-    rs.push(b.variableDeclaration(
-      'var',
-      [b.variableDeclarator(
-        b.identifier(`${child_name}_length`),
-        fieldref)]));
-  }
   if (child_type === 'void') {
     createListVoid(rs, ws, child_name);
   } else {

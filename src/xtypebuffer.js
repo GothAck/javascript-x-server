@@ -2050,6 +2050,7 @@ export class XTypeBuffer extends CursorBuffer {
     this.moveCursor(2);
     obj.name_len = this.readCARD16();
     this.moveCursor(2);
+    var name_length = obj.name_len;
     obj.name = [];
 
     for (let i = 0; i < name_length; i++) {
@@ -2109,6 +2110,7 @@ export class XTypeBuffer extends CursorBuffer {
     obj.length = this.readCARD32();
     obj.name_len = this.readCARD16();
     this.moveCursor(22);
+    var name_length = obj.name_len;
     obj.name = [];
 
     for (let i = 0; i < name_length; i++) {
@@ -2142,7 +2144,6 @@ export class XTypeBuffer extends CursorBuffer {
     obj.format = this.readCARD8();
     this.moveCursor(3);
     obj.data_len = this.readCARD32();
-    var data_length = ((obj.data_len * obj.format) / 8);
     obj.data = this.cursorSlice(data_length);
     return obj;
   }
@@ -2207,7 +2208,6 @@ export class XTypeBuffer extends CursorBuffer {
     obj.bytes_after = this.readCARD32();
     obj.value_len = this.readCARD32();
     this.moveCursor(12);
-    var value_length = (obj.value_len * (obj.format / 8));
     obj.value = this.cursorSlice(value_length);
     return obj;
   }

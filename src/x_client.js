@@ -36,7 +36,6 @@ export default class XServerClient {
   async processRequest(message) {
     var req = message.request;
     var req_str = `> Request ${req.sequence} (${this.idLog}) ${message.type}`;
-    var rep;
 
     if (message.type === 'SetupRequest') {
       if (this.state !== 0)
@@ -123,7 +122,7 @@ export default class XServerClient {
     this.auth_name = data.auth_name;
 
     this.auth_data = data.auth_data;
-    
+
     /* Deny connection
     var reason = 'No Way'
       , pad = 4 - ((reason.length % 4) || 4);
@@ -301,9 +300,8 @@ export default class XServerClient {
       .changeFields(this, WinVField.fromObject(req.fields));
   }
 
-  async GetWindowAttributes(req) {
-    var window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.WorkReply(req);
+  async GetWindowAttributes(req, rep) {
+    var window = this.server.getResource(req.window, x_types.Window);
     rep.backing_store = 2; // Backing store (0 NotUseful, 1 WhenMapper, 2 Always)
     rep.visual_id = 0; // Visual id
     rep.input_output = window.input_output; // Class (1 InputOutput, 2 InputOnly)
@@ -404,9 +402,8 @@ export default class XServerClient {
     console.log('ConfigureWindow FIXME: Incomplete');
   }
 
-  async GetGeometry(req) {
-    var drawable = this.server.getResource(req.drawable, x_types.Drawable)
-      , rep = new x_types.WorkReply(req);
+  async GetGeometry(req, rep) {
+    var drawable = this.server.getResource(req.drawable, x_types.Drawable);
     rep.depth = drawable.depth;
 
     rep.root = drawable.getRoot().id;
@@ -418,10 +415,9 @@ export default class XServerClient {
     return rep;
   }
 
-  async QueryTree(req) {
-    var window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.WorkReply(req)
-      , root = window.getRoot();
+  async QueryTree(req, rep) {
+    var window = this.server.getResource(req.window, x_types.Window);
+    var root = window.getRoot();
     rep.root = root && root.id;
     rep.parent = window.parent && window.parent.id;
     rep.children = window.children.map(function (child) {
@@ -431,18 +427,16 @@ export default class XServerClient {
     return rep;
   }
 
-  async InternAtom(req) {
-    var index = this.server.getAtom(req.name, true)
-      , rep = new x_types.WorkReply(req);
+  async InternAtom(req, rep) {
+    var index = this.server.getAtom(req.name, true);
     if ((!index) && ! req.only_if_exists)
       index = this.server.atoms.push(req.name);
     rep.atom = index;
     return rep;
   }
 
-  async GetAtomName(req) {
-    var atom = this.server.getAtom(req.atom)
-      , rep = new x_types.WorkReply(req);
+  async GetAtomName(req, rep) {
+    var atom = this.server.getAtom(req.atom);
     rep.name = atom;
     return rep;
   }
@@ -520,18 +514,16 @@ export default class XServerClient {
       });
   }
 
-  async ListProperties(req) {
-    var window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.WorkReply(req);
+  async ListProperties(req, rep) {
+    var window = this.server.getResource(req.window, x_types.Window);
     rep.atoms = Object.keys(window.properties).map(function (name) { return this.atoms.indexOf(name) + 1 }, this);
     return rep;
   }
 
-  async GetSelectionOwner(req) {
-    var atom_id = req.atom
-      , atom = this.server.atoms[atom_id]
-      , owner = this.server.atom_owners[atom_id]
-      , rep = new x_types.WorkReply(req);
+  async GetSelectionOwner(req, rep) {
+    var atom_id = req.atom;
+    var atom = this.server.atoms[atom_id];
+    var owner = this.server.atom_owners[atom_id];
     rep.owner = (owner && this.server.getResource(owner) && owner) || 0;
     return rep;
   }
@@ -547,12 +539,12 @@ export default class XServerClient {
     window.sendEvent(event, req.event_mask);
   }
 
-  async GrabPointer(req) {
-    var window = this.server.getResource(req.window, x_types.Window)
-      , confine = this.server.getResource(req.confine)
-      , cursor = req.cursor
-      , timestamp = req.timestamp
-      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+  async GrabPointer(req, rep) {
+    var window = this.server.getResource(req.window, x_types.Window);
+    var confine = this.server.getResource(req.confine);
+    var cursor = req.cursor;
+    var timestamp = req.timestamp;
+    // FIXME: Migrate to x_types.WorkReply
 
     if (this.server.grab_pointer) {
       rep.data_byte = 1;
@@ -593,13 +585,13 @@ export default class XServerClient {
     }
   }
   
-  async GrabKeyboard(req) {
-    var window = this.server.getResource(req.window)
-      , owner_events = req.owner_events
-      , timestamp = req.timestamp
-      , mouse_async = req.mouse_async
-      , keybd_async = req.keybd_async
-      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+  async GrabKeyboard(req, rep) {
+    var window = this.server.getResource(req.window);
+    var owner_events = req.owner_events;
+    var timestamp = req.timestamp;
+    var mouse_async = req.mouse_async;
+    var keybd_async = req.keybd_async;
+    // FIXME: Migrate to x_types.WorkReply
 
     if (this.server.grab_pointer) {
       rep.data_byte = 1;
@@ -633,9 +625,8 @@ export default class XServerClient {
     this.server.flushGrabBuffer();
   }
 
-  async QueryPointer(req) {
-    var window = this.server.getResource(req.window, x_types.Window)
-      , rep = new x_types.WorkReply(req);
+  async QueryPointer(req, rep) {
+    var window = this.server.getResource(req.window, x_types.Window);
     rep.serverX = this.server.mouseX;
     rep.serverY = this.server.mouseY;
     rep.windowX = this.server.mouseX - window.x;
@@ -661,8 +652,7 @@ export default class XServerClient {
     this.server.input_focus_revert = req.revert;
   }
 
-  async GetInputFocus(req) {
-    var rep = new x_types.WorkReply(req);
+  async GetInputFocus(req, rep) {
     rep.revert_to = this.server.input_focus_revert;
     if (this.server.input_focus === this.server.root)
       rep.focus = 1;
@@ -687,9 +677,9 @@ export default class XServerClient {
     font.close();
   }
 
-  async QueryFont(req) {
+  async QueryFont(req, rep) {
     var font = this.server.getResource(req.font, x_types.Font);
-    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+    // FIXME: Migrate to x_types.WorkReply
     rep.data = new EndianBuffer(32);
     rep.data.endian = this.endian;
     font.getChar(-1).toCharInfo().writeBuffer(rep.data,  0); // Write min bounds
@@ -712,17 +702,16 @@ export default class XServerClient {
     return rep;
   }
 
-  async ListFonts(req) {
-    var rep = new x_types.WorkReply(req);
+  async ListFonts(req, rep) {
     rep.fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     return rep;
   }
 
-  async ListFontsWithInfo(req) {
+  async ListFontsWithInfo(req, rep) {
     var fonts = this.server.listFonts(req.pattern).slice(0, req.max_names);
     console.log('ListFontsWithInfo', req.pattern);
     if (!fonts.length) {
-      var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+      // FIXME: Migrate to x_types.WorkReply
       rep.data_extra.push(new x_types.Nulls(7 * 4));
       return rep;
     }
@@ -733,7 +722,7 @@ export default class XServerClient {
         throw new Error('Unresolved font');
       }
       var font = await this.server.loadFontAsync(resolved_name, server_name);
-      var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+      // FIXME: Migrate to x_types.WorkReply
       // CLOWNTOWN: Instead of fitting 2x 12 byte CHARINFO into 24 byte standard
       // reply, they broke the spec with 12 CHARINFO 4 PAD 12 CHARINFO 4 PAD
       // DAFUQ PEOPLE?!
@@ -952,9 +941,8 @@ export default class XServerClient {
     context.putImage(drawable, req.format, req.image, req.width, req.height, req.x, req.y, req.pad, req.depth);
   }
 
-  async GetImage(req) {
-    var drawable = this.server.getResource(req.drawable, x_types.Drawable)
-      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+  async GetImage(req, rep) {
+    var drawable = this.server.getResource(req.drawable, x_types.Drawable); // FIXME: Migrate to x_types.WorkReply
     console.log('GetImage', drawable.id);
     rep.data_byte = drawable.depth;
     rep.data_extra.push(
@@ -988,9 +976,8 @@ export default class XServerClient {
     });
   }
 
-  async AllocColor(req) {
-    var cmap = this.server.getResource(req.cmap, x_types.ColorMap)
-      , rep = new x_types.WorkReply(req);
+  async AllocColor(req, rep) {
+    var cmap = this.server.getResource(req.cmap, x_types.ColorMap);
     rep.r = req.r;
     rep.g = req.g;
     rep.b = req.b;
@@ -998,12 +985,12 @@ export default class XServerClient {
     return rep;
   }
 
-  async QueryColors(req) {
+  async QueryColors(req, rep) {
     console.log('QueryColors');
-    var count = req.length_quad - 2
-      , length = count * 4
-      , colormap = this.server.getResource(req.colormap, x_types.ColorMap)
-      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+    var count = req.length_quad - 2;
+    var length = count * 4;
+    var colormap = this.server.getResource(req.colormap, x_types.ColorMap);
+    // FIXME: Migrate to x_types.WorkReply
     rep.data.writeUInt16(count);
     for (var i = 4; i < length + 4; i += 4) {
       var rgb = colormap.getRGB(req.rgb);
@@ -1016,12 +1003,12 @@ export default class XServerClient {
   }
 
 
-  async LookupColor(req) {
-    var cmap = this.server.getResource(req.cmap, x_types.ColorMap)
-      , length = req.name_length
-      , name = req.name
-      , color = rgb_colors.get(name) || 0
-      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+  async LookupColor(req, rep) {
+    var cmap = this.server.getResource(req.cmap, x_types.ColorMap);
+    var length = req.name_length;
+    var name = req.name;
+    var color = rgb_colors.get(name) || 0;
+    // FIXME: Migrate to x_types.WorkReply
 
     rep.data.writeUInt16((color & 0xff0000) >> 16,  0);
     rep.data.writeUInt16((color & 0x00ff00) >>  8,  2);
@@ -1111,13 +1098,13 @@ export default class XServerClient {
     }, 20);
   }
 
-  async QueryBestSize(req) {
+  async QueryBestSize(req, rep) {
     console.log('QueryBestSize');
-    var _class = req.data_byte
-      , drawable = this.server.getResource(req.drawable, x_types.Drawable)
-      , width = req.width
-      , height = req.height;
-    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+    var _class = req.data_byte;
+    var drawable = this.server.getResource(req.drawable, x_types.Drawable);
+    var width = req.width;
+    var height = req.height;
+    // FIXME: Migrate to x_types.WorkReply
     switch (_class) {
       case 0: // Cursor
         rep.data.writeUInt16(64, 0); // Cursors are always 64x64
@@ -1135,17 +1122,17 @@ export default class XServerClient {
     return rep;
   }
 
-  async ListExtensions(req) {
+  async ListExtensions(req, rep) {
     console.log('ListExtensions');
-    var rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+    // FIXME: Migrate to x_types.WorkReply
     return rep;
   }
 
-  async GetKeyboardMapping(req) {
-    var self = this
-      , first = req.first
-      , count = req.count
-      , rep = new x_types.Reply(req); // FIXME: Migrate to x_types.WorkReply
+  async GetKeyboardMapping(req, rep) {
+    var self = this;
+    var first = req.first;
+    var count = req.count;
+    // FIXME: Migrate to x_types.WorkReply
 
     rep.data_byte = self.server.keymap.maxModifiers;
 
@@ -1153,8 +1140,8 @@ export default class XServerClient {
       var keyObj = self.server.keymap.get(key);
       for (var mod = 0; mod < rep.data_byte; mod ++) {
         if (keyObj) {
-          var modifier = ~~Math.pow(2, mod - 1)
-            , keycode = keyObj['' + ~~Math.pow(2, mod - 1)] || keyObj['0'];
+          var modifier = ~~Math.pow(2, mod - 1);
+          var keycode = keyObj['' + ~~Math.pow(2, mod - 1)] || keyObj['0'];
           rep.data_extra.push(new x_types.UInt32(self.server.keymap.getKeysym(keycode, modifier & 1)));
         } else
           rep.data_extra.push(new x_types.UInt32(0));
@@ -1176,10 +1163,10 @@ export default class XServerClient {
       this.server.insertAllowedHost(host);
   }
 
-  async ListHosts(req) {
-    var rep = new x_types.Reply(req);
+  async ListHosts(req, rep) {
     rep.mode = this.server.access_control;
     rep.hosts = this.server.allowed_hosts.lookup;
+    return rep;
   }
 
   async SetAccessControl(req) {
@@ -1199,9 +1186,8 @@ export default class XServerClient {
     console.warn('TODO', 'Finish me');
   }
 
-  async GetModifierMapping(req) {
-    var rep = new x_types.Reply(req) // FIXME: Migrate to x_types.WorkReply
-      , datas = (['Shift', 'Lock', 'Control', 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5'])
+  async GetModifierMapping(req, rep) {
+    var datas = (['Shift', 'Lock', 'Control', 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5'])
           .map(function (name) { return this.server.keymap.find(name) }, this);
 
     rep.data_byte = datas.reduce(function (o, v) { return Math.max(o, v.length) }, 0);

@@ -32,6 +32,6 @@ It'd also be great to experiement with GLX and WebGL to see if there is enough c
    To contain the desired wm/application:
 
    `  var proxy = new X11Proxy(screen, req.accept('x11-proxy', req.origin), 'xeyes');`
-4. In one terminal: `grunt; grunt watch` (you can just run `grunt`)
-5. In another: `npm start`
+4. `gulp`
+5. `npm start`
 6. Open http://localhost:3000 in a decent browser (currently only Chrome is tested working)

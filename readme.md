@@ -18,7 +18,7 @@ It'd also be great to experiement with GLX and WebGL to see if there is enough c
 
 ## Loose Requirements
 * A basic window manager or application (we're talking blackbox wm, xlogo, xeyes, xfd, more complex apps are more likely to hit bugs / unknown features / unimplemented opcodes).
-* Developed on Mac, but should also work on Ilnux boxes
+* Developed on Mac, but should also work on Linux boxes
 
 ## Getting started
 1. `git clone https://github.com/GothAck/javascript-x-server.git xserver; cd xserver`

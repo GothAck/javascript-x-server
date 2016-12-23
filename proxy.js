@@ -80,7 +80,7 @@ X11Proxy.prototype.newClient = function (socket) {
       );
   } else {
     idBuf.writeUInt8(6, 18);
-    idBuf = (new ip.v6.Address(socket.remoteAddress)).parsedAddress
+    idBuf = (new ip.Address6(socket.remoteAddress)).parsedAddress
       .reduce(
           function (o, v, i) {
             o.writeUInt16BE(v, i * 2);

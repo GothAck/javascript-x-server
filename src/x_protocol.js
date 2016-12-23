@@ -1,7 +1,7 @@
 import { GCVField, WinVField, WinConfigureField } from './common';
 import * as x_types from './x_types';
 import EndianBuffer from './endianbuffer';
-import { v6 } from 'ip-address';
+import { Address6 } from 'ip-address';
 
 export class XProtocolServer  {
   constructor(socket, onClose) {
@@ -105,7 +105,7 @@ export class XProtocolClient  {
         .join('.');
     } else {
       this.host_type = 'InternetV6';
-      this.host = (new v6.Address(
+      this.host = (new Address6(
           Array.apply(null, new Array(8))
             .map(function (v, i) {
               return this.idBuf.readUInt16(i * 2)
